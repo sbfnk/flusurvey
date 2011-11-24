@@ -1,7 +1,6 @@
 #!/usr/bin/perl -w
 
 use strict;
-use Math::Random qw(random_binomial);
 
 my @header = split /,/, <STDIN>;
 my $vaccinated_index;
@@ -44,11 +43,6 @@ while ($index < scalar( @data )) {
 		my $added_ili_vaccinated = $vaccinated[$vaccinated_index+2] /
 		     			  ($vaccinated[$vaccinated_index+1] +
 					       .0) * $unvaccinated[$vaccinated_index+1];
-		    # random_binomial($vaccinated[$vaccinated_index+1],
-		    # 		    $unvaccinated[$vaccinated_index+1],
-		    # 		    ($vaccinated[$vaccinated_index+2] /
-		    # 			 ($vaccinated[$vaccinated_index+1] +
-		    # 			      .0)));
 		$vaccinated_ili += $added_ili_vaccinated;
 		$vaccinated_nonili += $unvaccinated[$vaccinated_index+1] -
 		    $added_ili_vaccinated;
@@ -58,12 +52,6 @@ while ($index < scalar( @data )) {
 		my $added_ili_unvaccinated = $unvaccinated[$vaccinated_index+2] /
 		     			  ($unvaccinated[$vaccinated_index+1] +
 					       .0) * $vaccinated[$vaccinated_index+1];
-		# my $added_ili_unvaccinated =
-		#     random_binomial($unvaccinated[$vaccinated_index+1],
-		# 		    $vaccinated[$vaccinated_index+1],
-		# 		    ($unvaccinated[$vaccinated_index+2] /
-		# 			 ($unvaccinated[$vaccinated_index+1] +
-		# 			      .0)));
 		$unvaccinated_ili += $added_ili_unvaccinated;
 		$unvaccinated_nonili += $vaccinated[$vaccinated_index+1] -
 		    $added_ili_unvaccinated;
