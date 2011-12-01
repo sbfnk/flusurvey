@@ -136,43 +136,84 @@ while ($index < scalar( @data )) {
 }
 
 if ($motionchart) {
-    print "  <html>\n";
-    print "  <head>\n";
-    print "    <script type=\"text/javascript\" ".
-	"src=\"https://www.google.com/jsapi\"></script>\n";
-    print "    <script type=\"text/javascript\">\n";
-    print "      google.load('visualization', '1', ".
-	"{'packages':['motionchart']});\n";
-    print "      google.setOnLoadCallback(drawChart);\n";
-    print "      function drawChart() {\n";
-    print "        var data = new google.visualization.DataTable();\n";
-    print "        data.addColumn('string', 'Vaccination status');\n";
-    print "        data.addColumn('string', 'Date');\n";
-    print "        data.addColumn('number', 'Incidence');\n";
-    print "        data.addRows([\n";
+    my @categories;
+    my @vaccinated_data;
+    my @unvaccinated_data;
     foreach my $year (sort keys %vaccinated_ili) {
 	foreach my $week (sort keys %{ $vaccinated_ili{$year} }) {
-	    printf "          ['vaccinated','%d"."W"."%02d',%.2f],\n",
-		$year, $week,
-		    ($vaccinated_ili{$year}{$week} /
-			 ($vaccinated_nonili{$year}{$week} + .0));
-	    printf "          ['unvaccinated','%d"."W"."%02d',%.2f],\n",
-		$year, $week,
-		    ($unvaccinated_ili{$year}{$week} /
-			 ($unvaccinated_nonili{$year}{$week} + .0));
+	    push @categories, "'$week/$year'";
+	    push @vaccinated_data,
+		sprintf("%.0f", ($vaccinated_ili{$year}{$week} * 100 /
+		     ($vaccinated_ili{$year}{$week} +
+			  $vaccinated_nonili{$year}{$week} + .0)));
+	    push @unvaccinated_data,
+		sprintf("%.f", ($unvaccinated_ili{$year}{$week} * 100 /
+		     ($unvaccinated_ili{$year}{$week} +
+			  $unvaccinated_nonili{$year}{$week} + .0)));
 	}
     }
-    print "          ]);\n";
-    print "        var chart = ".
-	"new google.visualization.MotionChart(document.getElementById".
-	    "('chart_div'));\n";
-    print "        chart.draw(data, {width: 600, height:300});\n";
-    print "      }\n";
+    print "<html>\n";
+    print "  <head>\n";
+    print "    <script type=\"text/javascript\" ".
+	"src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/".
+	    "jquery.min.js\"></script>\n";
+    print "    <script type=\"text/javascript\" ".
+	"src=\"/media/highcharts/highcharts.js\"></script>\n";
+    print "    <script type=\"text/javascript\">\n";
+    print "            var chart;\n";
+    print "            \$(document).ready(function() {\n";
+    print "                    chart = new Highcharts.Chart({\n";
+    print "                            chart: {\n";
+    print "                                    renderTo: 'container',\n";
+    print "                                    defaultSeriesType: 'line',\n";
+    print "                                    marginRight: 0,\n";
+    print "                                    marginBottom: 40\n";
+    print "                            },\n";
+    print "                            title: {\n";
+    print "                                    text: 'Incidence in vaccinated/unvaccinated groups',\n";
+    print "                                    x: -20 //center\n";
+    print "                            },\n";
+    print "                            xAxis: {\n";
+    print "                                    categories: [".join(',', @categories)."]\n";
+    print "                            },\n";
+    print "                            yAxis: {\n";
+    print "                                    title: {\n";
+    print "                                            text: 'Incidence (in %)'\n";
+    print "                                    },\n";
+    print "                                    plotLines: [{\n";
+    print "                                            value: 0,\n";
+    print "                                            width: 1,\n";
+    print "                                            color: '#808080'\n";
+    print "                                    }]\n";
+    print "                            },\n";
+    print "                            tooltip: {\n";
+    print "                                    formatter: function() {\n";
+    print "                                    return '<b>'+ this.series.name +'</b><br/>'+\n";
+    print "                                                    'Incidence in week ' + this.x +': '+ this.y + '%';\n";
+    print "                                    }\n";
+    print "                            },\n";
+    print "                            legend: {\n";
+    print "                                    layout: 'vertical',\n";
+    print "                                    align: 'right',\n";
+    print "                                    verticalAlign: 'top',\n";
+    print "                                    x: -10,\n";
+    print "                                    y: 100,\n";
+    print "                                    borderWidth: 0,\n";
+    print "                                    enabled: false\n";
+    print "                            },\n";
+    print "                            series: [{\n";
+    print "                                    name: 'Vaccinated',\n";
+    print "                                    data: [".join(",", @vaccinated_data)."]\n";
+    print "                            }, {\n";
+    print "                                    name: 'Unvaccinated',\n";
+    print "                                    data: [".join(",", @unvaccinated_data)."]\n";
+    print "                            }]\n";
+    print "                                });\n";
+    print "                        });\n";
     print "    </script>\n";
-    print "  </head>\n\n";
+    print "  </head>\n";
     print "  <body>\n";
-    print "    <div id=\"chart_div\" style=\"width: 600px; height: 300px;\">".
-	"</div>\n";
+    print "    <div id=\"container\" style=\"width: 550px; height: 300px; margin: 0 auto\"></div>\n";
     print "  </body>\n";
     print "</html>\n";
    } else {
