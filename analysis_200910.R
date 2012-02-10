@@ -29,6 +29,11 @@ st <- st[-(1:6),]
 setkey(st, uid, date)
 dt <- bt[vt[ct[st, roll=TRUE], roll=TRUE], roll=TRUE]
 
+rm(bt)
+rm(vt)
+rm(ct)
+rm(st)
+
 setnames(dt, 4, "postcode")
 setnames(dt, 5, "gender")
 setnames(dt, 6, "birthyear")
@@ -170,8 +175,12 @@ dt2$week <- format(dt2$date, format="%G-%W")
 dt2 <- dt2[!is.na(dt2$week)]
 dt2[dt2$week=="2009-00"]$week <- "2009-52"
 
-postcodes <- readShapePoly("~/Research/FluSurvey/Shapefiles/uk_convertd4")
-names(postcodes)[1] <- "names"
+symptoms <- dt2[,names(dt2)[188:201],with=F]
+symptoms <- symptoms[symptoms$blocked.runny.nose!="NULL"]
+u <- unique(symptoms)
+
+## postcodes <- readShapePoly("~/Research/FluSurvey/Shapefiles/uk_convertd4")
+## names(postcodes)[1] <- "names"
 
 plot.week <- function(x, color=2)
 {
