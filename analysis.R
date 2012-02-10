@@ -9,6 +9,10 @@ st <- data.table(sf)
 bt <- data.table(bf)
 ct <- data.table(cf)
 
+rm(sf)
+rm(bf)
+rm(cf)
+
 setnames(bt, 1, "bid")
 setnames(ct, 1, "cid")
 
@@ -21,6 +25,10 @@ setkey(bt, user, date)
 setkey(ct, user, date)
 
 dt <- bt[ct[st, roll=TRUE], roll=TRUE]
+
+rm(bt)
+rm(ct)
+rm(st)
 
 setnames(dt, 7, "self")
 setnames(dt, 8, "gender")
@@ -159,8 +167,8 @@ dt2 <- dt2[!is.na(dt2$week)]
 dt2[dt2$week=="2011-00"]$week <- "2011-52"
 dt2$postcode <- toupper(as.character(dt2$postcode))
 
-postcodes <- readShapePoly("~/Research/FluSurvey/Shapefiles/uk_convertd4")
-names(postcodes)[1] <- "names"
+#postcodes <- readShapePoly("~/Research/FluSurvey/Shapefiles/uk_convertd4")
+#names(postcodes)[1] <- "names"
 
 plot.week <- function(x, color=2)
 {
