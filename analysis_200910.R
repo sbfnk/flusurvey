@@ -168,10 +168,11 @@ setkey(freq, Group.1)
 dt <- dt[freq]
 setnames(dt, "x", "nReports")
 
-#dt2 <- dt[dt$nReports>1 & !is.na(dt$ili)]
 dt2 <- dt[duplicated(dt$uid)]
 dt2$ili <- as.numeric(dt2$ili)
 dt2$week <- format(dt2$date, format="%G-%W")
+dt2$month <- months(dt2$date)
+dt3$month <- factor(dt3$month, levels(factor(dt3$month))[c(5,1,9,8,7,2,4,3,6)])
 dt2 <- dt2[!is.na(dt2$week)]
 dt2[dt2$week=="2009-00"]$week <- "2009-52"
 
@@ -181,6 +182,8 @@ u <- unique(symptoms)
 
 ## postcodes <- readShapePoly("~/Research/FluSurvey/Shapefiles/uk_convertd4")
 ## names(postcodes)[1] <- "names"
+
+symptoms <- dt2[names(dt2)[188:201]]
 
 plot.week <- function(x, color=2)
 {
@@ -195,4 +198,5 @@ plot.week <- function(x, color=2)
   title(main=x)
   dev.off()
 }
+
 
