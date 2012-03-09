@@ -1,5 +1,6 @@
 library(data.table)
 library(maptools)
+library(maps)
 
 sf <- read.csv('weekly.csv', sep=',', header=T)
 bf <- read.csv('intake.csv', sep=',', header=T)
@@ -146,6 +147,13 @@ setnames(dt, 168, "symptoms.end")
 setnames(dt, 169, "symptoms.suddenly")
 setnames(dt, 171, "fever.start")
 setnames(dt, 172, "fever.suddenly")
+setnames(dt, 175, "visit.medical.service.no")
+setnames(dt, 176, "visit.medical.service.gp")
+setnames(dt, 177, "visit.medical.service.ae")
+setnames(dt, 178, "visit.medical.service.hospital")
+setnames(dt, 179, "visit.medical.service.other")
+setnames(dt, 180, "visit.medical.service.appointment")
+setnames(dt, 181, "visit.medical.service.howsoon")
 setnames(dt, 197, "alter.routine")
 setnames(dt, 199, "howlong.altered")
 setnames(dt, 201, "howmany.household.ili")
@@ -167,19 +175,44 @@ dt2 <- dt2[!is.na(dt2$week)]
 dt2[dt2$week=="2011-00"]$week <- "2011-52"
 dt2$postcode <- toupper(as.character(dt2$postcode))
 
+swant <- names(dt2)[c(143:146,148,149,151:153,158,160,161)]
+vc <- rep(0.0, 11)
+vn <- rep(0.0, 11)
+
+j <- 0
+for (i in swant[-1]) {
+  j <- j+1
+  vn[j] <-
+    sum(dt3[dt3$no.symptoms==0,i,with=F])/nrow(dt2[dt3$no.symptoms==0,i,with=F])
+  vc[j] <-
+    sum(dt3[dt3$alter.routine==1,i,with=F])/nrow(dt3[dt3$alter.routine==1,i,with=F])
+}
+
+sdc <- data.frame(symptom=rep(swant[-1]), status="change", fraction=vc)
+sdn <- data.frame(symptom=rep(swant[-1]), status="no change", fraction=vn)
+sd <- rbind(sdc, sdn)
+sd$season <- "2011-12"
+
+dta <- dt[!is.na(dt$alter.routine)]
+
+round(sort(table(apply(dta[dta$visit.medical.service.gp=='t'],1,function(x) {
+  paste(names(dta)[which(x[144:161]=="t")+144], sep=".", collapse=" + ")})))*100/
+  sum(sort(table(apply(dta[dta$visit.medical.service.gp=='t'],1,function(x) {
+  paste(names(dta)[which(x[144:161]=="t")+144], sep=".", collapse=" + ")})))),1)
+
 #postcodes <- readShapePoly("~/Research/FluSurvey/Shapefiles/uk_convertd4")
 #names(postcodes)[1] <- "names"
 
 plot.week <- function(x, color=2)
 {
-  pc1 <- unique(dt2[dt2$week==x]$postcode)
+  pc1 <- unique(dt2[dt2$week==x & dt2$ili==1]$postcode)
   pc1 <- as.character(pc1, na.rm=T)
   pc1 <- pc1[!is.na(pc1) & pc1 != "NULL" & pc1 != ""]
   col <- rep(color,length(pc1))
   match <- match.map(postcodes, pc1)
   color <- col[match]
-  png(paste(x, ".png", sep=""))
-  plot(postcodes, border="gray", col=color)
-  title(main=x)
-  dev.off()
+#  png(paste(x, ".png", sep=""))
+  plot(postcodes, border="white", col=color)
+#  title(main=x)
+#  dev.off()
 }
