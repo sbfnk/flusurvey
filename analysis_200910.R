@@ -144,6 +144,7 @@ setnames(dt, 170, "symptoms")
 setnames(dt, 171, "symptoms.start")
 setnames(dt, 172, "fever")
 setnames(dt, 173, "fever.start")
+setnames(dt, 176, "medical.service.visit")
 setnames(dt, 179, "alter.routine")
 setnames(dt, 180, "howlong.altered")
 setnames(dt, 188, "blocked.runny.nose")
@@ -160,9 +161,15 @@ setnames(dt, 198, "weakness")
 setnames(dt, 199, "eye.irritation")
 setnames(dt, 200, "fever.symptom")
 setnames(dt, 201, "no.symptoms")
+setnames(dt, 207, "medical.service.visit.gp")
+setnames(dt, 208, "medical.service.visit.hospital")
+setnames(dt, 209, "medical.service.visit.other")
+setnames(dt, 210, "medical.service.visit.no")
+setnames(dt, 211, "medical.service.visit.ae")
 
-dt$ili <-((dt$fever & dt$muscle.and.or.joint.pain & dt$q3004==1 & (dt$cough |
+dt$ili <- (((dt$fever.symptom | (!is.na(dt$fever) & dt$fever>1)) & dt$muscle.and.or.joint.pain & dt$q3004==1 & (dt$cough |
   dt$sore.throat | dt$chest.pain))==T)
+dt$ili.rcgp <- ((dt$fever.symptom | (!is.na(dt$fever) & dt$fever>1)) & (length(which(dt[c(188:192,195,198)]==1) > 1)))
 freq <- data.table(aggregate(dt$uid, by=list(dt$uid), length))
 setkey(freq, Group.1)
 dt <- dt[freq]
@@ -170,20 +177,21 @@ setnames(dt, "x", "nReports")
 
 dt2 <- dt[duplicated(dt$uid)]
 dt2$ili <- as.numeric(dt2$ili)
+dt2$ili.rcgp <- as.numeric(dt2$ili.rcgp)
 dt2$week <- format(dt2$date, format="%G-%W")
 dt2$month <- months(dt2$date)
-dt3$month <- factor(dt3$month, levels(factor(dt3$month))[c(5,1,9,8,7,2,4,3,6)])
+dt2$month <- factor(dt2$month, levels(factor(dt2$month))[c(5,1,9,8,7,2,4,3,6)])
 dt2 <- dt2[!is.na(dt2$week)]
 dt2[dt2$week=="2009-00"]$week <- "2009-52"
 
-symptoms <- dt2[,names(dt2)[188:201],with=F]
-symptoms <- symptoms[symptoms$blocked.runny.nose!="NULL"]
-u <- unique(symptoms)
+## symptoms <- dt2[,names(dt2)[188:201],with=F]
+## symptoms <- symptoms[symptoms$blocked.runny.nose!="NULL"]
+## u <- unique(symptoms)
 
 ## postcodes <- readShapePoly("~/Research/FluSurvey/Shapefiles/uk_convertd4")
 ## names(postcodes)[1] <- "names"
 
-symptoms <- dt2[names(dt2)[188:201]]
+## symptoms <- dt2[names(dt2)[188:201]]
 
 plot.week <- function(x, color=2)
 {
@@ -199,4 +207,18 @@ plot.week <- function(x, color=2)
   dev.off()
 }
 
+symptomatic <- dt2[apply(dt2, 1, function(x)
+                           { length(which(x[188:200]==1)) > 0})]
+symptomatic <- symptomatic[symptomatic$blocked.runny.nose!="NULL"]
+m1symptomatic <- dt2[apply(dt2, 1, function(x)
+                           { length(which(x[188:200]==1)) > 1})]
+m1symptomatic <- m1symptomatic[m1symptomatic$blocked.runny.nose!="NULL"]
+st <- round(sort(table(apply(symptomatic,1,function(x) {
+  paste(names(symptomatic)[which(x[188:200]==1)+187], sep=".", collapse=" + ")})))*100/
+  sum(sort(table(apply(symptomatic,1,function(x) {
+  paste(names(symptomatic)[which(x[188:200]==1)+187], sep=".", collapse=" + ")})))),1)
+m1st <- round(sort(table(apply(m1symptomatic,1,function(x) {
+  paste(names(m1symptomatic)[which(x[188:200]==1)+187], sep=".", collapse=" + ")})))*100/
+  sum(sort(table(apply(m1symptomatic,1,function(x) {
+  paste(names(m1symptomatic)[which(x[188:200]==1)+187], sep=".", collapse=" + ")})))),1)
 
