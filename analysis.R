@@ -2,9 +2,18 @@ library(data.table)
 library(maptools)
 library(maps)
 
-sf <- read.csv('weekly.csv', sep=',', header=T)
-bf <- read.csv('intake.csv', sep=',', header=T)
-cf <- read.csv('contact.csv', sep=',', header=T)
+sf <- read.csv('epidb_weekly.csv', sep=',', header=T)
+bf <- read.csv('epidb_intake.csv', sep=',', header=T)
+
+translation <- data.frame(global_id = unique(bf$global_id))
+translation$number <- seq(1,nrow(translation))
+
+levels(sf$global_id) <- levels(bf$global_id)
+
+bf$global_id_number <- translation$number[match(bf$global_id,
+                                                translation$global_id)]
+sf$global_id_number <- translation$number[match(sf$global_id,
+                                                translation$global_id)]
 
 st <- data.table(sf)
 bt <- data.table(bf)
@@ -21,9 +30,9 @@ st$date <- as.Date(st$timestamp)
 bt$date <- as.Date(bt$timestamp)
 ct$date <- as.Date(ct$timestamp)
 
-setkey(st, user, date)
-setkey(bt, user, date)
-setkey(ct, user, date)
+setkey(st, global_id_number, date)
+setkey(bt, global_id_number, date)
+setkey(ct, global_id_number, date)
 
 dt <- bt[ct[st, roll=TRUE], roll=TRUE]
 
@@ -198,7 +207,10 @@ dta <- dt[!is.na(dt$alter.routine)]
 round(sort(table(apply(dta[dta$visit.medical.service.gp=='t'],1,function(x) {
   paste(names(dta)[which(x[144:161]=="t")+144], sep=".", collapse=" + ")})))*100/
   sum(sort(table(apply(dta[dta$visit.medical.service.gp=='t'],1,function(x) {
-  paste(names(dta)[which(x[144:161]=="t")+144], sep=".", collapse=" + ")})))),1)
+  paste(names(dta)[which(x[144:161]=="t")+144], sep=".",
+  collapse=" + ")})))),1)
+
+
 
 #postcodes <- readShapePoly("~/Research/FluSurvey/Shapefiles/uk_convertd4")
 #names(postcodes)[1] <- "names"
