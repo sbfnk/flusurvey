@@ -27,7 +27,7 @@ SELECT extract(year from age(to_timestamp(I."Q2",'YYYY-MM'))) AS a,
        extract(year FROM W.timestamp) AS year
   FROM pollster_results_intake AS I,
        pollster_health_status AS S,
-        pollster_results_weekly AS W
+       pollster_results_weekly AS W
  WHERE I."Q10"<2
    AND S.pollster_results_weekly_id = W.id
    AND W.global_id = I.global_id AND extract(year from age(to_timestamp(I."Q2",'YYYY-MM'))) > 0
