@@ -132,13 +132,20 @@ setnames(dt, 153, "howlong.altered")
 setnames(dt, 155, "howmany.household.ili")
 setnames(dt, 156, "howmany.other.ili")
 
-dt$ili <-((dt$fever =="t" & dt$muscle.and.or.joint.pain =="t" &
-  (dt$symptoms.suddenly == 0 | dt$fever.suddenly == 0) &
-           (dt$cough == "t" | dt$sore.throat == "t" | dt$chest.pain =="t"))==T)
+## dt$ili <-((dt$fever =="t" & dt$muscle.and.or.joint.pain =="t" &
+##   (dt$symptoms.suddenly == 0 | dt$fever.suddenly == 0) &
+##            (dt$cough == "t" | dt$sore.throat == "t" | dt$chest.pain =="t"))==T)
+dt$ili <- ((dt$symptoms.suddenly == 0) &
+           (dt$fever == "t" | dt$tired == "t" | dt$headache == "t" |
+            dt$muscle.and.or.joint.pain =="t") &
+           (dt$sore.throat == "t" | dt$cough =="t" | dt$shortness.breath =="t"))
 freq <- data.table(aggregate(dt$global_id_number, by=list(dt$global_id_number), length))
 setkey(freq, Group.1)
 dt <- dt[freq]
 setnames(dt, "x", "nReports")
+dt$id <- seq(1,nrow(dt))
+dt$symptoms.start <- as.Date(dt$symptoms.start, "%Y-%m-%d")
+
 
 #dt2 <- dt[dt$nReports>1 & !is.na(dt$ili)]
 dt2 <- dt[duplicated(dt$user)]
