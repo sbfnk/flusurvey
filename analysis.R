@@ -46,7 +46,12 @@ setnames(dt, 9, "gender")
 setnames(dt, 11, "birthmonth")
 setnames(dt, 12, "postcode")
 setnames(dt, 16, "occupation")
-setnames(dt, 17, "education")
+setnames(dt, 17, "no.education")
+setnames(dt, 18, "education.gcse")
+setnames(dt, 19, "education.alevels")
+setnames(dt, 20, "education.bsc")
+setnames(dt, 21, "education.msc")
+setnames(dt, 22, "education.stillin")
 setnames(dt, 23, "frequent.contact.children")
 setnames(dt, 24, "frequent.contact.elderly")
 setnames(dt, 25, "frequent.contact.patients")
@@ -239,7 +244,7 @@ plot.week <- function(x, color=2)
 #  dev.off()
 }
 
-weekly.incidence <- function(x, variable, range=c())
+weekly.incidence <- function(x, variable, range=c(), weeks=c())
 {
 
   d <- split(x, x[,which(names(x)==variable),with=F])
@@ -255,7 +260,13 @@ weekly.incidence <- function(x, variable, range=c())
                                         symptoms.start > "2011-11-02" & 
                                         symptoms.start < "2012-04-01"]$week]
     wsums <- tapply(weights, bins, sum)
-    df[[i]] <- data.frame(incidence=wsums[1:20], variable=names(d)[i], week=levels(bins)[1:20])
+    binlevels <- levels(bins)
+    if (length(weeks)>0) {
+      wsums <- wsums[weeks]
+      binlevels <- binlevels[weeks]
+    }
+      
+    df[[i]] <- data.frame(incidence=wsums, variable=names(d)[i], week=binlevels)
   }
 
   weekly_incidence <- df[[1]]
@@ -268,6 +279,19 @@ weekly.incidence <- function(x, variable, range=c())
   weekly_incidence
 }
 
+plot.binary <- function(x, name, yes=c(0), no=c(1), cname="test", weeks=c())
+{
+  x$compare <- NA
+  for (i in yes) {
+    x$compare[x[,which(names(x)==name),with=F] == i] <- "yes"
+  }
+  for (i in no) {
+    x$compare[x[,which(names(x)==name),with=F] == i] <- "no"
+  }
+  ggplot(weekly.incidence(x, "compare", 1:2, weeks=weeks),
+         aes(x=week, y=incidence, color=compare))+
+           geom_line(lwd=1.5)+scale_color_discrete(name=cname)
+}
 
   
   for (i in 1:
