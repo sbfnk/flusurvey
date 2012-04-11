@@ -238,3 +238,47 @@ plot.week <- function(x, color=2)
 #  title(main=x)
 #  dev.off()
 }
+
+weekly.incidence <- function(x, variable, range=c())
+{
+
+  d <- split(x, x[,which(names(x)==variable),with=F])
+  if (length(range)>0) {d <- d[range]}
+  df <- c()
+
+  for (i in 1:length(d)) {
+    a <- data.table(d[[i]])
+    bins <- cut(a[ili==T & symptoms.start > "2011-11-02" &
+                  symptoms.start < "2012-04-01"]$symptoms.start,
+                breaks="week")
+    weights <- 1/hist(a$week, freq=T, breaks=seq(0,52))$counts[a[ili==T &
+                                        symptoms.start > "2011-11-02" & 
+                                        symptoms.start < "2012-04-01"]$week]
+    wsums <- tapply(weights, bins, sum)
+    df[[i]] <- data.frame(incidence=wsums[1:20], variable=names(d)[i], week=levels(bins)[1:20])
+  }
+
+  weekly_incidence <- df[[1]]
+  for (i in 2:length(d)) {
+    weekly_incidence <- rbind(weekly_incidence, df[[i]])
+  }
+
+  names(weekly_incidence)[2] <- variable
+  weekly_incidence$week <- as.Date(weekly_incidence$week)
+  weekly_incidence
+}
+
+
+  
+  for (i in 1:
+  pc1 <- unique(dt2[dt2$week==x & dt2$ili==1]$postcode)
+  pc1 <- as.character(pc1, na.rm=T)
+  pc1 <- pc1[!is.na(pc1) & pc1 != "NULL" & pc1 != ""]
+  col <- rep(color,length(pc1))
+  match <- match.map(postcodes, pc1)
+  color <- col[match]
+#  png(paste(x, ".png", sep=""))
+  plot(postcodes, border="white", col=color)
+#  title(main=x)
+#  dev.off()
+}
