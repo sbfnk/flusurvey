@@ -42,7 +42,7 @@ rm(ct)
 rm(st)
 
 setnames(dt, 8, "self")
-setnames(dt, 9, "gender")
+setnames(dt, 10, "gender")
 setnames(dt, 11, "birthmonth")
 setnames(dt, 12, "postcode")
 setnames(dt, 16, "occupation")
@@ -192,7 +192,7 @@ dt[dt$week==0]$week <- 52
 dt$weight <- 1/hist(dt$week, freq=T, breaks=seq(0,52))$counts[dt$week]
 
 #dt2 <- dt[dt$nReports>1 & !is.na(dt$ili)]
-dt2 <- dt[duplicated(dt$user)]
+dt2 <- dt[duplicated(dt$global_id)]
 dt2$ili <- as.numeric(dt2$ili)
 dt2$week <- format(dt2$date, format="%G-%W")
 dt2 <- dt2[!is.na(dt2$week)]
