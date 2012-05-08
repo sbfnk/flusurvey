@@ -206,24 +206,29 @@ ds$vaccinated <- with(compare, aggregate(vaccine,
                                          sum))$x > 0
 ds$nonili <- 1-ds$ili
 ds$smoking <- ds$smoke %in% c(1,2,3)
+ds$weight <- 0
+for (i in 1:length(levels(factor(ds$country)))) {
+  ds[country==levels(factor(ds$country))[i]]$weight <-
+    1/nrow(ds[country==levels(factor(ds$country))[i]])
+}
 
-pdf("attack_rate.pdf")
+png("attack_rate.png")
 ggplot(ds[ili==T], aes(x=country, fill=country, weight=weight))+
-  geom_bar()+
+  geom_bar(color="black")+
   theme_bw(20)+
   opts(panel.grid.major=theme_blank(), panel.grid.minor=theme_blank(), title)+
   scale_fill_brewer(palette="Set1")+
-  scale_y_continuous("attack rate", limits=c(0,1))+
+  scale_y_continuous("attack rate", limits=c(0,1.01))+
   opts(legend.position="none")
 dev.off()
 
-pdf("vaccination_coverage.pdf")
+png("vaccination_coverage.png")
 ggplot(ds[vaccinated==T], aes(x=country, fill=country, weight=weight))+
   geom_bar(color="black")+
   theme_bw(20)+
   opts(panel.grid.major=theme_blank(), panel.grid.minor=theme_blank(), title)+
   scale_fill_brewer(palette="Set1")+
-  scale_y_continuous("vaccination coverage", limits=c(0,1))+
+  scale_y_continuous("vaccination coverage", limits=c(0,1.01))+
   opts(legend.position="none")
 dev.off()
 
@@ -234,7 +239,7 @@ for (i in levels(factor(ds$country))) {
       1/nrow(ds[country==i & agegroup==j])
   }
 }
-pdf("vaccination_coverage_by_age.pdf")
+png("vaccination_coverage_by_age.png")
 ggplot(ds[vaccinated==T], aes(x=agegroup, fill=agegroup, weight=reweight))+
   geom_bar()+
   geom_bar(color="black", show_guide=F)+  
@@ -244,7 +249,7 @@ ggplot(ds[vaccinated==T], aes(x=agegroup, fill=agegroup, weight=reweight))+
        axis.ticks = theme_blank(), axis.text.x = theme_blank(), axis.title.x =
        theme_blank())+ 
   scale_fill_brewer(name="age group", palette="Set1")+
-  scale_y_continuous("vaccination coverage", limits=c(0,1))
+  scale_y_continuous("vaccination coverage", limits=c(0,1.01))
 dev.off()
 
 ds$reweight <- 0
@@ -254,7 +259,7 @@ for (i in levels(factor(ds$country))) {
       1/nrow(ds[country==i & atrisk == j & agegroup %in% levels(agegroup)[1:3]])
   }
 }
-pdf("vaccination_coverage_by_risk.pdf")
+png("vaccination_coverage_by_risk.png")
 ggplot(ds[vaccinated==T & agegroup %in% levels(agegroup)[1:3]],
        aes(x=factor(atrisk), fill=factor(atrisk), weight=reweight))+
   geom_bar()+
@@ -265,17 +270,17 @@ ggplot(ds[vaccinated==T & agegroup %in% levels(agegroup)[1:3]],
        axis.ticks = theme_blank(), axis.text.x = theme_blank(), axis.title.x =
        theme_blank())+
   scale_fill_brewer(name="Risk group", palette="Set1", labels=c("no", "yes"))+
-  scale_y_continuous("vaccination coverage", limits=c(0,1))
+  scale_y_continuous("vaccination coverage", limits=c(0,1.01))
 dev.off()
 
-pdf("age_dist.pdf")
+png("age_dist.png")
 ggplot(ds, aes(x=country, fill=agegroup, weight=weight))+
   geom_bar()+
   geom_bar(color="black", show_guide=F)+
   theme_bw(20)+
   opts(panel.grid.major=theme_blank(), panel.grid.minor=theme_blank(), title)+
   scale_fill_brewer(name="age group", palette="Set1")+
-  scale_y_continuous("age distribution", limits=c(0,1))
+  scale_y_continuous("age distribution", limits=c(0,1.01))
 dev.off()
 
 vaccine_time <- data.frame()
@@ -318,7 +323,7 @@ for (i in levels(factor(ds$country))) {
     1/nrow(ds[education!="" & country==i])
 }
 
-pdf("education_dist.pdf")
+png("education_dist.png")
 ggplot(ds[education!=""], aes(x=country, fill=education, weight=reweight))+
   geom_bar()+
   geom_bar(color="black", show_guide=F)+
