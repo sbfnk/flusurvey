@@ -2,6 +2,7 @@ library(data.table)
 library(ggplot2)
 library(reshape)
 
+# compute the age in years from a birthdate (from) and the current date (to)
 age_years <- function(from, to)
 {
      lt <- as.POSIXlt(c(from, to))
@@ -11,19 +12,24 @@ age_years <- function(from, to)
      age
 }
 
+# read tables
 sf <- read.csv('epidb_weekly.csv', sep=',', header=T)
 bf <- read.csv('epidb_intake.csv', sep=',', header=T)
 
+# create translation table so that every participant gets a unique ID number
+# (called global.id.number)
 translation <- data.frame(global_id = unique(bf$global_id))
 translation$number <- seq(1,nrow(translation))
 
+# make sure global ids are in the same order
 levels(sf$global_id) <- levels(bf$global_id)
-
-bf$global_id_number <- translation$number[match(bf$global_id,
+# assign global id numbers
+bf$global.id.number <- translation$number[match(bf$global_id,
                                                 translation$global_id)]
-sf$global_id_number <- translation$number[match(sf$global_id,
+sf$global.id.number <- translation$number[match(sf$global_id,
                                                 translation$global_id)]
 
+# put data in data tables (for the rolling join to be used later)
 st <- data.table(sf)
 bt <- data.table(bf)
 
@@ -35,14 +41,16 @@ setnames(bt, 2, "bid")
 st$date <- as.Date(st$timestamp)
 bt$date <- as.Date(bt$timestamp)
 
-setkey(st, global_id_number, date)
-setkey(bt, global_id_number, date)
-
+# rolling join of symptoms and background, by id number (first) and date
+# (second) 
+setkey(st, global.id.number, date)
+setkey(bt, global.id.number, date)
 dt <- bt[st, roll=TRUE]
 
 rm(bt)
 rm(st)
 
+# set convenient names
 setnames(dt, "Q0", "self")
 setnames(dt, "Q1", "gender")
 setnames(dt, "Q2", "birthmonth")
@@ -151,26 +159,28 @@ setnames(dt, "Q10c", "howlong.altered")
 setnames(dt, "Q12_multi_row1_col1", "howmany.household.ili")
 setnames(dt, "Q13_multi_row1_col1", "howmany.other.ili")
 
-## dt$ili <-((dt$fever =="t" & dt$muscle.and.or.joint.pain =="t" &
-##   (dt$symptoms.suddenly == 0 | dt$fever.suddenly == 0) &
-##            (dt$cough == "t" | dt$sore.throat == "t" | dt$chest.pain =="t"))==T)
+# assign some useful variables: ili yes/no, number of reports, symptoms start
+# (as date), week of report, weight (for histograms later,
+# basically 1/(number of reports that week))
 dt$ili <- ((dt$symptoms.suddenly == 0) &
            (dt$fever == "t" | dt$tired == "t" | dt$headache == "t" |
             dt$muscle.and.or.joint.pain =="t") &
            (dt$sore.throat == "t" | dt$cough =="t" | dt$shortness.breath =="t"))
-freq <- data.table(aggregate(dt$global_id_number, by=list(dt$global_id_number), length))
+freq <-
+  data.table(aggregate(dt$global.id.number,
+                       by=list(dt$global.id.number),
+                       length))
 setkey(freq, Group.1)
 dt <- dt[freq]
 setnames(dt, "x", "nReports")
-dt$id <- seq(1,nrow(dt))
 dt$symptoms.start <- as.Date(dt$symptoms.start, "%Y-%m-%d")
 dt$week <- as.numeric(format(dt$date, format="%W"))
 dt[dt$week==0]$week <- 52
-dt$weight <- 1/hist(dt$week, freq=T, breaks=seq(0,52))$counts[dt$week]
+dt$weight <- 1/hist(dt$week, breaks=seq(0,52), plot=F)$counts[dt$week]
 
 
 #dt2 <- dt[dt$nReports>1 & !is.na(dt$ili)]
-dt2 <- dt[duplicated(dt$global_id_number)]
+dt2 <- dt[duplicated(dt$global.id.number)]
 dt2$ili <- as.numeric(dt2$ili)
 dt2$week <- format(dt2$date, format="%G-%W")
 dt2 <- dt2[!is.na(dt2$week)]
@@ -193,16 +203,16 @@ compare$age <- apply(compare, 1, function(x) { age_years(as.Date(x["birthdate"])
 compare$agegroup <- cut(compare$age, breaks=c(0,18,45,65, max(compare$age)), include.lowest=T)
 compare$vaccine <- (compare$vaccine.this.year == 0)
 
-ds <- compare[!duplicated(compare$global_id_number)]
+ds <- compare[!duplicated(compare$global.id.number)]
 
 ds$ili <- FALSE
 ds$nbili <- with(compare, aggregate(ili,
-                                    list(global_id_number=global_id_number),
+                                    list(global.id.number=global.id.number),
                                     sum))$x
 ds$ili <- (ds$nbili > 0)
 
 ds$vaccinated <- with(compare, aggregate(vaccine,
-                                         list(global_id_number=global_id_number),
+                                         list(global.id.number=global.id.number),
                                          sum))$x > 0
 ds$nonili <- 1-ds$ili
 ds$smoking <- ds$smoke %in% c(1,2,3)
