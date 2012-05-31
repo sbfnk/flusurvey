@@ -161,11 +161,14 @@ setnames(dt, "Q13_multi_row1_col1", "howmany.other.ili")
 
 # assign some useful variables: ili yes/no, number of reports, symptoms start
 # (as date), week of report, weight (for histograms later,
-# basically 1/(number of reports that week))
+# i.e. 1/(number of reports that week), and birthdate
 dt$ili <- ((dt$symptoms.suddenly == 0) &
            (dt$fever == "t" | dt$tired == "t" | dt$headache == "t" |
             dt$muscle.and.or.joint.pain =="t") &
-           (dt$sore.throat == "t" | dt$cough =="t" | dt$shortness.breath =="t"))
+           (dt$sore.throat == "t" | dt$cough =="t" | dt$shortness.breath
+            =="t"))
+dt$ili <- as.numeric(dt$ili)
+
 freq <-
   data.table(aggregate(dt$global.id.number,
                        by=list(dt$global.id.number),
@@ -174,36 +177,33 @@ setkey(freq, Group.1)
 dt <- dt[freq]
 setnames(dt, "x", "nReports")
 dt$symptoms.start <- as.Date(dt$symptoms.start, "%Y-%m-%d")
-dt$week <- as.numeric(format(dt$date, format="%W"))
+dt$week <- as.numeric(format(dt$date, format="%G-%W"))
 dt[dt$week==0]$week <- 52
 dt$weight <- 1/hist(dt$week, breaks=seq(0,52), plot=F)$counts[dt$week]
+dt$birthdate <- as.Date(dt$birthmonth, "%Y/%M/%d")
 
-
-#dt2 <- dt[dt$nReports>1 & !is.na(dt$ili)]
-dt2 <- dt[duplicated(dt$global.id.number)]
-dt2$ili <- as.numeric(dt2$ili)
-dt2$week <- format(dt2$date, format="%G-%W")
-dt2 <- dt2[!is.na(dt2$week)]
-dt2[dt2$week=="2011-00"]$week <- "2011-52"
-dt2$postcode <- toupper(as.character(dt2$postcode))
-dt2$country <- tolower(dt2$country)
-dt2$birthdate <- as.Date(dt2$birthmonth, "%Y/%M/%d")
-
-## compare <- dt2[date > "2012-02-19" & date < "2012-03-05" & !is.na(ili) &
-##                !is.na(birthdate) & birthdate < as.Date("2012-03-01"),]
-compare <- dt2[!is.na(ili) & !is.na(birthdate) & birthdate < as.Date("2012-04-01"),]
-#compare$global_id <-  factor(compare$global_id)
-compare$norisk <- factor(compare$norisk)
-compare$atrisk <- compare$norisk
-levels(compare$atrisk) <- c(1,0)
-compare$atrisk <- as.numeric(paste(compare$atrisk))
-compare$age <-  0
-compare$age <- apply(compare, 1, function(x) { age_years(as.Date(x["birthdate"]),
+# more variables to be used later
+dt$norisk <- factor(dt$norisk)
+dt$atrisk <- dt$norisk
+levels(dt$atrisk) <- c(1,0)
+dt$atrisk <- as.numeric(paste(dt$atrisk))
+dt$age <-  0
+dt$age <- apply(dt, 1, function(x) { age_years(as.Date(x["birthdate"]),
                                                          x["date"])})
-compare$agegroup <- cut(compare$age, breaks=c(0,18,45,65, max(compare$age)), include.lowest=T)
-compare$vaccine <- (compare$vaccine.this.year == 0)
+dt$agegroup <- cut(dt$age, breaks=c(0,18,45,65, max(dt$age)), include.lowest=T)
+dt$vaccine <- (dt$vaccine.this.year == 0)
 
-ds <- compare[!duplicated(compare$global.id.number)]
+# exclude users with only 1 report
+dt2 <- dt[duplicated(dt$global.id.number)]
+# exclude users with bad date
+dt2 <- dt2[!is.na(dt2$week)]
+# exclude users with bad ili
+dt2 <- dt2[!is.na(dt2$ili)]
+# correct last week of the year
+dt2[dt2$week=="2011-00"]$week <- "2011-52"
+
+# one-per-user table
+ds <- dt[!duplicated(dt$global.id.number)]
 
 ds$ili <- FALSE
 ds$nbili <- with(compare, aggregate(ili,
@@ -360,56 +360,4 @@ for (i in 1:nrow(countries)) {
     (countries[i,]$aru - countries[i,]$arv) / countries[i,]$aru * 100
 }
 
-m <- melt(ds, id.vars=c("agegroup", "vaccinated", "smoking",
-  "gender", "atrisk"), measure.vars=c("ili", "nonili"))
-data <- cast(m, agegroup+atrisk+gender+smoking+vaccinated~variable, sum)
-attach(data)
-fluglm <- glm(cbind(ili, nonili) ~ agegroup+atrisk+gender+smoking+vaccinated,
-              family=binomial)
-summary(fluglm)
-
-swant <- names(dt2)[c(143:146,148,149,151:153,158,160,161)]
-vc <- rep(0.0, 11)
-vn <- rep(0.0, 11)
-
-j <- 0
-for (i in swant[-1]) {
-  j <- j+1
-  vn[j] <-
-    sum(dt3[dt3$no.symptoms==0,i,with=F])/nrow(dt2[dt3$no.symptoms==0,i,with=F])
-  vc[j] <-
-    sum(dt3[dt3$alter.routine==1,i,with=F])/nrow(dt3[dt3$alter.routine==1,i,with=F])
-}
-
-sdc <- data.frame(symptom=rep(swant[-1]), status="change", fraction=vc)
-sdn <- data.frame(symptom=rep(swant[-1]), status="no change", fraction=vn)
-sd <- rbind(sdc, sdn)
-sd$season <- "2011-12"
-
-dta <- dt[!is.na(dt$alter.routine)]
-
-round(sort(table(apply(dta[dta$visit.medical.service.gp=='t'],1,function(x) {
-  paste(names(dta)[which(x[144:161]=="t")+144], sep=".", collapse=" + ")})))*100/
-  sum(sort(table(apply(dta[dta$visit.medical.service.gp=='t'],1,function(x) {
-  paste(names(dta)[which(x[144:161]=="t")+144], sep=".",
-  collapse=" + ")})))),1)
-
-
-
-#postcodes <- readShapePoly("~/Research/FluSurvey/Shapefiles/uk_convertd4")
-#names(postcodes)[1] <- "names"
-
-plot.week <- function(x, color=2)
-{
-  pc1 <- unique(dt2[dt2$week==x & dt2$ili==1]$postcode)
-  pc1 <- as.character(pc1, na.rm=T)
-  pc1 <- pc1[!is.na(pc1) & pc1 != "NULL" & pc1 != ""]
-  col <- rep(color,length(pc1))
-  match <- match.map(postcodes, pc1)
-  color <- col[match]
-#  png(paste(x, ".png", sep=""))
-  plot(postcodes, border="white", col=color)
-#  title(main=x)
-#  dev.off()
-}
 
