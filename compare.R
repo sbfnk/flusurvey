@@ -1,15 +1,65 @@
-#dt2$birthdate <- as.Date(dt2$birthmonth, "%Y-%M")
-dt2$birthdate <- as.Date(dt2$birthmonth, "%Y/%M/%d")
-## compare <- dt2[date > "2012-02-19" & date < "2012-03-05" & !is.na(ili) &
-##                !is.na(birthdate) & birthdate < as.Date("2012-03-01"),]
-compare <- dt2[!is.na(ili) & !is.na(birthdate) & birthdate < as.Date("2012-04-01"),]
+library(data.table)
+library(ggplot2)
+
+##compare <- dt2[date > "2012-02-19" & date < "2012-03-05" & !is.na(ili) &
+##               !is.na(birthdate) & birthdate < as.Date("2012-03-01"),]
+ compare <- dt2[!is.na(ili) & !is.na(birthdate) & birthdate <
+                as.Date("2012-04-01"),] 
 #compare$global_id <-  factor(compare$global_id)
 compare$norisk <- factor(compare$norisk)
 compare$atrisk <- compare$norisk
 levels(compare$atrisk) <- c(1,0)
 compare$atrisk <- as.numeric(paste(compare$atrisk))
+compare$age <- apply(compare, 1, function(x) { age_years(x["birthdate"],
+                                                         x["date"])})
+compare$agegroup <- cut(compare$age, breaks=c(0,18,45,65, max(compare$age)), include.lowest=T)
+compare$vaccine <- (compare$vaccine.this.year == 0)
 
 ds <- compare[!duplicated(compare$global_id_number)]
+ds$vaccinated <- with(compare, aggregate(vaccine,
+                                         list(global_id_number=global_id_number),
+                                         sum))$x > 0
+ds$date.vaccine <- with(compare, aggregate(vaccine,
+                                           list(global_id_number=global_id_number),
+                                           sum))$x > 0
+
+keen <- (compare[nReports>15])
+keen[global_id_number %in%
+     ds2[date.vaccine=="" & vaccine==T]$global_id_number]$date.vaccine <-
+  "2011-11-01"
+
+subsample <- keen[date > "2012-02-19" & date < "2012-03-05" & !is.na(ili) & 
+                  !is.na(birthdate) & birthdate < as.Date("2012-03-01"),]
+ds2 <- subsample[!duplicated(subsample$global_id_number)]
+ds2$vaccinated <- with(subsample,
+                       aggregate(vaccine,
+                                 list(global_id_number=global_id_number),
+                                 sum))$x > 0
+ds2$not.vaccinated <- with(subsample,
+                           aggregate(vaccine.this.year,
+                                     list(global_id_number=global_id_number),
+                                     sum))$x
+length(unique(subsample[age<65 & atrisk==1 & as.Date(date.vaccine) <
+                   as.Date("2011-11-07")]$global_id_number)) / 
+  length(unique(subsample[age<65 & atrisk==1]$global_id_number))
+length(unique(subsample[age>=65 & as.Date(date.vaccine) <
+                   as.Date("2011-11-07")]$global_id_number)) / 
+  length(unique(subsample[age>=65]$global_id_number))
+length(unique(subsample[pregnant==T & as.Date(date.vaccine) <
+                   as.Date("2011-11-07")]$global_id_number)) / 
+  length(unique(subsample[pregnant==T]$global_id_number))
+
+length(unique(subsample[age<65 & atrisk==1 & as.Date(date.vaccine) <
+                   as.Date("2012-03-05")]$global_id_number)) / 
+  length(unique(subsample[age<65 & atrisk==1]$global_id_number))
+length(unique(subsample[age>=65 & as.Date(date.vaccine) <
+                   as.Date("2012-03-05")]$global_id_number)) / 
+  length(unique(subsample[age>=65]$global_id_number))
+length(unique(subsample[pregnant==T & as.Date(date.vaccine) <
+                   as.Date("2012-03-05")]$global_id_number)) / 
+  length(unique(subsample[pregnant==T]$global_id_number))
+
+
 
 age_years <- function(from, to)
 {
@@ -28,7 +78,7 @@ ds$nbili <- with(compare, aggregate(ili,
                                     sum))$x
 ds$ili <- (ds$nbili > 0)
 ds$age <- apply(ds, 1, function(x) { age_years(as.Date(x["birthdate"]),
-                                    as.Date("2012-04-01"))})
+                                    as.Date("2012-02-19"))})
 
 ds[is.na(nb.household.0.4)]$nb.household.0.4 <- 0
 ds[is.na(nb.household.5.18)]$nb.household.5.18 <- 0
