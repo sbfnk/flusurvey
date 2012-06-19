@@ -361,3 +361,16 @@ for (i in 1:nrow(countries)) {
 }
 
 
+# HPA stuff
+
+nrow(ds[country=="uk" & ili==T])/nrow(ds[country=="uk"])*100
+nrow(ds[country=="uk" & ili==T & age < 20])/nrow(ds[country=="uk" & age < 20])*100
+nrow(ds[country=="uk" & ili==T & age >= 20 & age < 45])/nrow(ds[country=="uk" & age >=20 & age < 45])*100
+nrow(ds[country=="uk" & ili==T & age >= 45])/nrow(ds[country=="uk" & age >= 45])*100
+nrow(ds[country=="uk" & ili==T & atrisk == 1])/nrow(ds[country=="uk" & atrisk == 1])*100
+
+ds$vmsg <- with(dt2, aggregate(vmsg,
+                               list(global.id.number=global.id.number),
+                               sum))$x
+ds$vm <- (ds$vmsg > 0)
+nrow(ds[country=="uk" & ili==T & vm == 1])/nrow(ds[country=="uk"])*100
