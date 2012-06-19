@@ -1,19 +1,32 @@
 library(data.table)
+library(ggplot2)
+library(reshape)
 library(maptools)
 library(maps)
 
-sf <- read.csv('weekly.csv', sep=',', header=T)
-bf <- read.csv('intake.csv', sep=',', header=T)
-cf <- read.csv('contact.csv', sep=',', header=T)
+# compute the age in years from a birthdate (from) and the current date (to)
+age_years <- function(from, to)
+{
+     lt <- as.POSIXlt(c(from, to))
+     age <- lt$year[2] - lt$year[1]
+     mons <- lt$mon + lt$mday/50
+     if(mons[2] < mons[1]) age <- age -1
+     age
+}
+
+# read tables
+sf12 <- read.csv('weekly.csv', sep=',', header=T)
+bf12 <- read.csv('intake.csv', sep=',', header=T)
+cf12 <- read.csv('contact.csv', sep=',', header=T)
 
 translation <- data.frame(global_id = unique(bf$global_id))
 translation$number <- seq(1,nrow(translation))
 
-bf$global_id_number <- translation$number[match(bf$global_id,
+bf$global.id.number <- translation$number[match(bf$global_id,
                                                 translation$global_id)]
-sf$global_id_number <- translation$number[match(sf$global_id,
+sf$global.id.number <- translation$number[match(sf$global_id,
                                                 translation$global_id)]
-cf$global_id_number <- translation$number[match(cf$global_id,
+cf$global.id.number <- translation$number[match(cf$global_id,
                                                 translation$global_id)]
 
 st <- data.table(sf)
@@ -31,9 +44,9 @@ st$date <- as.Date(st$timestamp)
 bt$date <- as.Date(bt$timestamp)
 ct$date <- as.Date(ct$timestamp)
 
-setkey(st, global_id_number, date)
-setkey(bt, global_id_number, date)
-setkey(ct, global_id_number, date)
+setkey(st, global.id.number, date)
+setkey(bt, global.id.number, date)
+setkey(ct, global.id.number, date)
 
 dt <- bt[ct[st, roll=TRUE], roll=TRUE]
 
@@ -158,7 +171,8 @@ setnames(dt, 164, "stomach.ache")
 setnames(dt, 165, "other")
 setnames(dt, 166, "stillill")
 setnames(dt, 169, "symptoms.start")
-setnames(dt, 171, "symptoms.end")
+setnames(dt, 170, "symptoms.end")
+setnames(dt, 171, "symptoms.end.when")
 setnames(dt, 172, "symptoms.suddenly")
 setnames(dt, 174, "fever.start")
 setnames(dt, 175, "fever.suddenly")
@@ -181,18 +195,20 @@ dt$ili <- ((dt$symptoms.suddenly == 0) &
            (dt$fever == "t" | dt$tired == "t" | dt$headache == "t" |
             dt$muscle.and.or.joint.pain =="t") &
            (dt$sore.throat == "t" | dt$cough =="t" | dt$shortness.breath =="t"))
-freq <- data.table(aggregate(dt$global_id_number, by=list(dt$global_id_number), length))
+freq <- data.table(aggregate(dt$global.id.number, by=list(dt$global.id.number), length))
 setkey(freq, Group.1)
 dt <- dt[freq]
 setnames(dt, "x", "nReports")
 dt$id <- seq(1,nrow(dt))
 dt$symptoms.start <- as.Date(dt$symptoms.start, "%Y-%m-%d")
+dt$symptoms.end <- as.Date(dt$symptoms.end, "%Y-%m-%d")
 dt$week <- as.numeric(format(dt$date, format="%W"))
 dt[dt$week==0]$week <- 52
-dt$weight <- 1/hist(dt$week, freq=T, breaks=seq(0,52))$counts[dt$week]
+dt$weight <- 1/hist(dt$week, freq=T, breaks=seq(0,52), plot=F)$counts[dt$week]
+dt$birthdate <- as.Date(paste(dt$birthmonth, "-01", sep=""), "%Y-%m-%d")
 
 #dt2 <- dt[dt$nReports>1 & !is.na(dt$ili)]
-dt2 <- dt[duplicated(dt$global_id)]
+dt2 <- dt[duplicated(dt$global.id.number)]
 dt2$ili <- as.numeric(dt2$ili)
 dt2$week <- format(dt2$date, format="%G-%W")
 dt2 <- dt2[!is.na(dt2$week)]
@@ -269,14 +285,14 @@ weekly.incidence <- function(x, variable, range=c(), weeks=c())
     df[[i]] <- data.frame(incidence=wsums, variable=names(d)[i], week=binlevels)
   }
 
-  weekly_incidence <- df[[1]]
+  weekly.incidence <- df[[1]]
   for (i in 2:length(d)) {
-    weekly_incidence <- rbind(weekly_incidence, df[[i]])
+    weekly.incidence <- rbind(weekly.incidence, df[[i]])
   }
 
-  names(weekly_incidence)[2] <- variable
-  weekly_incidence$week <- as.Date(weekly_incidence$week)
-  weekly_incidence
+  names(weekly.incidence)[2] <- variable
+  weekly.incidence$week <- as.Date(weekly.incidence$week)
+  weekly.incidence
 }
 
 plot.binary <- function(x, name, yes=c(0), no=c(1), cname="test", weeks=c())
