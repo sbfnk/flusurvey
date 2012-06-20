@@ -177,8 +177,8 @@ setkey(freq, Group.1)
 dt <- dt[freq]
 setnames(dt, "x", "nReports")
 dt$symptoms.start <- as.Date(dt$symptoms.start, "%Y-%m-%d")
-dt$week <- as.numeric(format(dt$date, format="%G-%W"))
-dt[dt$week==0]$week <- 52
+dt$week <- format(dt$date, format="%G-%W")
+dt[dt$week=="2011-00"]$week <- "2011-52"
 dt$weight <- 1/hist(dt$week, breaks=seq(0,52), plot=F)$counts[dt$week]
 dt$birthdate <- as.Date(dt$birthmonth, "%Y/%M/%d")
 
@@ -199,19 +199,17 @@ dt2 <- dt[duplicated(dt$global.id.number)]
 dt2 <- dt2[!is.na(dt2$week)]
 # exclude users with bad ili
 dt2 <- dt2[!is.na(dt2$ili)]
-# correct last week of the year
-dt2[dt2$week=="2011-00"]$week <- "2011-52"
 
 # one-per-user table
-ds <- dt[!duplicated(dt$global.id.number)]
+ds <- dt2[!duplicated(dt2$global.id.number)]
 
 ds$ili <- FALSE
-ds$nbili <- with(compare, aggregate(ili,
+ds$nbili <- with(dt2, aggregate(ili,
                                     list(global.id.number=global.id.number),
                                     sum))$x
 ds$ili <- (ds$nbili > 0)
 
-ds$vaccinated <- with(compare, aggregate(vaccine,
+ds$vaccinated <- with(dt2, aggregate(vaccine,
                                          list(global.id.number=global.id.number),
                                          sum))$x > 0
 ds$nonili <- 1-ds$ili
