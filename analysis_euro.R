@@ -5,11 +5,15 @@ library(reshape)
 # compute the age in years from a birthdate (from) and the current date (to)
 age_years <- function(from, to)
 {
+  if (is.na(from) || is.na(to)) {
+    NA
+  } else {
      lt <- as.POSIXlt(c(from, to))
      age <- lt$year[2] - lt$year[1]
      mons <- lt$mon + lt$mday/50
      if(mons[2] < mons[1]) age <- age -1
      age
+   }
 }
 
 # read tables
@@ -189,7 +193,7 @@ levels(dt$atrisk) <- c(1,0)
 dt$atrisk <- as.numeric(paste(dt$atrisk))
 dt$age <-  0
 dt$age <- apply(dt, 1, function(x) { age_years(as.Date(x["birthdate"]),
-                                                         x["date"])})
+                                               as.Date(x["date"]))})
 dt$agegroup <- cut(dt$age, breaks=c(0,18,45,65, max(dt$age)), include.lowest=T)
 dt$vaccine <- (dt$vaccine.this.year == 0)
 
@@ -199,6 +203,8 @@ dt2 <- dt[duplicated(dt$global.id.number)]
 dt2 <- dt2[!is.na(dt2$week)]
 # exclude users with bad ili
 dt2 <- dt2[!is.na(dt2$ili)]
+# exclude users with bad age
+dt2 <- dt2[!is.na(dt2$age)]
 
 # one-per-user table
 ds <- dt2[!duplicated(dt2$global.id.number)]
