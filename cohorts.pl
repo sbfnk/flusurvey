@@ -27,7 +27,10 @@ foreach (@ARGV) {
 }
 
 # read header line
-my $header_line = <STDIN>;
+my $header_line;
+if (!($header_line = <STDIN>)) {
+    die "No header line\n";
+}
 chomp($header_line);
 my @header = split /,/, $header_line;
 my $country_index = -1; # index of "country" column
@@ -77,42 +80,41 @@ if ($countries && $motionchart) {
 }
 
 my @data; # will store the data read in from csv
-
-# read data
-while (<STDIN>) {
-    chomp;
-    my @line = split /,/;
-    push @data, \@line;
+my @nextdata; # will store one readahead from csv
+if (!(@nextdata = split /,/, <STDIN>)) {
+    die "No data\n";
 }
 
-# data row
-my $index = 0;
 # variables to store counts of vaccinated/unvaccinated
 my %vaccinated_ili;
 my %vaccinated_nonili;
 my %unvaccinated_ili;
 my %unvaccinated_nonili;
 
-while ($index < scalar( @data )) {
+while (<STDIN>) {
+    @data = @nextdata;
+    chomp;
+    @nextdata = split /,/;
+
     my $week = 0;
     my $year = 0;
 
     # see if we have got a "week" and "year" column
     if ($week_index >= 0 && $year_index >= 0) {
-	$week = $data[$index][$week_index];
-	$year = $data[$index][$year_index];
+	$week = $data[$week_index];
+	$year = $data[$year_index];
 	if ($countries) {
-	    my $country = $data[$index][$country_index];
+	    my $country = $data[$country_index];
 	    if (!(exists $vaccinated_ili{$country}{$year}{$week})) {
 		$vaccinated_ili{$country}{$year}{$week} = 0;
 	    }
-	    if (!(exists $vaccinated_nonili{$year}{$week})) {
+	    if (!(exists $vaccinated_nonili{$country}{$year}{$week})) {
 		$vaccinated_nonili{$country}{$year}{$week} = 0;
 	    }
-	    if (!(exists $unvaccinated_ili{$year}{$week})) {
+	    if (!(exists $unvaccinated_ili{$country}{$year}{$week})) {
 		$unvaccinated_ili{$country}{$year}{$week} = 0;
 	    }
-	    if (!(exists $unvaccinated_nonili{$year}{$week})) {
+	    if (!(exists $unvaccinated_nonili{$country}{$year}{$week})) {
 		$unvaccinated_nonili{$country}{$year}{$week} = 0;
 	    }
 	} else {
@@ -132,53 +134,59 @@ while ($index < scalar( @data )) {
     }
     # see if we're an unvaccinated group
     # (which should be followed by a matching vaccinated group)
-    if ($data[$index][$vaccinated_index] == 0) {
-	my @unvaccinated = @{ $data[$index] };
-	$index++;
-	my $matching_group = ($data[$index][$vaccinated_index] == 1);
-	for (my $i = 0; $i < $vaccinated_index; $i++) {
-	    $matching_group *= ("$data[$index][$i]" eq "$unvaccinated[$i]");
-	}
-	if ($matching_group) {
-	    my @vaccinated = @{ $data[$index] };
-	    my $vaccinated_total =
-		$vaccinated[$ili_index] + $vaccinated[$nonili_index];
-	    my $unvaccinated_total =
-		$unvaccinated[$ili_index] + $unvaccinated[$nonili_index];
-	    my $smaller_total = min($vaccinated_total, $unvaccinated_total);
+    if ($data[$vaccinated_index] == 0) {
+	my @unvaccinated = @data;
 
-	    if ($countries) {
-		my $country = $vaccinated[$country_index];
-		$unvaccinated_ili{$country}{$year}{$week} +=
-		    $unvaccinated[$ili_index] *
-			$smaller_total / $unvaccinated_total;
-		$unvaccinated_nonili{$country}{$year}{$week} +=
-		    $unvaccinated[$nonili_index] *
-			$smaller_total / $unvaccinated_total;
-		$vaccinated_ili{$country}{$year}{$week} +=
-		    $vaccinated[$ili_index] *
-			$smaller_total / $vaccinated_total;
-		$vaccinated_nonili{$country}{$year}{$week} +=
-		    $vaccinated[$nonili_index] *
-			$smaller_total / $vaccinated_total;
-	    } else {
-		$unvaccinated_ili{$year}{$week} +=
-		    $unvaccinated[$ili_index] *
-			$smaller_total / $unvaccinated_total;
-		$unvaccinated_nonili{$year}{$week} +=
-		    $unvaccinated[$nonili_index] *
-			$smaller_total / $unvaccinated_total;
-		$vaccinated_ili{$year}{$week} +=
-		    $vaccinated[$ili_index] *
-			$smaller_total / $vaccinated_total;
-		$vaccinated_nonili{$year}{$week} +=
-		    $vaccinated[$nonili_index] *
-			$smaller_total / $vaccinated_total;
+	if (scalar (@nextdata) > $vaccinated_index) {
+	    my $matching_group = 0;
+            if ($nextdata[$vaccinated_index] == 1) {
+                $matching_group = 1;
+                for (my $i = 0; $i < $vaccinated_index; $i++) {
+                    if (!("$nextdata[$i]" eq "$unvaccinated[$i]")) {
+                        $matching_group = 0;
+                    }
+		}
 	    }
-	    $index++;
+	    if ($matching_group) {
+		my @vaccinated = @nextdata;
+		my $vaccinated_total =
+		    $vaccinated[$ili_index] + $vaccinated[$nonili_index];
+		my $unvaccinated_total =
+		    $unvaccinated[$ili_index] + $unvaccinated[$nonili_index];
+		my $smaller_total = min($vaccinated_total, $unvaccinated_total);
+		if ($countries) {
+		    my $country = $vaccinated[$country_index];
+		    $unvaccinated_ili{$country}{$year}{$week} +=
+			$unvaccinated[$ili_index] *
+			    $smaller_total / $unvaccinated_total;
+		    $unvaccinated_nonili{$country}{$year}{$week} +=
+			$unvaccinated[$nonili_index] *
+			    $smaller_total / $unvaccinated_total;
+		    $vaccinated_ili{$country}{$year}{$week} +=
+			$vaccinated[$ili_index] *
+			    $smaller_total / $vaccinated_total;
+		    $vaccinated_nonili{$country}{$year}{$week} +=
+			$vaccinated[$nonili_index] *
+			    $smaller_total / $vaccinated_total;
+		} else {
+		    $unvaccinated_ili{$year}{$week} +=
+			$unvaccinated[$ili_index] *
+			    $smaller_total / $unvaccinated_total;
+		    $unvaccinated_nonili{$year}{$week} +=
+			$unvaccinated[$nonili_index] *
+			    $smaller_total / $unvaccinated_total;
+		    $vaccinated_ili{$year}{$week} +=
+			$vaccinated[$ili_index] *
+			    $smaller_total / $vaccinated_total;
+		    $vaccinated_nonili{$year}{$week} +=
+			$vaccinated[$nonili_index] *
+			    $smaller_total / $vaccinated_total;
+		}
+		my $line = <STDIN>;
+		chomp $line;
+		@nextdata = split /,/, $line;
+	    }
 	}
-    } else {
-	$index++;
     }
 }
 
@@ -189,33 +197,48 @@ if ($countries) {
     foreach my $country (sort keys %vaccinated_ili) {
 	foreach my $year (sort keys %{ $vaccinated_ili{$country} }) {
 	    foreach my $week (sort {$a <=> $b} keys %{ $vaccinated_ili{$country}{$year} }) {
-		push @categories, "$country,$week/$year";
-	    push @vaccinated_data,
-		sprintf("%.1f", ($vaccinated_ili{$country}{$year}{$week} * 100 /
-				     ($vaccinated_ili{$country}{$year}{$week} +
-					  $vaccinated_nonili{$country}{$year}{$week} + .0)));
-	    push @unvaccinated_data,
-		sprintf("%.1f", ($unvaccinated_ili{$country}{$year}{$week} * 100 /
-				    ($unvaccinated_ili{$country}{$year}{$week} +
-					 $unvaccinated_nonili{$country}{$year}{$week} + .0)));
+		if ($vaccinated_ili{$country}{$year}{$week} +
+			$vaccinated_nonili{$country}{$year}{$week} > 0 &&
+			    $unvaccinated_ili{$country}{$year}{$week} +
+				$unvaccinated_nonili{$country}{$year}{$week} >
+				    0) {
+		    push @categories, "$country,$year,$week";
+		    push @vaccinated_data,
+			sprintf("%.1f", ($vaccinated_ili{$country}{$year}{$week} * 100 /
+					     ($vaccinated_ili{$country}{$year}{$week} +
+						  $vaccinated_nonili{$country}{$year}{$week}
+						      + .0)));
+		    push @unvaccinated_data,
+			sprintf("%.1f", ($unvaccinated_ili{$country}{$year}{$week} * 100 /
+					     ($unvaccinated_ili{$country}{$year}{$week} +
+						  $unvaccinated_nonili{$country}{$year}{$week}
+						      + .0)));
+		}
 	    }
 	}
     }
 } else {
     foreach my $year (sort keys %vaccinated_ili) {
 	foreach my $week (sort {$a <=> $b} keys %{ $vaccinated_ili{$year} }) {
-	    print
-		"$week/$year,$vaccinated_ili{$year}{$week},$unvaccinated_ili{$year}{$week},".
-		    "$vaccinated_nonili{$year}{$week},$unvaccinated_nonili{$year}{$week}\n";
-	    push @categories, "$week/$year";
-	    push @vaccinated_data,
+	    if ($vaccinated_ili{$year}{$week} +
+		    $vaccinated_nonili{$year}{$week} > 0 &&
+			$unvaccinated_ili{$year}{$week} +
+			    $unvaccinated_nonili{$year}{$week} >
+				0) {
+		if ($motionchart) {
+		    push @categories, "'$week/$year'";
+		} else {
+		    push @categories, "$year,$week";
+		}
+		push @vaccinated_data,
 		sprintf("%.1f", ($vaccinated_ili{$year}{$week} * 100 /
 				     ($vaccinated_ili{$year}{$week} +
 					  $vaccinated_nonili{$year}{$week} + .0)));
-	    push @unvaccinated_data,
-		sprintf("%.1f", ($unvaccinated_ili{$year}{$week} * 100 /
-				    ($unvaccinated_ili{$year}{$week} +
-					 $unvaccinated_nonili{$year}{$week} + .0)));
+		push @unvaccinated_data,
+		    sprintf("%.1f", ($unvaccinated_ili{$year}{$week} * 100 /
+					 ($unvaccinated_ili{$year}{$week} +
+					      $unvaccinated_nonili{$year}{$week} + .0)));
+	    }
 	}
     }
 }
@@ -239,14 +262,18 @@ if ($motionchart) {
     print "                                    renderTo: 'container',\n";
     print "                                    defaultSeriesType: 'line',\n";
     print "                                    marginRight: 0,\n";
-    print "                                    marginBottom: 40\n";
+    print "                                    marginBottom: 70\n";
     print "                            },\n";
     print "                            title: {\n";
     print "                                    text: 'Incidence in vaccinated/unvaccinated groups',\n";
     print "                                    x: -20 //center\n";
     print "                            },\n";
     print "                            xAxis: {\n";
-    print "                                    categories: [".join(',', @categories)."]\n";
+    print "                                    categories: [".join(',', @categories)."],\n";
+    print "                                    labels: {\n";
+    print "                                            rotation: -45,\n";
+    print "                                            align: 'right'\n";
+    print "                                    }\n";
     print "                            },\n";
     print "                            yAxis: {\n";
     print "                                    title: {\n";
@@ -289,27 +316,12 @@ if ($motionchart) {
     print "  </body>\n";
     print "</html>\n";
 } else {
-    print "year/week,variable,value\n";
+    if ($countries) {
+	print "country,";
+    }
+    print "year,week,variable,value\n";
     for (my $i = 0; $i < (scalar @categories); $i++) {
 	print "$categories[$i],vaccinated,$vaccinated_data[$i]\n";
 	print "$categories[$i],unvaccinated,$unvaccinated_data[$i]\n";
     }
-    # foreach my $year (sort keys %vaccinated_ili) {
-    # 	foreach my $week (sort keys %{ $vaccinated_ili{$year} }) {
-    # 	    printf "vaccinated,ILI,%u,%.0f\n", $year, $week,
-    # 		$vaccinated_ili{$year}{$week};
-    # 	    printf "vaccinated,non-ILI,%u,%.0f\n", $year, $week,
-    # 		$vaccinated_nonili{$year}{$week};
-    # 	    printf "vaccinated,Incidence,%u,%.2f\n", $year, $week,
-    # 		($vaccinated_ili{$year}{$week} /
-    # 		     ($vaccinated_nonili{$year}{$week} + .0));
-    # 	    printf "unvaccinated,ILI,%u,%.0f\n", $year, $week,
-    # 		$unvaccinated_ili{$year}{$week};
-    # 	    printf "unvaccinated,non-ILI,%u,%.0f\n", $year, $week,
-    # 		$unvaccinated_nonili{$year}{$week};
-    # 	    printf "unvaccinated,Incidence,%u,%.2f\n", $year, $week,
-    # 		($unvaccinated_ili{$year}{$week} /
-    # 		     ($unvaccinated_nonili{$year}{$week} + .0));
-    # 	}
-    # }
 }
