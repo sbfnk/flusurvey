@@ -1,4 +1,5 @@
-SELECT year AS year,
+SELECT country AS country,
+       year AS year,
        week AS week,
        CASE WHEN a<20 THEN '<20'
        WHEN a>=20 AND a<45 THEN '20..44'
@@ -24,13 +25,14 @@ SELECT extract(year from age(to_timestamp(I."Q2",'YYYY-MM'))) AS a,
        NULLIF(S.status = 'ILI', false) AS ili,
        NULLIF(S.status != 'ILI', false) AS non_ili,
        extract(week FROM W.timestamp) AS week,
-       extract(year FROM W.timestamp) AS year
-  FROM pollster_results_intake AS I,
-       pollster_health_status AS S,
-       pollster_results_weekly AS W
+       extract(year FROM W.timestamp) AS year,
+       I.country AS country
+  FROM epidb_results_intake AS I,
+       epidb_health_status AS S,
+       epidb_results_weekly AS W
  WHERE I."Q10"<2
-   AND S.pollster_results_weekly_id = W.id
+   AND S.epidb_results_weekly_id = W.id
    AND W.global_id = I.global_id AND extract(year from age(to_timestamp(I."Q2",'YYYY-MM'))) > 0
        ) AS statuses
- GROUP BY year,week,agegroup,risk,children,vaccinated
- ORDER BY year,week,agegroup,risk,children,vaccinated;
+ GROUP BY country,year,week,agegroup,risk,children,vaccinated
+ ORDER BY country,year,week,agegroup,risk,children,vaccinated;
