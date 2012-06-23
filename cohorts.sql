@@ -25,13 +25,13 @@ SELECT extract(year from age(to_timestamp(I."Q2",'YYYY-MM'))) AS a,
        NULLIF(S.status = 'ILI', false) AS ili,
        NULLIF(S.status != 'ILI', false) AS non_ili,
        extract(week FROM W.timestamp) AS week,
-       extract(year FROM W.timestamp) AS year,
+       extract(year FROM date_trunc('week', W.timestamp)) AS year,
        I.country AS country
   FROM epidb_results_intake AS I,
-       epidb_health_status AS S,
+       epidb_health_status_fever AS S,
        epidb_results_weekly AS W
  WHERE I."Q10"<2
-   AND S.epidb_results_weekly_id = W.id
+   AND S.epidb_results_weekly_id = W.id AND (W."Q2" IS NULL OR W."Q2" != 0)
    AND W.global_id = I.global_id AND extract(year from age(to_timestamp(I."Q2",'YYYY-MM'))) > 0
        ) AS statuses
  GROUP BY country,year,week,agegroup,risk,children,vaccinated
