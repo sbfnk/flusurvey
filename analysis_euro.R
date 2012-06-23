@@ -26,7 +26,7 @@ translation <- data.frame(global_id = unique(bf$global_id))
 translation$number <- seq(1,nrow(translation))
 
 # make sure global ids are in the same order
-levels(sf$global_id) <- levels(bf$global_id)
+#levels(sf$global_id) <- levels(bf$global_id)
 # assign global id numbers
 bf$global.id.number <- translation$number[match(bf$global_id,
                                                 translation$global_id)]
@@ -51,6 +51,9 @@ setkey(st, global.id.number, date)
 setkey(bt, global.id.number, date)
 dt <- bt[st, roll=TRUE]
 
+#cleanup (some participants have only a weekly survey, no background one)
+dt <- dt[!is.na(country)]
+
 rm(bt)
 rm(st)
 
@@ -71,14 +74,14 @@ setnames(dt, "Q5_0", "frequent.contact.children")
 setnames(dt, "Q5_1", "frequent.contact.elderly")
 setnames(dt, "Q5_2", "frequent.contact.patients")
 setnames(dt, "Q5_3", "frequent.contact.people")
-setnames(dt, "Q6_0", "household.0-4")
-setnames(dt, "Q6_0_open", "nb.household.0-4")
-setnames(dt, "Q6_1", "household.5-18")
-setnames(dt, "Q6_1_open", "nb.household.5-18")
-setnames(dt, "Q6_2", "household.19-44")
-setnames(dt, "Q6_2_open", "nb.household.19-44")
-setnames(dt, "Q6_3", "household.45-64")
-setnames(dt, "Q6_3_open", "nb.household.45-64")
+setnames(dt, "Q6_0", "household.0.4")
+setnames(dt, "Q6_0_open", "nb.household.0.4")
+setnames(dt, "Q6_1", "household.5.18")
+setnames(dt, "Q6_1_open", "nb.household.5.18")
+setnames(dt, "Q6_2", "household.19.44")
+setnames(dt, "Q6_2_open", "nb.household.19.44")
+setnames(dt, "Q6_3", "household.45.64")
+setnames(dt, "Q6_3_open", "nb.household.45.64")
 setnames(dt, "Q6_4", "household.65+")
 setnames(dt, "Q6_4_open", "nb.household.65+")
 setnames(dt, "Q7", "transport")
@@ -163,6 +166,7 @@ setnames(dt, "Q10c", "howlong.altered")
 setnames(dt, "Q12_multi_row1_col1", "howmany.household.ili")
 setnames(dt, "Q13_multi_row1_col1", "howmany.other.ili")
 
+
 # assign some useful variables: ili yes/no, number of reports, symptoms start
 # (as date), week of report, weight (for histograms later,
 # i.e. 1/(number of reports that week), and birthdate
@@ -180,10 +184,26 @@ freq <-
 setkey(freq, Group.1)
 dt <- dt[freq]
 setnames(dt, "x", "nReports")
+
+mindate <-
+  data.table(aggregate(dt$date,
+                       by=list(dt$global.id.number),
+                       min))
+setkey(mindate, Group.1)
+dt <- dt[mindate]
+setnames(dt, "x", "mindate")
+maxdate <-
+  data.table(aggregate(dt$date,
+                       by=list(dt$global.id.number),
+                       max))
+setkey(maxdate, Group.1)
+dt <- dt[maxdate]
+setnames(dt, "x", "maxdate")
+
 dt$symptoms.start <- as.Date(dt$symptoms.start, "%Y-%m-%d")
 dt$week <- format(dt$date, format="%G-%W")
 dt[dt$week=="2011-00"]$week <- "2011-52"
-dt$weight <- 1/hist(dt$week, breaks=seq(0,52), plot=F)$counts[dt$week]
+#dt$weight <- 1/hist(dt$week, breaks=seq(0,52), plot=F)$counts[dt$week]
 dt$birthdate <- as.Date(dt$birthmonth, "%Y/%M/%d")
 
 # more variables to be used later
@@ -378,3 +398,9 @@ ds$vmsg <- with(dt2, aggregate(vmsg,
                                sum))$x
 ds$vm <- (ds$vmsg > 0)
 nrow(ds[country=="uk" & ili==T & vm == 1])/nrow(ds[country=="uk"])*100
+
+# active users
+
+dt$active <- (dt$nReports > 4 & 
+
+# cohorts 
