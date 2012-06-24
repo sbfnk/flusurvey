@@ -37,6 +37,7 @@ my $country_index = -1; # index of "country" column
 my $vaccinated_index = -1; # index of "vaccinated" column
 my $week_index = -1; # index of "week" column
 my $year_index = -1; # index of "year" column
+my $yearweek_index = -1; # index of "year-week" column
 my $ili_index = -1; # index of "ili" coulmn
 my $nonili_index = -1; # index of "nonili" coulmn
 my $count = -1;
@@ -54,6 +55,9 @@ for (my $i = 0; $i < scalar(@header); $i++) {
     }
     if ("$header[$i]" eq "year") {
 	$year_index = $i;
+    }
+    if ("$header[$i]" eq "year-week") {
+	$yearweek_index = $i;
     }
     if ("$header[$i]" eq "ili") {
 	$ili_index = $i;
@@ -74,6 +78,10 @@ if ($ili_index == -1) {
 }
 if ($nonili_index == -1) {
     die "Input has no \"non_ili\" column\n";
+}
+if ((($year_index == -1) || ($week_index == -1)) &&
+	$yearweek_index == -1) {
+    die "Input has no year/week columns\n";
 }
 if ($countries && $motionchart) {
     die "Cannot split motionchart by countries\n";
@@ -99,39 +107,43 @@ while (<STDIN>) {
     my $week = 0;
     my $year = 0;
 
-    # see if we have got a "week" and "year" column
     if ($week_index >= 0 && $year_index >= 0) {
+	#  we have got a "week" and "year" column
 	$week = $data[$week_index];
 	$year = $data[$year_index];
-	if ($countries) {
-	    my $country = $data[$country_index];
-	    if (!(exists $vaccinated_ili{$country}{$year}{$week})) {
-		$vaccinated_ili{$country}{$year}{$week} = 0;
-	    }
-	    if (!(exists $vaccinated_nonili{$country}{$year}{$week})) {
-		$vaccinated_nonili{$country}{$year}{$week} = 0;
-	    }
-	    if (!(exists $unvaccinated_ili{$country}{$year}{$week})) {
-		$unvaccinated_ili{$country}{$year}{$week} = 0;
-	    }
-	    if (!(exists $unvaccinated_nonili{$country}{$year}{$week})) {
-		$unvaccinated_nonili{$country}{$year}{$week} = 0;
-	    }
-	} else {
-	    if (!(exists $vaccinated_ili{$year}{$week})) {
-		$vaccinated_ili{$year}{$week} = 0;
-	    }
-	    if (!(exists $vaccinated_nonili{$year}{$week})) {
-		$vaccinated_nonili{$year}{$week} = 0;
-	    }
-	    if (!(exists $unvaccinated_ili{$year}{$week})) {
-		$unvaccinated_ili{$year}{$week} = 0;
-	    }
-	    if (!(exists $unvaccinated_nonili{$year}{$week})) {
-		$unvaccinated_nonili{$year}{$week} = 0;
-	    }
+    } else {
+	#  we have got a "year-week" column
+	($year, $week) = split /-/, $data[$yearweek_index];
+    }
+    if ($countries) {
+	my $country = $data[$country_index];
+	if (!(exists $vaccinated_ili{$country}{$year}{$week})) {
+	    $vaccinated_ili{$country}{$year}{$week} = 0;
+	}
+	if (!(exists $vaccinated_nonili{$country}{$year}{$week})) {
+	    $vaccinated_nonili{$country}{$year}{$week} = 0;
+	}
+	if (!(exists $unvaccinated_ili{$country}{$year}{$week})) {
+	    $unvaccinated_ili{$country}{$year}{$week} = 0;
+	}
+	if (!(exists $unvaccinated_nonili{$country}{$year}{$week})) {
+	    $unvaccinated_nonili{$country}{$year}{$week} = 0;
+	}
+    } else {
+	if (!(exists $vaccinated_ili{$year}{$week})) {
+	    $vaccinated_ili{$year}{$week} = 0;
+	}
+	if (!(exists $vaccinated_nonili{$year}{$week})) {
+	    $vaccinated_nonili{$year}{$week} = 0;
+	}
+	if (!(exists $unvaccinated_ili{$year}{$week})) {
+	    $unvaccinated_ili{$year}{$week} = 0;
+	}
+	if (!(exists $unvaccinated_nonili{$year}{$week})) {
+	    $unvaccinated_nonili{$year}{$week} = 0;
 	}
     }
+
     # see if we're an unvaccinated group
     # (which should be followed by a matching vaccinated group)
     if ($data[$vaccinated_index] == 0) {
@@ -139,12 +151,12 @@ while (<STDIN>) {
 
 	if (scalar (@nextdata) > $vaccinated_index) {
 	    my $matching_group = 0;
-            if ($nextdata[$vaccinated_index] == 1) {
-                $matching_group = 1;
-                for (my $i = 0; $i < $vaccinated_index; $i++) {
-                    if (!("$nextdata[$i]" eq "$unvaccinated[$i]")) {
-                        $matching_group = 0;
-                    }
+	    if ($nextdata[$vaccinated_index] == 1) {
+		$matching_group = 1;
+		for (my $i = 0; $i < $vaccinated_index; $i++) {
+		    if (!("$nextdata[$i]" eq "$unvaccinated[$i]")) {
+			$matching_group = 0;
+		    }
 		}
 	    }
 	    if ($matching_group) {
@@ -153,38 +165,43 @@ while (<STDIN>) {
 		    $vaccinated[$ili_index] + $vaccinated[$nonili_index];
 		my $unvaccinated_total =
 		    $unvaccinated[$ili_index] + $unvaccinated[$nonili_index];
-		my $smaller_total = min($vaccinated_total, $unvaccinated_total);
-		if ($countries) {
-		    my $country = $vaccinated[$country_index];
-		    $unvaccinated_ili{$country}{$year}{$week} +=
-			$unvaccinated[$ili_index] *
-			    $smaller_total / $unvaccinated_total;
-		    $unvaccinated_nonili{$country}{$year}{$week} +=
-			$unvaccinated[$nonili_index] *
-			    $smaller_total / $unvaccinated_total;
-		    $vaccinated_ili{$country}{$year}{$week} +=
-			$vaccinated[$ili_index] *
-			    $smaller_total / $vaccinated_total;
-		    $vaccinated_nonili{$country}{$year}{$week} +=
-			$vaccinated[$nonili_index] *
-			    $smaller_total / $vaccinated_total;
-		} else {
-		    $unvaccinated_ili{$year}{$week} +=
-			$unvaccinated[$ili_index] *
-			    $smaller_total / $unvaccinated_total;
-		    $unvaccinated_nonili{$year}{$week} +=
-			$unvaccinated[$nonili_index] *
-			    $smaller_total / $unvaccinated_total;
-		    $vaccinated_ili{$year}{$week} +=
-			$vaccinated[$ili_index] *
-			    $smaller_total / $vaccinated_total;
-		    $vaccinated_nonili{$year}{$week} +=
-			$vaccinated[$nonili_index] *
-			    $smaller_total / $vaccinated_total;
+		my $smaller_total = min($vaccinated_total,
+					$unvaccinated_total);
+		if ($vaccinated_total > 0 && $unvaccinated_total > 0) {
+		    if ($countries) {
+			my $country = $vaccinated[$country_index];
+			$unvaccinated_ili{$country}{$year}{$week} +=
+			    $unvaccinated[$ili_index] *
+				$smaller_total / $unvaccinated_total;
+			$unvaccinated_nonili{$country}{$year}{$week} +=
+			    $unvaccinated[$nonili_index] *
+				$smaller_total / $unvaccinated_total;
+			$vaccinated_ili{$country}{$year}{$week} +=
+			    $vaccinated[$ili_index] *
+				$smaller_total / $vaccinated_total;
+			$vaccinated_nonili{$country}{$year}{$week} +=
+			    $vaccinated[$nonili_index] *
+				$smaller_total / $vaccinated_total;
+		    } else {
+			$unvaccinated_ili{$year}{$week} +=
+			    $unvaccinated[$ili_index] *
+				$smaller_total / $unvaccinated_total;
+			$unvaccinated_nonili{$year}{$week} +=
+			    $unvaccinated[$nonili_index] *
+				$smaller_total / $unvaccinated_total;
+			$vaccinated_ili{$year}{$week} +=
+			    $vaccinated[$ili_index] *
+				$smaller_total / $vaccinated_total;
+			$vaccinated_nonili{$year}{$week} +=
+			    $vaccinated[$nonili_index] *
+				$smaller_total / $vaccinated_total;
+		    }
 		}
 		my $line = <STDIN>;
-		chomp $line;
-		@nextdata = split /,/, $line;
+		if ($line) {
+		    chomp $line;
+		    @nextdata = split /,/, $line;
+		}
 	    }
 	}
     }
