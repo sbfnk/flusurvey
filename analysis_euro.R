@@ -25,8 +25,6 @@ bf <- read.csv('epidb_intake.csv', sep=',', header=T)
 translation <- data.frame(global_id = unique(bf$global_id))
 translation$number <- seq(1,nrow(translation))
 
-# make sure global ids are in the same order
-#levels(sf$global_id) <- levels(bf$global_id)
 # assign global id numbers
 bf$global.id.number <- translation$number[match(bf$global_id,
                                                 translation$global_id)]
@@ -166,7 +164,6 @@ setnames(dt, "Q10c", "howlong.altered")
 setnames(dt, "Q12_multi_row1_col1", "howmany.household.ili")
 setnames(dt, "Q13_multi_row1_col1", "howmany.other.ili")
 
-
 # assign some useful variables: ili yes/no, number of reports, symptoms start
 # (as date), week of report, weight (for histograms later,
 # i.e. 1/(number of reports that week), and birthdate
@@ -232,9 +229,6 @@ dt$agegroup <- cut(dt$age, breaks=c(0,18,45,65, max(dt$age, na.rm=T)),
                    include.lowest=T, right=F)
 dt$vaccine <- as.numeric(dt$vaccine.this.year == 0)
 dt$children <- as.numeric((dt$household.0.4 == "t" | dt$household.5.18 == "t"))
-
-# exclude users with only 1 report
-dt2 <- dt[duplicated(dt$global.id.number)]
 
 # one-per-user table
 ds <- dt2[!duplicated(dt2$global.id.number)]
