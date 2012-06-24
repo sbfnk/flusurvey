@@ -1,218 +1,240 @@
 library(data.table)
-library(maptools)
+library(ggplot2)
 
-sf <- read.csv('symptoms_201011.csv', header=T, sep=';');
-bf <- read.csv('background_201011.csv', header=T, sep=';');
-cf <- read.csv('contacts_201011.csv', header=T, sep=';');
+# compute the age in years from a birthdate (from) and the current date (to)
+age_years <- function(from, to)
+{
+  if (is.na(from) || is.na(to)) {
+    NA
+  } else {
+     lt <- as.POSIXlt(c(from, to))
+     age <- lt$year[2] - lt$year[1]
+     mons <- lt$mon + lt$mday/50
+     if(mons[2] < mons[1]) age <- age -1
+     age
+   }
+}
 
+# read tables
+sf <- read.csv('weekly_201011.csv', header=T, sep=',');
+bf <- read.csv('intake_201011.csv', header=T, sep=',');
+#cf <- read.csv('contacts_201011.csv', header=T, sep=';');
+
+# assign global id numbers
+bf$global.id.number <- bf$user_id
+sf$global.id.number <- sf$user_id
+
+# put data in data tables (for the rolling join to be used later)
 st <- data.table(sf)
 bt <- data.table(bf)
-ct <- data.table(cf)
-vt <- data.table(vf)
+#ct <- data.table(cf)
 
-st$date <- as.Date(st$date)
-bt$date <- as.Date(bt$date)
-ct$date <- as.Date(ct$date)
-vt$date <- as.Date(vt$date)
+rm(sf)
+rm(bf)
 
-setnames(bt, 1, "bid")
-setnames(ct, 1, "cid")
+st$date <- as.Date(st$date, "%d/%m/%Y")
+bt$date <- as.Date(bt$created, "%d/%m/%Y")
+#ct$date <- as.Date(ct$date)
 
-setkey(bt, uid, date)
-setkey(ct, uid, date)
+# rolling join of symptoms and background, by id number (first) and date
+# (second) 
+setkey(st, global.id.number, date)
+setkey(bt, global.id.number, date)
+dt <- bt[st, roll=TRUE]
 
-setkey(st, uid, date)
-dt <- bt[ct[st, roll=TRUE], roll=TRUE]
+#setkey(ct, uid, date)
+#dt <- bt[ct[st, roll=TRUE], roll=TRUE]
 
 rm(bt)
-rm(ct)
 rm(st)
+#rm(ct)
 
-setnames(dt, 4, "postcode")
-setnames(dt, 5, "gender")
-setnames(dt, 6, "birthyear")
-setnames(dt, 7, "transport")
-setnames(dt, 10, "vaccine.last.year")
-setnames(dt, 11, "riskgroup")
-setnames(dt, 12, "smoke")
-setnames(dt, 15, "exercise")
-setnames(dt, 17, "nb.household")
-setnames(dt, 18, "nb.household.0-4")
-setnames(dt, 19, "nb.household.5-18")
-setnames(dt, 20, "nb.household.19-64")
-setnames(dt, 21, "nb.household.65+")
-setnames(dt, 22, "school.nursery")
-setnames(dt, 24, "frequent.contact")
-setnames(dt, 46, "chronic.heart.disease")
-setnames(dt, 47, "diabetes")
-setnames(dt, 48, "asthma")
-setnames(dt, 49, "other.chronic.lung.disease")
-setnames(dt, 50, "pregnant")
-setnames(dt, 51, "immunocompromised")
-setnames(dt, 52, "other.chronic")
-setnames(dt, 53, "frequent.contact.children")
-setnames(dt, 54, "frequent.contact.patients")
-setnames(dt, 55, "frequent.contact.elderly")
-setnames(dt, 56, "frequent.contact.people")
-setnames(dt, 88, "offered.swineflu.vaccine")
-setnames(dt, 89, "why.offered.swineflu.vaccine")
-setnames(dt, 90, "had.swineflu.vaccine")
-setnames(dt, 91, "intend.vaccine")
-setnames(dt, 92, "date.swineflu.vaccine")
-setnames(dt, 93, "why.not.swineflu.vaccine")
-setnames(dt, 94, "why.swineflu.vaccine")
-setnames(dt, 95, "offered.seasonal.vaccine")
-setnames(dt, 96, "why.offered.seasonal.vaccine")
-setnames(dt, 97, "had.seasonal.vaccine")
-setnames(dt, 98, "intend.vaccine")
-setnames(dt, 99, "date.seasonal.vaccine")
-setnames(dt, 100, "why.not.seasonal.vaccine")
-setnames(dt, 101, "why.seasonal.vaccine")
-setnames(dt, 102, "why.offered.seasonal.vaccine.healthcare.worker")
-setnames(dt, 103, "why.offered.seasonal.vaccine.hospital.patient")
-setnames(dt, 104, "why.offered.seasonal.vaccine.underlying.health.condition")
-setnames(dt, 105, "why.offered.seasonal.vaccine.pregnant")
-setnames(dt, 106, "why.offered.seasonal.vaccine.close.contact.with.high.risk")
-setnames(dt, 107, "why.offered.seasonal.vaccine.over.65")
-setnames(dt, 108, "why.offered.seasonal.vaccine.under.5")
-setnames(dt, 110, "why.offered.seasonal.vaccine.other")
-setnames(dt, 111, "why.offered.seasonal.vaccine.dont.know")
-setnames(dt, 112, "why.not.swineflu.vaccine.doctor")
-setnames(dt, 113, "why.not.swineflu.vaccine.already")
-setnames(dt, 114, "why.not.swineflu.vaccine.not.risk")
-setnames(dt, 115, "why.not.swineflu.vaccine.side.effects")
-setnames(dt, 116, "why.not.swineflu.vaccine.other")
-setnames(dt, 117, "why.not.swineflu.vaccine.dont.know")
-setnames(dt, 118, "why.swineflu.vaccine.doctor")
-setnames(dt, 119, "why.swineflu.vaccine.highrisk")
-setnames(dt, 120, "why.swineflu.vaccine.protected")
-setnames(dt, 121, "why.swineflu.vaccine.protect.others")
-setnames(dt, 122, "why.swineflu.vaccine.other")
-setnames(dt, 123, "why.swineflu.vaccine.dontknow")
-setnames(dt, 124, "why.offered.seasonal.vaccine.healthcare.worker")
-setnames(dt, 125, "why.offered.seasonal.vaccine.hospital.patient")
-setnames(dt, 126, "why.offered.seasonal.vaccine.underlying.health.condition")
-setnames(dt, 127, "why.offered.seasonal.vaccine.pregnant")
-setnames(dt, 128, "why.offered.seasonal.vaccine.over.65")
-setnames(dt, 129, "why.offered.seasonal.vaccine.other")
-setnames(dt, 130, "why.offered.seasonal.vaccine.dont.know")
-setnames(dt, 131, "why.not.seasonal.vaccine.doctor")
-setnames(dt, 132, "why.not.seasonal.vaccine.already")
-setnames(dt, 133, "why.not.seasonal.vaccine.not.risk")
-setnames(dt, 134, "why.not.seasonal.vaccine.side.effects")
-setnames(dt, 135, "why.not.seasonal.vaccine.other")
-setnames(dt, 136, "why.not.seasonal.vaccine.dont.know")
-setnames(dt, 137, "why.seasonal.vaccine.doctor")
-setnames(dt, 138, "why.seasonal.vaccine.highrisk")
-setnames(dt, 139, "why.seasonal.vaccine.protected")
-setnames(dt, 140, "why.seasonal.vaccine.protect.others")
-setnames(dt, 141, "why.seasonal.vaccine.other")
-setnames(dt, 142, "why.seasonal.vaccine.dontknow")
-setnames(dt, 143, "conversational.home.0-4")
-setnames(dt, 144, "conversational.home.5-18")
-setnames(dt, 145, "conversational.home.19-64")
-setnames(dt, 146, "conversational.home.65+")
-setnames(dt, 147, "conversational.work.0-4")
-setnames(dt, 148, "conversational.work.5-18")
-setnames(dt, 149, "conversational.work.19-64")
-setnames(dt, 150, "conversational.work.65+")
-setnames(dt, 151, "conversational.other.0-4")
-setnames(dt, 152, "conversational.other.5-18")
-setnames(dt, 153, "conversational.other.19-64")
-setnames(dt, 154, "conversational.other.65+")
-setnames(dt, 155, "physical.home.0-4")
-setnames(dt, 156, "physical.home.5-18")
-setnames(dt, 157, "physical.home.19-64")
-setnames(dt, 158, "physical.home.65+")
-setnames(dt, 159, "physical.work.0-4")
-setnames(dt, 160, "physical.work.5-18")
-setnames(dt, 161, "physical.work.19-64")
-setnames(dt, 162, "physical.work.65+")
-setnames(dt, 163, "physical.other.0-4")
-setnames(dt, 164, "physical.other.5-18")
-setnames(dt, 165, "physical.other.19-64")
-setnames(dt, 166, "physical.other.65+")
-setnames(dt, 167, "public.transport")
-setnames(dt, 168, "enclosed.indoor.space")
-setnames(dt, 170, "symptoms")
-setnames(dt, 171, "symptoms.start")
-setnames(dt, 172, "fever")
-setnames(dt, 173, "fever.start")
-setnames(dt, 176, "medical.service.visit")
-setnames(dt, 179, "alter.routine")
-setnames(dt, 180, "howlong.altered")
-setnames(dt, 188, "blocked.runny.nose")
-setnames(dt, 189, "cough")
-setnames(dt, 190, "sore.throat")
-setnames(dt, 191, "headache")
-setnames(dt, 192, "muscle.and.or.joint.pain")
-setnames(dt, 193, "chest.pain")
-setnames(dt, 194, "stomach.ache")
-setnames(dt, 195, "diarrhoea")
-setnames(dt, 196, "nausea")
-setnames(dt, 197, "chills")
-setnames(dt, 198, "weakness")
-setnames(dt, 199, "eye.irritation")
-setnames(dt, 200, "fever.symptom")
-setnames(dt, 201, "no.symptoms")
-setnames(dt, 207, "medical.service.visit.gp")
-setnames(dt, 208, "medical.service.visit.hospital")
-setnames(dt, 209, "medical.service.visit.other")
-setnames(dt, 210, "medical.service.visit.no")
-setnames(dt, 211, "medical.service.visit.ae")
+setnames(dt, "IntakeQ1", "gender")
+setnames(dt, "IntakeQ2", "birthmonth")
+setnames(dt, "IntakeQ3", "postcode")
+setnames(dt, "IntakeQ4", "work.postcode")
+setnames(dt, "IntakeQ5", "frequent.contact")
+setnames(dt, "IntakeQ5.0", "frequent.contact.children")
+setnames(dt, "IntakeQ5.1", "frequent.contact.elderly")
+setnames(dt, "IntakeQ5.2", "frequent.contact.patients")
+setnames(dt, "IntakeQ5.3", "frequent.contact.people")
+setnames(dt, "IntakeQ6", "household")
+setnames(dt, "IntakeQ6.0", "nb.household.0.4")
+setnames(dt, "IntakeQ6.1", "nb.household.5.18")
+setnames(dt, "IntakeQ6.2", "nb.household.19.44")
+setnames(dt, "IntakeQ6.3", "nb.household.45.64")
+setnames(dt, "IntakeQ6.4", "nb.household.65+")
+setnames(dt, "IntakeQ7", "transport")
+setnames(dt, "IntakeQ7b", "howlong.transport")
+setnames(dt, "IntakeQ8", "vaccine.swineflu")
+setnames(dt, "IntakeQ8b", "date.vaccine.swineflu")
+setnames(dt, "IntakeQ9", "vaccine.last.year")
+setnames(dt, "IntakeQ10", "vaccine.this.year")
+setnames(dt, "IntakeQ10b", "date.vaccine")
+setnames(dt, "IntakeQ10c", "why.vaccine")
+setnames(dt, "IntakeQ10c.0", "why.vaccine.riskgroup")
+setnames(dt, "IntakeQ10c.1", "why.vaccine.protected")
+setnames(dt, "IntakeQ10c.2", "why.vaccine.protect.others")
+setnames(dt, "IntakeQ10c.3", "why.vaccine.doctor")
+setnames(dt, "IntakeQ10c.4", "why.vaccine.work.recommended")
+setnames(dt, "IntakeQ10c.5", "why.vaccine.convenient")
+setnames(dt, "IntakeQ10c.6", "why.vaccine.free")
+setnames(dt, "IntakeQ10c.7", "why.vaccine.nomiss.work")
+setnames(dt, "IntakeQ10c.8", "why.vaccine.always")
+setnames(dt, "IntakeQ10c.9", "why.vaccine.other")
+setnames(dt, "IntakeQ10d", "why.not.vaccine")
+setnames(dt, "IntakeQ10d.0", "why.not.vaccine.notyet")
+setnames(dt, "IntakeQ10d.1", "why.not.vaccine.norisk")
+setnames(dt, "IntakeQ10d.2", "why.not.vaccine.natural")
+setnames(dt, "IntakeQ10d.3", "why.not.vaccine.noteffective")
+setnames(dt, "IntakeQ10d.4", "why.not.vaccine.minor")
+setnames(dt, "IntakeQ10d.5", "why.not.vaccine.cause")
+setnames(dt, "IntakeQ10d.6", "why.not.vaccine.side.effects")
+setnames(dt, "IntakeQ10d.7", "why.not.vaccine.unavailable")
+setnames(dt, "IntakeQ10d.8", "why.not.vaccine.not.free")
+setnames(dt, "IntakeQ10d.9", "why.not.vaccine.dislike.injections")
+setnames(dt, "IntakeQ10d.10", "why.not.vaccine.no.reason")
+setnames(dt, "IntakeQ10d.11", "why.not.vaccine.doctor")
+setnames(dt, "IntakeQ10d.12", "why.not.vaccine.notoffered")
+setnames(dt, "IntakeQ12", "risk")
+setnames(dt, "IntakeQ12.1", "risk.diabetes")
+setnames(dt, "IntakeQ12.2", "risk.lung")
+setnames(dt, "IntakeQ12.3", "risk.heart")
+setnames(dt, "IntakeQ12.4", "risk.kidney")
+setnames(dt, "IntakeQ12.5", "risk.immune")
+setnames(dt, "IntakeQ12.6", "norisk")
+setnames(dt, "IntakeQ13", "pregnant")
+setnames(dt, "IntakeQ14", "smoke")
+setnames(dt, "IntakeQ15", "allergy")
+setnames(dt, "IntakeQ15.0", "allergy.hayfever")
+setnames(dt, "IntakeQ15.1", "allergy.dust")
+setnames(dt, "IntakeQ15.2", "allergy.animals")
+setnames(dt, "IntakeQ15.3", "allergy.other")
+setnames(dt, "WeeklyQ1.0", "no.symptoms")
+setnames(dt, "WeeklyQ1.1", "fever")
+setnames(dt, "WeeklyQ1.2", "watery.eyes")
+setnames(dt, "WeeklyQ1.3", "blocked.runny.nose")
+setnames(dt, "WeeklyQ1.4", "sneezing")
+setnames(dt, "WeeklyQ1.5", "sore.throat")
+setnames(dt, "WeeklyQ1.6", "cough")
+setnames(dt, "WeeklyQ1.7", "phlegm")
+setnames(dt, "WeeklyQ1.8", "headache")
+setnames(dt, "WeeklyQ1.9", "muscle.and.or.joint.pain")
+setnames(dt, "WeeklyQ1.10", "chest.pain")
+setnames(dt, "WeeklyQ1.11", "tired")
+setnames(dt, "WeeklyQ1.12", "loss.appetite")
+setnames(dt, "WeeklyQ1.13", "nausea")
+setnames(dt, "WeeklyQ1.14", "vomiting")
+setnames(dt, "WeeklyQ1.15", "diarrhoea")
+setnames(dt, "WeeklyQ1.16", "other")
+setnames(dt, "WeeklyQ1.17", "chills")
+setnames(dt, "WeeklyQ1.18", "shortness.breath")
+setnames(dt, "WeeklyQ1.19", "stomach.ache")
+setnames(dt, "WeeklyQ1b", "symptoms.suddenly")
+setnames(dt, "WeeklyQ2c", "fever.start")
+setnames(dt, "WeeklyQ3", "same")
+setnames(dt, "WeeklyQ4", "symptoms.start.date")
+setnames(dt, "WeeklyQ5", "symptoms.end.date")
+setnames(dt, "WeeklyQ6.0", "visit.medical.service.gp")
+setnames(dt, "WeeklyQ6.1", "visit.medical.service.hospital")
+setnames(dt, "WeeklyQ6.2", "visit.medical.service.ae")
+setnames(dt, "WeeklyQ6.3", "visit.medical.service.other")
+setnames(dt, "WeeklyQ6.4", "visit.medical.service.no")
+setnames(dt, "WeeklyQ6.5", "visit.medical.service.appointment")
+setnames(dt, "WeeklyQ6b", "visit.medical.service.howsoon")
+setnames(dt, "WeeklyQ8", "alter.routine")
+setnames(dt, "WeeklyQ8c", "howlong.altered")
+setnames(dt, "WeeklyQ9a", "howmany.household.ili")
+setnames(dt, "WeeklyQ9b", "howmany.other.ili")
 
-dt$ili <- (((dt$fever.symptom | (!is.na(dt$fever) & dt$fever>1)) & dt$muscle.and.or.joint.pain & dt$q3004==1 & (dt$cough |
-  dt$sore.throat | dt$chest.pain))==T)
-dt$ili.rcgp <- ((dt$fever.symptom | (!is.na(dt$fever) & dt$fever>1)) & (length(which(dt[c(188:192,195,198)]==1) > 1)))
-freq <- data.table(aggregate(dt$uid, by=list(dt$uid), length))
+# assign some useful variables: ili yes/no, number of reports, symptoms start
+# (as date), week of report, weight (for histograms later,
+# i.e. 1/(number of reports that week), and birthdate
+dt$ili <- ((dt$symptoms.suddenly == 0) &
+           (dt$fever | dt$tired | dt$headache |
+            dt$muscle.and.or.joint.pain) &
+           (dt$sore.throat | dt$cough | dt$shortness.breath))
+dt$ili <- as.numeric(dt$ili)
+
+dt$ili.notired <- ((dt$symptoms.suddenly == 0) &
+           (dt$fever  | dt$headache  |
+            dt$muscle.and.or.joint.pain) &
+           (dt$sore.throat  | dt$cough | dt$shortness.breath))
+dt$ili.notired <- as.numeric(dt$ili.notired)
+
+dt$ili.fever <- ((dt$symptoms.suddenly == 0) &
+           (dt$fever ) &
+           (dt$sore.throat  | dt$cough | dt$shortness.breath))
+dt$ili.fever <- as.numeric(dt$ili.fever)
+
+
+freq <-
+  data.table(aggregate(dt$global.id.number,
+                       by=list(dt$global.id.number),
+                       length))
 setkey(freq, Group.1)
 dt <- dt[freq]
 setnames(dt, "x", "nReports")
 
-dt2 <- dt[duplicated(dt$uid)]
-dt2$ili <- as.numeric(dt2$ili)
-dt2$ili.rcgp <- as.numeric(dt2$ili.rcgp)
-dt2$week <- format(dt2$date, format="%G-%W")
-dt2$month <- months(dt2$date)
-dt2$month <- factor(dt2$month, levels(factor(dt2$month))[c(5,1,9,8,7,2,4,3,6)])
-dt2 <- dt2[!is.na(dt2$week)]
-dt2[dt2$week=="2009-00"]$week <- "2009-52"
+mindate <-
+  data.table(aggregate(dt$date,
+                       by=list(dt$global.id.number),
+                       min))
+setkey(mindate, Group.1)
+dt <- dt[mindate]
+setnames(dt, "x", "mindate")
+maxdate <-
+  data.table(aggregate(dt$date,
+                       by=list(dt$global.id.number),
+                       max))
+setkey(maxdate, Group.1)
+dt <- dt[maxdate]
+setnames(dt, "x", "maxdate")
 
-## symptoms <- dt2[,names(dt2)[188:201],with=F]
-## symptoms <- symptoms[symptoms$blocked.runny.nose!="NULL"]
-## u <- unique(symptoms)
+dt$symptoms.start <- as.Date(dt$symptoms.start, "%Y-%m-%d")
+dt$week <- format(dt$date, format="%G-%W")
+dt[dt$week=="2010-00"]$week <- "2010-52"
+#dt$weight <- 1/hist(dt$week, breaks=seq(0,52), plot=F)$counts[dt$week]
+dt$birthdate <- as.Date(dt$birthmonth, "%Y-%m-%d")
 
-## postcodes <- readShapePoly("~/Research/FluSurvey/Shapefiles/uk_convertd4")
-## names(postcodes)[1] <- "names"
+# more variables to be used later
+dt$norisk <- factor(dt$norisk)
+dt$atrisk <- dt$norisk
+levels(dt$atrisk) <- c(1,0)
+dt$atrisk <- as.numeric(paste(dt$atrisk))
+dt$age <-  0
+dt$age <- apply(dt, 1, function(x) { age_years(as.Date(x["birthdate"]),
+                                               as.Date(x["date"]))})
+dt$agegroup <- cut(dt$age, breaks=c(0,18,45,65, max(dt$age, na.rm=T)),
+                   include.lowest=T, right=F)
+dt$vaccine.date <- as.Date(dt$date.vaccine)
+dt$vaccine <- as.numeric(dt$vaccine.this.year==0 & (is.na(dt$vaccine.date) |
+                           dt$vaccine.date <= dt$date)) 
 
-## symptoms <- dt2[names(dt2)[188:201]]
+dt$children <- as.numeric((dt$nb.household.0.4 > 0 | dt$nb.household.5.18 > 0))
 
-plot.week <- function(x, color=2)
-{
-  pc1 <- unique(dt2[dt2$week==x & dt2$ili==1]$postcode)
-  pc1 <- as.character(pc1, na.rm=T)
-  pc1 <- pc1[!is.na(pc1) & pc1 != "NULL"]
-  col <- rep(color,length(pc1))
-  match <- match.map(postcodes, pc1)
-  color <- col[match]
-  png(paste(x, ".png", sep=""))
-  plot(postcodes, border="white", col=color)
-  title(main=x)
-  dev.off()
-}
+temp.data <- dt[!is.na(age)]
+levels(temp.data$agegroup) <- c("<18","18-44","45-64","65+")
+r <- ftable(temp.data$vaccine, temp.data$atrisk, temp.data$children,
+            temp.data$agegroup, temp.data$week,
+            temp.data$ili, row.vars=rev(1:5))
+vaccination.raw.data <- data.frame(expand.grid(rev(attr(r, "row.vars"))),
+                                   unclass(r))
+names(vaccination.raw.data) <- c("vaccinated","risk","children","agegroup","year-week","non_ili","ili")
+write.csv(vaccination.raw.data, "cohorts_201011.raw", quote=F, row.names=F)
 
-symptomatic <- dt2[apply(dt2, 1, function(x)
-                           { length(which(x[188:200]==1)) > 0})]
-symptomatic <- symptomatic[symptomatic$blocked.runny.nose!="NULL"]
-m1symptomatic <- dt2[apply(dt2, 1, function(x)
-                           { length(which(x[188:200]==1)) > 1})]
-m1symptomatic <- m1symptomatic[m1symptomatic$blocked.runny.nose!="NULL"]
-st <- round(sort(table(apply(symptomatic,1,function(x) {
-  paste(names(symptomatic)[which(x[188:200]==1)+187], sep=".", collapse=" + ")})))*100/
-  sum(sort(table(apply(symptomatic,1,function(x) {
-  paste(names(symptomatic)[which(x[188:200]==1)+187], sep=".", collapse=" + ")})))),1)
-m1st <- round(sort(table(apply(m1symptomatic,1,function(x) {
-  paste(names(m1symptomatic)[which(x[188:200]==1)+187], sep=".", collapse=" + ")})))*100/
-  sum(sort(table(apply(m1symptomatic,1,function(x) {
-  paste(names(m1symptomatic)[which(x[188:200]==1)+187], sep=".", collapse=" + ")})))),1)
+r <- ftable(temp.data$vaccine, temp.data$atrisk, temp.data$children,
+            temp.data$agegroup, temp.data$week, 
+            temp.data$ili.notired, row.vars=rev(1:5))
+vaccination.raw.data <- data.frame(expand.grid(rev(attr(r, "row.vars"))),
+                                   unclass(r))
+names(vaccination.raw.data) <- c("vaccinated","risk","children","agegroup","year-week","non_ili","ili")
+write.csv(vaccination.raw.data, "cohorts_notired_201011.raw", quote=F, row.names=F)
 
+r <- ftable(temp.data$vaccine, temp.data$atrisk, temp.data$children,
+            temp.data$agegroup, temp.data$week, 
+            temp.data$ili.fever, row.vars=rev(1:5))
+vaccination.raw.data <- data.frame(expand.grid(rev(attr(r, "row.vars"))),
+                                   unclass(r))
+names(vaccination.raw.data) <- c("vaccinated","risk","children","agegroup","year-week","non_ili","ili")
+write.csv(vaccination.raw.data, "cohorts_fever_201011.raw", quote=F, row.names=F)
