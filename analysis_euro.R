@@ -177,6 +177,20 @@ dt$ili <- ((dt$symptoms.suddenly == 0) &
             =="t"))
 dt$ili <- as.numeric(dt$ili)
 
+dt$ili.notired <- ((dt$symptoms.suddenly == 0) &
+           (dt$fever == "t" | dt$headache == "t" |
+            dt$muscle.and.or.joint.pain =="t") &
+           (dt$sore.throat == "t" | dt$cough =="t" | dt$shortness.breath
+            =="t"))
+dt$ili.notired <- as.numeric(dt$ili.notired)
+
+dt$ili.fever <- ((dt$symptoms.suddenly == 0) &
+           (dt$fever == "t") &
+           (dt$sore.throat == "t" | dt$cough =="t" | dt$shortness.breath
+            =="t"))
+dt$ili.fever <- as.numeric(dt$ili.fever)
+
+
 freq <-
   data.table(aggregate(dt$global.id.number,
                        by=list(dt$global.id.number),
@@ -214,17 +228,13 @@ dt$atrisk <- as.numeric(paste(dt$atrisk))
 dt$age <-  0
 dt$age <- apply(dt, 1, function(x) { age_years(as.Date(x["birthdate"]),
                                                as.Date(x["date"]))})
-dt$agegroup <- cut(dt$age, breaks=c(0,18,45,65, max(dt$age)), include.lowest=T)
-dt$vaccine <- (dt$vaccine.this.year == 0)
+dt$agegroup <- cut(dt$age, breaks=c(0,18,45,65, max(dt$age, na.rm=T)),
+                   include.lowest=T, right=F)
+dt$vaccine <- as.numeric(dt$vaccine.this.year == 0)
+dt$children <- as.numeric((dt$household.0.4 == "t" | dt$household.5.18 == "t"))
 
 # exclude users with only 1 report
 dt2 <- dt[duplicated(dt$global.id.number)]
-# exclude users with bad date
-dt2 <- dt2[!is.na(dt2$week)]
-# exclude users with bad ili
-dt2 <- dt2[!is.na(dt2$ili)]
-# exclude users with bad age
-dt2 <- dt2[!is.na(dt2$age)]
 
 # one-per-user table
 ds <- dt2[!duplicated(dt2$global.id.number)]
@@ -401,6 +411,34 @@ nrow(ds[country=="uk" & ili==T & vm == 1])/nrow(ds[country=="uk"])*100
 
 # active users
 
-dt$active <- (dt$nReports > 4 & 
+#dt$active <- (dt$nReports > 4 & 
 
 # cohorts 
+# exclude users with bad age
+temp.data <- dt[!is.na(age)]
+levels(temp.data$agegroup) <- c("<18","18-44","45-64","65+")
+r <- ftable(temp.data$vaccine, temp.data$atrisk, temp.data$children,
+            temp.data$agegroup, temp.data$week, temp.data$country,
+            temp.data$ili, row.vars=rev(1:6))
+vaccination.raw.data <- data.frame(expand.grid(rev(attr(r, "row.vars"))),
+                                   unclass(r))
+names(vaccination.raw.data) <- c("vaccinated","risk","children","agegroup","year-week","country","non_ili","ili")
+write.csv(vaccination.raw.data, "cohorts_201112.raw", quote=F, row.names=F)
+
+r <- ftable(temp.data$vaccine, temp.data$atrisk, temp.data$children,
+            temp.data$agegroup, temp.data$week, temp.data$country,
+            temp.data$ili.notired, row.vars=rev(1:6))
+vaccination.raw.data <- data.frame(expand.grid(rev(attr(r, "row.vars"))),
+                                   unclass(r))
+names(vaccination.raw.data) <- c("vaccinated","risk","children","agegroup","year-week","country","non_ili","ili")
+write.csv(vaccination.raw.data, "cohorts_notired_201112.raw", quote=F, row.names=F)
+
+r <- ftable(temp.data$vaccine, temp.data$atrisk, temp.data$children,
+            temp.data$agegroup, temp.data$week, temp.data$country,
+            temp.data$ili.fever, row.vars=rev(1:6))
+vaccination.raw.data <- data.frame(expand.grid(rev(attr(r, "row.vars"))),
+                                   unclass(r))
+names(vaccination.raw.data) <- c("vaccinated","risk","children","agegroup","year-week","country","non_ili","ili")
+write.csv(vaccination.raw.data, "cohorts_fever_201112.raw", quote=F, row.names=F)
+
+
