@@ -86,7 +86,7 @@ setnames(dt, "Q7", "transport")
 setnames(dt, "Q7b", "howlong.transport")
 setnames(dt, "Q9", "vaccine.last.year")
 setnames(dt, "Q10", "vaccine.this.year")
-setnames(dt, "Q10b", "date.vaccine")
+setnames(dt, "Q10b_1_open", "date.vaccine")
 setnames(dt, "Q10c_0", "why.vaccine.riskgroup")
 setnames(dt, "Q10c_1", "why.vaccine.protected")
 setnames(dt, "Q10c_2", "why.vaccine.protect.others")
@@ -227,7 +227,9 @@ dt$age <- apply(dt, 1, function(x) { age_years(as.Date(x["birthdate"]),
                                                as.Date(x["date"]))})
 dt$agegroup <- cut(dt$age, breaks=c(0,18,45,65, max(dt$age, na.rm=T)),
                    include.lowest=T, right=F)
-dt$vaccine <- as.numeric(dt$vaccine.this.year == 0)
+dt$vaccine.date <- as.Date(dt$date.vaccine, "%Y/%m/%d")
+dt$vaccine <- as.numeric(dt$vaccine.this.year==0 & (is.na(dt$vaccine.date) |
+                           dt$vaccine.date <= dt$date)) 
 dt$children <- as.numeric((dt$household.0.4 == "t" | dt$household.5.18 == "t"))
 
 # one-per-user table
