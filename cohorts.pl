@@ -41,6 +41,7 @@ my $yearweek_index = -1; # index of "year-week" column
 my $ili_index = -1; # index of "ili" coulmn
 my $nonili_index = -1; # index of "nonili" coulmn
 my $count = -1;
+my $sum = 0;
 
 # find where the relevant columns are
 for (my $i = 0; $i < scalar(@header); $i++) {
