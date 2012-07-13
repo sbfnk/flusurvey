@@ -38,8 +38,6 @@ bt <- data.table(bf)
 rm(sf)
 rm(bf)
 
-setnames(bt, 2, "bid")
-
 st$date <- as.Date(st$timestamp)
 bt$date <- as.Date(bt$timestamp)
 
@@ -233,7 +231,7 @@ dt$vaccine <- as.numeric(dt$vaccine.this.year==0 & (is.na(dt$vaccine.date) |
 dt$children <- as.numeric((dt$household.0.4 == "t" | dt$household.5.18 == "t"))
 
 # one-per-user table
-ds <- dt2[!duplicated(dt2$global.id.number)]
+ds <- dt[!duplicated(dt$global.id.number)]
 
 ds$ili <- FALSE
 ds$nbili <- with(dt2, aggregate(ili,
@@ -323,31 +321,6 @@ ggplot(ds, aes(x=country, fill=agegroup, weight=weight))+
   scale_y_continuous("age distribution", limits=c(0,1.01))
 dev.off()
 
-vaccine_time <- data.frame()
-for (country in levels(factor(ds$country))) {
-  vaccine_country <- data.frame(week=as.character(levels(factor(compare$week))),
-                                elderly=0, risk=0, all=0, country=country)
-  for (i in 1:nrow(vaccine_country)) {
-    vaccine_week <- compare[week <= vaccine_country[i,]$week]
-    vaccine_country[i,]$all <-
-      nrow(compare[week == vaccine_country[i,]$week & country == country &
-                   vaccine.this.year == 0]) /
-      nrow(compare[week == vaccine_country[i,]$week & country == country])
-    vaccine_country[i,]$elderly <-
-      nrow(compare[week == vaccine_country[i,]$week & country == country &
-                   vaccine.this.year == 0 &
-                   agegroup == levels(compare$agegroup)[4]]) / 
-      nrow(compare[week == vaccine_country[i,]$week & country == country &
-                   agegroup == levels(compare$agegroup)[4]])
-    vaccine_country[i,]$risk <-
-      nrow(compare[week == vaccine_country[i,]$week & country == country &
-                   vaccine.this.year == 0 & atrisk == 1]) /
-      nrow(compare[week == vaccine_country[i,]$week & country == country &
-                   atrisk == 1])
-  }
-  vaccine_time <- rbind(vaccine_time, vaccine_country)
-}
-
 ds$education <- ""
 ds[no.education=="t"]$education <- "None"
 ds[education.gcse=="t"]$education <- "Intermediate"
@@ -373,68 +346,3 @@ ggplot(ds[education!=""], aes(x=country, fill=education, weight=reweight))+
   scale_fill_brewer(palette="Set1")+
   scale_y_continuous("education distribution")
 dev.off()
-
-countries <- data.frame(country=levels(factor(ds$country)), aru = 0, arv = 0,
-                        ar = 0, efficacy = 0)
-for (i in 1:nrow(countries)) {
-  countries[i,]$ar <-
-    nrow(ds[country == countries[i,]$country & ili == T]) / 
-    nrow(ds[country == countries[i,]$country])
-  countries[i,]$aru <-
-    nrow(ds[country == countries[i,]$country & ili == T & vaccinated == F]) /
-    nrow(ds[country == countries[i,]$country & vaccinated == F])
-  countries[i,]$arv <-
-    nrow(ds[country == countries[i,]$country & ili == T & vaccinated == T]) /
-    nrow(ds[country == countries[i,]$country & vaccinated == T])
-  countries[i,]$efficacy <-
-    (countries[i,]$aru - countries[i,]$arv) / countries[i,]$aru * 100
-}
-
-
-# HPA stuff
-
-nrow(ds[country=="uk" & ili==T])/nrow(ds[country=="uk"])*100
-nrow(ds[country=="uk" & ili==T & age < 20])/nrow(ds[country=="uk" & age < 20])*100
-nrow(ds[country=="uk" & ili==T & age >= 20 & age < 45])/nrow(ds[country=="uk" & age >=20 & age < 45])*100
-nrow(ds[country=="uk" & ili==T & age >= 45])/nrow(ds[country=="uk" & age >= 45])*100
-nrow(ds[country=="uk" & ili==T & atrisk == 1])/nrow(ds[country=="uk" & atrisk == 1])*100
-
-ds$vmsg <- with(dt2, aggregate(vmsg,
-                               list(global.id.number=global.id.number),
-                               sum))$x
-ds$vm <- (ds$vmsg > 0)
-nrow(ds[country=="uk" & ili==T & vm == 1])/nrow(ds[country=="uk"])*100
-
-# active users
-
-#dt$active <- (dt$nReports > 4 & 
-
-# cohorts 
-# exclude users with bad age
-temp.data <- dt[!is.na(age)]
-levels(temp.data$agegroup) <- c("<18","18-44","45-64","65+")
-r <- ftable(temp.data$vaccine, temp.data$atrisk, temp.data$children,
-            temp.data$agegroup, temp.data$week, temp.data$country,
-            temp.data$ili, row.vars=rev(1:6))
-vaccination.raw.data <- data.frame(expand.grid(rev(attr(r, "row.vars"))),
-                                   unclass(r))
-names(vaccination.raw.data) <- c("vaccinated","risk","children","agegroup","year-week","country","non_ili","ili")
-write.csv(vaccination.raw.data, "cohorts_201112.raw", quote=F, row.names=F)
-
-r <- ftable(temp.data$vaccine, temp.data$atrisk, temp.data$children,
-            temp.data$agegroup, temp.data$week, temp.data$country,
-            temp.data$ili.notired, row.vars=rev(1:6))
-vaccination.raw.data <- data.frame(expand.grid(rev(attr(r, "row.vars"))),
-                                   unclass(r))
-names(vaccination.raw.data) <- c("vaccinated","risk","children","agegroup","year-week","country","non_ili","ili")
-write.csv(vaccination.raw.data, "cohorts_notired_201112.raw", quote=F, row.names=F)
-
-r <- ftable(temp.data$vaccine, temp.data$atrisk, temp.data$children,
-            temp.data$agegroup, temp.data$week, temp.data$country,
-            temp.data$ili.fever, row.vars=rev(1:6))
-vaccination.raw.data <- data.frame(expand.grid(rev(attr(r, "row.vars"))),
-                                   unclass(r))
-names(vaccination.raw.data) <- c("vaccinated","risk","children","agegroup","year-week","country","non_ili","ili")
-write.csv(vaccination.raw.data, "cohorts_fever_201112.raw", quote=F, row.names=F)
-
-
