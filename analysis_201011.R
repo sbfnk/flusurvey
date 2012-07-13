@@ -238,3 +238,17 @@ vaccination.raw.data <- data.frame(expand.grid(rev(attr(r, "row.vars"))),
                                    unclass(r))
 names(vaccination.raw.data) <- c("vaccinated","risk","children","agegroup","year-week","non_ili","ili")
 write.csv(vaccination.raw.data, "cohorts_fever_201011.raw", quote=F, row.names=F)
+
+# GI stuff
+dt$gi <- as.numeric(dt$diarrhoea == 1 | dt$vomiting == 1)
+dt$newgi <- dt$gi
+#dt[same==0, newgi := 0]
+r <- ftable(dt$week, dt$newgi, row.vars=1)
+gi.raw.data <- data.frame(expand.grid(rev(attr(r, "row.vars"))),
+                                   unclass(r))
+names(gi.raw.data) <- c("Week", "nongi", "gi")
+gi.raw.data$gi.incidence <- gi.raw.data$gi / (gi.raw.data$nongi + gi.raw.data$nongi)
+gi.11 <- gi.raw.data[-c(1, 20),]
+write.csv(gi.11, "gi_201011.csv", quote=F, row.names=F)
+
+

@@ -1,5 +1,19 @@
 library(data.table)
 
+# compute the age in years from a birthdate (from) and the current date (to)
+age_years <- function(from, to)
+{
+  if (is.na(from) || is.na(to)) {
+    NA
+  } else {
+     lt <- as.POSIXlt(c(from, to))
+     age <- lt$year[2] - lt$year[1]
+     mons <- lt$mon + lt$mday/50
+     if(mons[2] < mons[1]) age <- age -1
+     age
+   }
+}
+
 # read tables
 sf <- read.csv('symptoms_200910.csv', header=T, sep=';');
 bf <- read.csv('background_200910.csv', header=T, sep=';');
@@ -278,4 +292,18 @@ vaccination.raw.data <- data.frame(expand.grid(rev(attr(r, "row.vars"))),
                                    unclass(r))
 names(vaccination.raw.data) <- c("vaccinated","risk","children","agegroup","year-week","non_ili","ili")
 write.csv(vaccination.raw.data, "cohorts_fever_200910.raw", quote=F, row.names=F)
+
+
+# GI stuff
+dt$gi <- as.numeric(dt$diarrhoea == 1)
+dt$newgi <- dt$gi
+#dt[same==0, newgi := 0]
+r <- ftable(dt$week, dt$newgi, row.vars=1)
+gi.raw.data <- data.frame(expand.grid(rev(attr(r, "row.vars"))),
+                                   unclass(r))
+names(gi.raw.data) <- c("Week", "nongi", "gi")
+gi.raw.data$gi.incidence <- gi.raw.data$gi / (gi.raw.data$nongi + gi.raw.data$nongi)
+gi.10 <- gi.raw.data[-c(38),]
+write.csv(gi.10, "gi_200910.raw", quote=F, row.names=F)
+
 
