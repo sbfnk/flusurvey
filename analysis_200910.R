@@ -295,7 +295,7 @@ write.csv(vaccination.raw.data, "cohorts_fever_200910.raw", quote=F, row.names=F
 
 
 # GI stuff
-dt$gi <- as.numeric(dt$diarrhoea == 1)
+dt$gi <- as.numeric(dt$diarrhoea == 1 | dt$nausea == 1)
 dt$newgi <- dt$gi
 #dt[same==0, newgi := 0]
 r <- ftable(dt$week, dt$newgi, row.vars=1)
