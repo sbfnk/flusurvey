@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 # -- extract cohort information from csv with data form cohorts.sql query
-# -- reads STDIN, relies on a header and a table sorted last by vaccination
-#    (so that matched groups are in subsequent lines)
+# -- reads STDIN, relies on a header and a table sorted last by the measurement
+#    variable (so that matched groups are in subsequent lines)
 # -- needs a column called "vaccinated" and can use columns called
 #    "week" and "year"
 # -- also needs a column called "ili" and a column called "non_ili"
@@ -9,22 +9,45 @@
 #    group matching (these columns should contain the data)
 
 use strict;
+use warnings;
+use Getopt::Long;
 
 sub min {
     [$_[0], $_[1]]->[$_[0] >= $_[1]];
 }
 
-my $motionchart = 0; # motion chart format
-my $countries = 0; # separate countries (otherwise they are matched)
+# SELECT country AS country,
+#        year AS year,
+#        week AS week,
+#        CASE WHEN a<20 THEN '<20'
+#        WHEN a>=20 AND a<45 THEN '20..44'
+#        WHEN a>=45 AND a<65 THEN '45..64'
+#        WHEN a>=65 THEN '65++'
+#        END AS agegroup,
+#        CASE WHEN riskfree='t' THEN 0
+#        WHEN riskfree='f' THEN 1
+#        END AS risk,
+#        CASE WHEN "Q6_0"='t' OR "Q6_1"='t' THEN 1
+#        ELSE 0
+#        END AS children,
+#        CASE WHEN "Q10"=0 THEN 1
+#        WHEN "Q10"=1 THEN 0
+#        END AS vaccinated,
+#        count(*) AS participants, count(ili) AS ili, count(non_ili)
+#        AS non_ili
 
-foreach (@ARGV) {
-    if ($_ eq "-m") {
-	$motionchart = 1;
-    }
-    if ($_ eq "-c") {
-	$countries = 1;
-    }
-}
+my $motionchart = 0; # motion chart format
+my $countries = 0; # match countries
+my $column = "Q10"; # measurement column
+my @options = ("unvaccinated", "vaccianted");
+
+GetOptions(
+    "chart|m" => \$motionchart,
+    "countries|c" => \$countries,
+    "column=s" => \$column
+);
+
+my $usage = "Usage: cohorts.pl [-n column] [switches]\n";
 
 # read header line
 my $header_line;
@@ -34,7 +57,7 @@ if (!($header_line = <STDIN>)) {
 chomp($header_line);
 my @header = split /,/, $header_line;
 my $country_index = -1; # index of "country" column
-my $vaccinated_index = -1; # index of "vaccinated" column
+my $variable_index = -1; # index of column with measurement variable
 my $week_index = -1; # index of "week" column
 my $year_index = -1; # index of "year" column
 my $yearweek_index = -1; # index of "year-week" column
@@ -48,8 +71,8 @@ for (my $i = 0; $i < scalar(@header); $i++) {
     if ("$header[$i]" eq "country") {
 	$country_index = $i;
     }
-    if ("$header[$i]" eq "vaccinated") {
-	$vaccinated_index = $i;
+    if ("$header[$i]" eq "$variable") {
+	$variable_index = $i;
     }
     if ("$header[$i]" eq "week") {
 	$week_index = $i;
@@ -71,8 +94,8 @@ for (my $i = 0; $i < scalar(@header); $i++) {
 if ($countries && $country_index == -1) {
     die "Input has no \"country\" column\n";
 }
-if ($vaccinated_index == -1) {
-    die "Input has no \"vaccinated\" column\n";
+if ($variable_index == -1) {
+    die "Input has no \"$variable\" column\n";
 }
 if ($ili_index == -1) {
     die "Input has no \"ili\" column\n";
@@ -94,7 +117,7 @@ if (!(@nextdata = split /,/, <STDIN>)) {
     die "No data\n";
 }
 
-# variables to store counts of vaccinated/unvaccinated
+# variables to store counts
 my %vaccinated_ili;
 my %vaccinated_nonili;
 my %unvaccinated_ili;
