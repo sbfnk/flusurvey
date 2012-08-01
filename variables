@@ -1,0 +1,26 @@
+[control]
+label=country
+
+[control]
+ranges=0,20,45,65
+label=agegroup
+
+[Q11_0]
+'t',0,'not in a risk group'
+'f',1,'in a risk group'
+label=riskfree
+
+[Q6_0,Q6_1]
+'t'|'t',1,'having children'
+else,0,'not having children'
+label=children
+
+[Q10]
+0,1,'vaccinated'
+1,0,'unvaccinated'
+label=vaccinated
+
+[Q7b]
+0,1,'using public transport'
+else,0,'not using public transport'
+label=transport
