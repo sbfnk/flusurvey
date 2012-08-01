@@ -11,43 +11,166 @@
 use strict;
 use warnings;
 use Getopt::Long;
+use DBI;
 
 sub min {
     [$_[0], $_[1]]->[$_[0] >= $_[1]];
 }
 
-# SELECT country AS country,
-#        year AS year,
-#        week AS week,
-#        CASE WHEN a<20 THEN '<20'
-#        WHEN a>=20 AND a<45 THEN '20..44'
-#        WHEN a>=45 AND a<65 THEN '45..64'
-#        WHEN a>=65 THEN '65++'
-#        END AS agegroup,
-#        CASE WHEN riskfree='t' THEN 0
-#        WHEN riskfree='f' THEN 1
-#        END AS risk,
-#        CASE WHEN "Q6_0"='t' OR "Q6_1"='t' THEN 1
-#        ELSE 0
-#        END AS children,
-#        CASE WHEN "Q10"=0 THEN 1
-#        WHEN "Q10"=1 THEN 0
-#        END AS vaccinated,
-#        count(*) AS participants, count(ili) AS ili, count(non_ili)
-#        AS non_ili
+sub parsesection {
+    my $section = $_[0];
+    my $label = $_[1];
+    my @selects = @{ $_[2] };
+    my %outcomes = %{ $_[3] };
+    my $selectstring = "";
+    my $fromstring = "";
+    if (scalar (@selects) == 0) {
+	$selectstring = ", $section AS $label";
+    } else {
+	$selectstring = ", CASE";
+	my @variable_names;
+	if ($section =~ /^=/) {
+	    # if section starts with an "=" it's an expression
+	    # so we make the label the variable name
+	    $variable_names[0] = $label;
+	} else {
+	    @variable_names = split(/,/, $section);
+	}
+	foreach (@selects) {
+	    if (/ranges=([0-9,]+)/) {
+		my @splits = split(/,/, $1);
+		my $nsplits = (scalar @splits) - 1;
+		for (my $i = 0; $i < $nsplits; $i++) {
+		    $selectstring .= " WHEN $variable_names[0] >= $splits[$i] ".
+			"AND $variable_names[0] < $splits[$i+1] THEN ".
+			    "'$splits[$i]..$splits[$i+1]'";
+		    $outcomes{$label}{"$splits[$i]..$splits[$i+1]"}
+		}
+		$selectstring .= " WHEN $variable_names[0] > $splits[$nsplits]".
+		    " THEN '$splits[$nsplits]+'";
+	    } else {
+		my @line = split(/,/);
+		my $logical = $line[0];
+		if ($logical eq "else") {
+		    $selectstring .= " ELSE $line[1]";
+		} else {
+		    $selectstring .= " WHEN ";
+		    my @strarray = ($line[0] =~ m/./g);
+		    my $current;
+		    my $counter = 0;
+		    while (scalar(@strarray) > 0) {
+			my $char = shift(@strarray);
+			if ($char =~ /[\|&]/) {
+			    $selectstring .=
+				"$variable_names[$counter] = $current";
+			    if ($char eq "|") {
+				$selectstring .= " OR ";
+			    } elsif ($char eq "&") {
+				$selectstring .= " AND ";
+			    }
+			    $counter++;
+			    $current = "";
+			} else {
+			    $current .= "$char";
+			}
+		    }
+		    if ($current =~ /[^\s]/) {
+			$selectstring .=
+			    "$variable_names[$counter] = $current";
+		    }
+		    $selectstring .= " THEN $line[1]";
+		}
+	    }
+	}
+	$selectstring .= " END AS $label";
+    }
+    return ($selectstring, $fromstring);
+}
 
 my $motionchart = 0; # motion chart format
 my $countries = 0; # match countries
-my $column = "Q10"; # measurement column
+my $variable_file = "variables"; # file containing all the variables
+my $measure = "vaccinated";
+my $controlstring = "country,year,week,agegroup,risk,children";
+my $definition = "";
 my @options = ("unvaccinated", "vaccianted");
 
 GetOptions(
     "chart|m" => \$motionchart,
     "countries|c" => \$countries,
-    "column=s" => \$column
+    "definition=s" => \$definition,
+    "measure=s" => \$measure,
+    "control|o=s" => \$controlstring,
+    "variable-file|f=s" => \$variable_file
 );
 
-my $usage = "Usage: cohorts.pl [-n column] [switches]\n";
+# extract control variables
+my %control;
+my @control_vars = split(/,/, $controlstring);
+foreach (@control_vars) {
+    $control{$_} = 1;
+}
+
+# compose database string
+
+my $selectstring = "SELECT year AS year, ".
+    "week AS week";
+my $fromstring = "FROM (SELECT";
+
+my $section = "";
+my $label;
+my @selects;
+my %lables;
+my %outcomes;
+
+open (IN, "$variable_file") or
+    die "Could not open variable file $variable_file\n";
+
+while (<IN>) {
+    chomp;
+    if (/\[(.+)\]/) {
+	my $newsection = $1;
+	if ($section ne "") {
+	    $sections{$label}=1;
+	    if (exists $control{$label}) {
+		my ($newselect, $newfrom) =
+		    &parsesection($section, $label, \@selects, \%outcomes);
+		$selectstring .= $newselect;
+		$fromstring .= $newfrom;
+	    }
+	}
+	$section = $newsection;
+	@selects = ();
+	$label = "";
+    } elsif (/label=([^\s]+)/) {
+	$label = $1;
+    } elsif (/[,=]/) {
+	push @selects, $_;
+    }
+}
+close(IN);
+
+$fromstring .= " FROM epidb_results_intake AS I, epidb_health_status";
+if ($definition ne "") {
+    $fromstring .= "_$definition";
+}
+$fromstring .= " epidb_results_weekly AS W";
+$fromstring .= " WHERE I.\"Q10\"<2".
+    " AND S.epidb_results_weekly_id = W.id".
+    " AND (W.\"Q2\" IS NULL OR W.\"Q2\" != 0)".
+    " AND W.global_id = I.global_id".
+    " AND extract(year from age(to_timestamp(I.\"Q2\",'YYYY-MM'))) > 0)".
+    " AS statuses";
+
+my $sqlstring = "$selectstring $fromstring".
+    " GROUP BY $controlstring,$measure".
+    " ORDER BY $controlstring,$measure";
+print "$sqlstring\n";
+exit;
+my $dbh = DBI->connect ( "dbi:Pg:dbname=flusurvey", "", "");
+if ( !defined $dbh ) {
+    die "Cannot connect to database!\n";
+}
 
 # read header line
 my $header_line;
@@ -71,9 +194,9 @@ for (my $i = 0; $i < scalar(@header); $i++) {
     if ("$header[$i]" eq "country") {
 	$country_index = $i;
     }
-    if ("$header[$i]" eq "$variable") {
-	$variable_index = $i;
-    }
+    # if ("$header[$i]" eq "$column") {
+    # 	$variable_index = $i;
+    # }
     if ("$header[$i]" eq "week") {
 	$week_index = $i;
     }
@@ -94,9 +217,9 @@ for (my $i = 0; $i < scalar(@header); $i++) {
 if ($countries && $country_index == -1) {
     die "Input has no \"country\" column\n";
 }
-if ($variable_index == -1) {
-    die "Input has no \"$variable\" column\n";
-}
+# if ($variable_index == -1) {
+#     die "Input has no \"$column\" column\n";
+# }
 if ($ili_index == -1) {
     die "Input has no \"ili\" column\n";
 }
@@ -170,14 +293,14 @@ while (<STDIN>) {
 
     # see if we're an unvaccinated group
     # (which should be followed by a matching vaccinated group)
-    if ($data[$vaccinated_index] == 0) {
+    if ($data[$variable_index] == 0) {
 	my @unvaccinated = @data;
 
-	if (scalar (@nextdata) > $vaccinated_index) {
+	if (scalar (@nextdata) > $variable_index) {
 	    my $matching_group = 0;
-	    if ($nextdata[$vaccinated_index] == 1) {
+	    if ($nextdata[$variable_index] == 1) {
 		$matching_group = 1;
-		for (my $i = 0; $i < $vaccinated_index; $i++) {
+		for (my $i = 0; $i < $variable_index; $i++) {
 		    if (!("$nextdata[$i]" eq "$unvaccinated[$i]")) {
 			$matching_group = 0;
 		    }

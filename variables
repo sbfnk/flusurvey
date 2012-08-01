@@ -1,7 +1,7 @@
-[control]
+[country]
 label=country
 
-[control]
+[=extract(year from age(to_timestamp(I."Q2",'YYYY-MM')))]
 ranges=0,20,45,65
 label=agegroup
 
