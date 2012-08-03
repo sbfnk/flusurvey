@@ -359,7 +359,7 @@ if ($motionchart) {
     print "  </body>\n";
     print "</html>\n";
 } else {
-    print "@time_vars,variable,value\n";
+    print join(",", @time_vars).",variable,value\n";
     foreach my $time (sort {$measure_times{$a} <=> $measure_times{$b}}
 				@categories) {
 	foreach (keys %measure_range) {
