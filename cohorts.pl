@@ -91,28 +91,34 @@ foreach my $section ((@time_vars,@control_vars,$measure)) {
     } else {
 	$selectstring .= ", CASE";
 	my @variable_names;
+
+	my $index = 0;
 	if ($select =~ /\(/) {
+	    $variable_names[0] = "$section\_var$index";
 	    # if section contains paranthese it's an expression
-	    # so we make the section the variable name
-	    $variable_names[0] = $section;
-	    $fromstring .= ", $select AS $section";
+	    # so we create a new variable name
+	    $fromstring .=
+		", $select AS $variable_names[0]";
 	} else {
 	    @variable_names = split(/,/, $select);
-	    foreach (@variable_names) {
-		$fromstring .= ", $db.\"$_\" AS $_";
+	    foreach my $variable (@variable_names) {
+		$fromstring .=
+		    ", $db.\"$variable\" AS $variable";
 	    }
 	}
+
+	$index = 0;
 	foreach (@{$sections{$section}{"cases"}}) {
 	    if (/ranges=([0-9,]+)/) {
 		my @splits = split(/,/, $1);
 		my $nsplits = (scalar @splits) - 1;
 		for (my $i = 0; $i < $nsplits; $i++) {
-		    $selectstring .= " WHEN $section >= $splits[$i] ".
-			"AND $section < $splits[$i+1] THEN ".
+		    $selectstring .= " WHEN $variable_names[$index] >= $splits[$i] ".
+			"AND $variable_names[$index] < $splits[$i+1] THEN ".
 			    "'$splits[$i]..$splits[$i+1]'";
 		    $outcomes{$section}{"$splits[$i]..$splits[$i+1]"} = 1
 		}
-		$selectstring .= " WHEN $section >= $splits[$nsplits]".
+		$selectstring .= " WHEN $variable_names[$index] >= $splits[$nsplits]".
 		    " THEN '$splits[$nsplits]+'";
 	    } else {
 		my @line = split(/,/);
@@ -150,6 +156,7 @@ foreach my $section ((@time_vars,@control_vars,$measure)) {
 	    }
 	}
 	$selectstring .= " END AS $section";
+	$index++;
     }
 }
 
@@ -223,10 +230,10 @@ my @categories;
 foreach my $time (sort {$measure_times{$a} <=> $measure_times{$b}}
 		   keys %matched_ili) {
 
-    my $smallest_total = -1;
-    my %total;
     foreach my $control (keys %{ $matched_ili{$time} }) {
 	my $valid = 1;
+	my %total;
+	my $smallest_total = -1;
 	foreach (keys %measure_range) {
 	    if (exists $matched_ili{$time}{$control}{$_} &&
 		    exists $matched_nonili{$time}{$control}{$_}) {
