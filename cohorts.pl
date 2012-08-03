@@ -35,21 +35,12 @@ GetOptions(
 );
 
 # extract control and measurement variables
-my %control;
 my @control_vars = split(/,/, $controlstring);
-foreach (@control_vars) {
-    $control{$_} = 1;
-}
-my %time;
 my @time_vars = split(/,/, $timestring);
-foreach (@time_vars) {
-    $time{$_} = 1;
-}
 
 # compose database string
 
-my $selectstring = "SELECT count(*) AS participants, ".
-    "count(ili) AS ili, ".
+my $selectstring = "SELECT count(ili) AS ili, ".
     "count(non_ili) AS non_ili";
 my $fromstring = "FROM (SELECT NULLIF(S.status = 'ILI', false) AS ili, ".
     "NULLIF(S.status != 'ILI', false) AS non_ili";
@@ -182,8 +173,6 @@ if ( !defined $dbh ) {
     die "Cannot connect to database!\n";
 }
 
-print "$sqlstring\n";
-
 my $sth = $dbh->prepare($sqlstring);
 $sth->execute();
 
@@ -193,15 +182,16 @@ my $nfail = 0;
 
 # variables to store counts
 
-my %ili;
-my %nonili;
-my @matches;
-my @current_controls = "init" x (scalar @time_vars + scalar @control_vars);
-
-my $first = 0;
+my %matched_ili;
+my %matched_nonili;
+my @current_time = ("init") x (scalar @time_vars);
+my @current_controls = ("init") x (scalar @control_vars);
+my $measure_column = scalar @time_vars + scalar @control_vars + 2;
+my %measure_range;
+my %measure_times; # to preserve sorting order
+my $index = 0;
 
 while (my @row = $sth->fetchrow_array() ) {
-    print "@row\n";
     my $fail = 0;
     foreach (@row) {
 	if (!(defined $_)) {
@@ -209,133 +199,91 @@ while (my @row = $sth->fetchrow_array() ) {
 	}
     }
     if (!$fail) {
-	# see if we've got a new combination of control groups
-	# (which should be followed by at least one matching group)
-	my $matching_group = 1;
-	for (my $i = 3; $i < (scalar @time_vars + scalar @control_vars); $i++) {
-	    if (!("$row[$i]" eq "$current_controls[$i]")) {
-		$matching_group = 0;
-	    }
-	}
-
-	if ($matching_group) {
-	    my @new_measure;
-	    for (my $i = 5 + (scalar @control_vars);
-		 $i < 5 + (scalar @control_vars) + (scalar @time_vars);
-		 $i++) {
-		push @new_measure, $row[$i];
-	    }
-	    push @matches, \@new_measure;
-	} else {
-	    	my $year = $row[3];
-	my $week = $row[4];
-
-	if (!(exists $ili{$year}{$week})) {
-	    $ili{$year}{$week} = {};
-	}
-	if (!(exists $nonili{$year}{$week})) {
-	    $nonili{$year}{$week} = {};
-	}
-
-	    }
-
-
-	my @vaccinated = @nextdata;
-		my $vaccinated_total =
-		    $vaccinated[$ili_index] + $vaccinated[$nonili_index];
-		my $unvaccinated_total =
-		    $unvaccinated[$ili_index] + $unvaccinated[$nonili_index];
-		my $smaller_total = min($vaccinated_total,
-					$unvaccinated_total);
-		if ($vaccinated_total > 0 && $unvaccinated_total > 0) {
-			$unvaccinated_ili{$year}{$week} +=
-			    $unvaccinated[$ili_index] *
-				$smaller_total / $unvaccinated_total;
-			$unvaccinated_nonili{$year}{$week} +=
-			    $unvaccinated[$nonili_index] *
-				$smaller_total / $unvaccinated_total;
-			$vaccinated_ili{$year}{$week} +=
-			    $vaccinated[$ili_index] *
-				$smaller_total / $vaccinated_total;
-			$vaccinated_nonili{$year}{$week} +=
-			    $vaccinated[$nonili_index] *
-				$smaller_total / $vaccinated_total;
-		    }
-		}
-		my $line = <STDIN>;
-		if ($line) {
-		    chomp $line;
-		    @nextdata = split /,/, $line;
-		}
-	    }
-	}
-    }
-}
-
+	my $current_time = join(",", @row[2..(2 + (scalar @current_time) - 1)]);
+	my $current_controls =
+	    join(",",  @row[(2 + (scalar @current_time))..
+				(2 + (scalar @current_time +
+					  scalar @current_controls) - 1)]);
+	$measure_range{$row[$measure_column]} = 1;
+	$matched_ili{$current_time}{$current_controls}{$row[$measure_column]} = $row[0];
+	$matched_nonili{$current_time}{$current_controls}{$row[$measure_column]} = $row[1];
+	$measure_times{$current_time} = $index;
     } else {
 	$nfail++;
     }
+    $index++;
 }
 
-# clean up
 $dbh->disconnect();
 
+my %ili;
+my %nonili;
 my @categories;
-my @vaccinated_data;
-my @unvaccinated_data;
-if ($countries) {
-    foreach my $country (sort keys %vaccinated_ili) {
-	foreach my $year (sort keys %{ $vaccinated_ili{$country} }) {
-	    foreach my $week (sort {$a <=> $b} keys %{ $vaccinated_ili{$country}{$year} }) {
-		if ($vaccinated_ili{$country}{$year}{$week} +
-			$vaccinated_nonili{$country}{$year}{$week} > 0 &&
-			    $unvaccinated_ili{$country}{$year}{$week} +
-				$unvaccinated_nonili{$country}{$year}{$week} >
-				    0) {
-		    push @categories, "$country,$year,$week";
-		    push @vaccinated_data,
-			sprintf("%.1f", ($vaccinated_ili{$country}{$year}{$week} * 100 /
-					     ($vaccinated_ili{$country}{$year}{$week} +
-						  $vaccinated_nonili{$country}{$year}{$week}
-						      + .0)));
-		    push @unvaccinated_data,
-			sprintf("%.1f", ($unvaccinated_ili{$country}{$year}{$week} * 100 /
-					     ($unvaccinated_ili{$country}{$year}{$week} +
-						  $unvaccinated_nonili{$country}{$year}{$week}
-						      + .0)));
+
+foreach my $time (sort {$measure_times{$a} <=> $measure_times{$b}}
+		   keys %matched_ili) {
+
+    my $smallest_total = -1;
+    my %total;
+    foreach my $control (keys %{ $matched_ili{$time} }) {
+	my $valid = 1;
+	foreach (keys %measure_range) {
+	    if (exists $matched_ili{$time}{$control}{$_} &&
+		    exists $matched_nonili{$time}{$control}{$_}) {
+		$total{$_} =
+		    $matched_ili{$time}{$control}{$_} +
+			$matched_nonili{$time}{$control}{$_};
+		if ($smallest_total < 0) {
+		    $smallest_total = $total{$_};
+		} else {
+		    $smallest_total = min($total{$_}, $smallest_total);
 		}
+	    } else {
+		$valid = 0;
+	    }
+	}
+	if ($valid == 1) {
+	    foreach (keys %measure_range) {
+		if (!defined $ili{$time}{$_}) {
+		    $ili{$time}{$_} = 0;
+		}
+		$ili{$time}{$_} += $matched_ili{$time}{$control}{$_} *
+		    $smallest_total / $total{$_};
+		$nonili{$time}{$_} += $matched_nonili{$time}{$control}{$_} *
+		    $smallest_total / $total{$_};
 	    }
 	}
     }
-} else {
-    foreach my $year (sort keys %vaccinated_ili) {
-	foreach my $week (sort {$a <=> $b} keys %{ $vaccinated_ili{$year} }) {
-	    if ($vaccinated_ili{$year}{$week} +
-		    $vaccinated_nonili{$year}{$week} > 0 &&
-			$unvaccinated_ili{$year}{$week} +
-			    $unvaccinated_nonili{$year}{$week} >
-				0) {
-		if ($motionchart) {
-		    push @categories, "'$week/$year'";
-		} else {
-		    push @categories, "$year,$week";
-		}
-		push @vaccinated_data,
-		sprintf("%.1f", ($vaccinated_ili{$year}{$week} * 100 /
-				     ($vaccinated_ili{$year}{$week} +
-					  $vaccinated_nonili{$year}{$week} + .0)));
-		push @unvaccinated_data,
-		    sprintf("%.1f", ($unvaccinated_ili{$year}{$week} * 100 /
-					 ($unvaccinated_ili{$year}{$week} +
-					      $unvaccinated_nonili{$year}{$week} + .0)));
-	    }
-	}
+}
+
+foreach my $time (keys %ili) {
+    if (scalar keys %{ $ili{$time} } > 0) {
+	push @categories, $time;
     }
 }
 
 if ($motionchart) {
-    foreach (@categories) {
-	$_ = "'$_'";
+    my %data;
+    foreach (keys %measure_range) {
+	my @new_array;
+	$data{$_} = \@new_array;
+    }
+    my @dates;
+    foreach my $time (sort {$measure_times{$a} <=> $measure_times{$b}}
+				@categories) {
+	my @date = split(/,/, $time);
+	my $datestr = "'" . pop(@date);
+	foreach (reverse @date) {
+	    $datestr .= "/$_";
+	}
+	$datestr .= "'";
+	push @dates, $datestr;
+	foreach (keys %measure_range) {
+	    push @ {$data{$_}}, 
+		sprintf("%.1f", ($ili{$time}{$_} * 100 /
+ 				     ($ili{$time}{$_} +
+ 					  $nonili{$time}{$_} + .0)));
+	}
     }
     print "<html>\n";
     print "  <head>\n";
@@ -359,7 +307,7 @@ if ($motionchart) {
     print "                                    x: -20 //center\n";
     print "                            },\n";
     print "                            xAxis: {\n";
-    print "                                    categories: [".join(',', @categories)."],\n";
+    print "                                    categories: [".join(',', @dates)."],\n";
     print "                                    labels: {\n";
     print "                                            rotation: -45,\n";
     print "                                            align: 'right'\n";
@@ -391,11 +339,16 @@ if ($motionchart) {
     print "                                    enabled: false\n";
     print "                            },\n";
     print "                            series: [{\n";
-    print "                                    name: 'Vaccinated',\n";
-    print "                                    data: [".join(",", @vaccinated_data)."]\n";
-    print "                            }, {\n";
-    print "                                    name: 'Unvaccinated',\n";
-    print "                                    data: [".join(",", @unvaccinated_data)."]\n";
+    my $first = 1;
+    foreach (keys %measure_range) {
+	if (!($first == 1)) {
+	    print "                            }, {\n";
+	} else {
+	    $first = 0;
+	}
+	print "                                    name: ".$outcomes{$measure}{$_}.",\n";
+	print "                                    data: [".join(",", @{$data{$_}})."]\n";
+    }
     print "                            }]\n";
     print "                                });\n";
     print "                        });\n";
@@ -406,12 +359,14 @@ if ($motionchart) {
     print "  </body>\n";
     print "</html>\n";
 } else {
-    if ($countries) {
-	print "country,";
-    }
-    print "year,week,variable,value\n";
-    for (my $i = 0; $i < (scalar @categories); $i++) {
-	print "$categories[$i],vaccinated,$vaccinated_data[$i]\n";
-	print "$categories[$i],unvaccinated,$unvaccinated_data[$i]\n";
+    print "@time_vars,variable,value\n";
+    foreach my $time (sort {$measure_times{$a} <=> $measure_times{$b}}
+				@categories) {
+	foreach (keys %measure_range) {
+	    my $fraction = $ili{$time}{$_} * 100 /
+		($ili{$time}{$_} +
+		     $nonili{$time}{$_} + .0);
+	    print "$time,$outcomes{$measure}{$_},$fraction\n";
+	}
     }
 }
