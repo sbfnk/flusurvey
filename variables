@@ -1,26 +1,36 @@
 [country]
-label=country
+db=I
 
-[=extract(year from age(to_timestamp(I."Q2",'YYYY-MM')))]
+[agegroup]
 ranges=0,20,45,65
-label=agegroup
+select=extract(year from age(to_timestamp(I."Q2",'YYYY-MM')))
 
-[Q11_0]
+[risk]
 't',0,'not in a risk group'
 'f',1,'in a risk group'
-label=riskfree
+select=Q11_0
+db=I
 
-[Q6_0,Q6_1]
+[children]
 't'|'t',1,'having children'
 else,0,'not having children'
-label=children
+select=Q6_0,Q6_1
+db=I
 
-[Q10]
+[vaccinated]
 0,1,'vaccinated'
 1,0,'unvaccinated'
-label=vaccinated
+select=Q10
+db=I
 
-[Q7b]
+[transport]
 0,1,'using public transport'
 else,0,'not using public transport'
-label=transport
+select=Q7b
+db=I
+
+[week]
+select=extract(week FROM W.timestamp)
+
+[year]
+select=extract(year FROM date_trunc('week', W.timestamp))

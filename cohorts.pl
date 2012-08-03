@@ -17,36 +17,111 @@ sub min {
     [$_[0], $_[1]]->[$_[0] >= $_[1]];
 }
 
-sub parsesection {
-    my $section = $_[0];
-    my $label = $_[1];
-    my @selects = @{ $_[2] };
-    my %outcomes = %{ $_[3] };
-    my $selectstring = "";
-    my $fromstring = "";
-    if (scalar (@selects) == 0) {
-	$selectstring = ", $section AS $label";
-    } else {
-	$selectstring = ", CASE";
-	my @variable_names;
-	if ($section =~ /^=/) {
-	    # if section starts with an "=" it's an expression
-	    # so we make the label the variable name
-	    $variable_names[0] = $label;
+my $motionchart = 0; # motion chart format
+my $variable_file = "variables"; # file containing all the variables
+my $measure = "vaccinated"; # measurement variable
+my $timestring = "year,week"; # time variable(s)
+my $controlstring = "agegroup,risk,children"; # match variable(s)
+my $definition = "";
+my @options = ("unvaccinated", "vaccianted");
+
+GetOptions(
+    "chart|t" => \$motionchart,
+    "definition=s" => \$definition,
+    "measure|m=s" => \$measure,
+    "time=s" => \$timestring,
+    "control|o=s" => \$controlstring,
+    "variable-file|f=s" => \$variable_file
+);
+
+# extract control and measurement variables
+my %control;
+my @control_vars = split(/,/, $controlstring);
+foreach (@control_vars) {
+    $control{$_} = 1;
+}
+my %time;
+my @time_vars = split(/,/, $timestring);
+foreach (@time_vars) {
+    $time{$_} = 1;
+}
+
+# compose database string
+
+my $selectstring = "SELECT count(*) AS participants, ".
+    "count(ili) AS ili, ".
+    "count(non_ili) AS non_ili";
+my $fromstring = "FROM (SELECT NULLIF(S.status = 'ILI', false) AS ili, ".
+    "NULLIF(S.status != 'ILI', false) AS non_ili";
+
+my %sections;
+my $section = "";
+
+# read in variables file
+open (IN, "$variable_file") or
+    die "Could not open variable file $variable_file\n";
+
+while (<IN>) {
+    if (/^#/) { next; }
+    chomp;
+    if (/\[(.+)\]/) {
+	$section = $1;
+	$sections{$section}{"select"} = $section;
+	$sections{$section}{"db"} = "";
+	$sections{$section}{"cases"} = [];
+    } elsif (/select=(.+)/) {
+	$sections{$section}{"select"} = $1;
+    } elsif (/db=([^\s]+)/) {
+	$sections{$section}{"db"} = $1;
+    } elsif (/[,=]/) {
+	push @{$sections{$section}{"cases"}}, $_;
+    }
+}
+
+undef $section;
+
+close(IN);
+
+my %outcomes;
+
+foreach my $section ((@time_vars,@control_vars,$measure)) {
+
+    my $select = $sections{$section}{"select"};
+    my $db = $sections{$section}{"db"};
+
+    if (scalar (@{$sections{$section}{"cases"}}) == 0) {
+	if ($select =~ /\(/) {
+	    $selectstring .= ", $section AS $section";
+	    $fromstring .= ", $select AS $section";
 	} else {
-	    @variable_names = split(/,/, $section);
+	    $fromstring .= ", $db.\"$select\" AS $select";
+	    $selectstring .= ", $select AS $section";
 	}
-	foreach (@selects) {
+    } else {
+	$selectstring .= ", CASE";
+	my @variable_names;
+	if ($select =~ /\(/) {
+	    # if section contains paranthese it's an expression
+	    # so we make the section the variable name
+	    $variable_names[0] = $section;
+	    $fromstring .= ", $select AS $section";
+	} else {
+	    @variable_names = split(/,/, $select);
+	    foreach (@variable_names) {
+		$fromstring .= ", $db.\"$_\" AS $_";
+	    }
+	}
+	foreach (@{$sections{$section}{"cases"}}) {
 	    if (/ranges=([0-9,]+)/) {
 		my @splits = split(/,/, $1);
 		my $nsplits = (scalar @splits) - 1;
 		for (my $i = 0; $i < $nsplits; $i++) {
-		    $selectstring .= " WHEN $variable_names[0] >= $splits[$i] ".
-			"AND $variable_names[0] < $splits[$i+1] THEN ".
+		    $selectstring .= " WHEN $section >= $splits[$i] ".
+			"AND $section < $splits[$i+1] THEN ".
 			    "'$splits[$i]..$splits[$i+1]'";
-		    $outcomes{$label}{"$splits[$i]..$splits[$i+1]"}
+		    $outcomes{$section}{"$splits[$i]..$splits[$i+1]"} = 1
 		}
-		$selectstring .= " WHEN $variable_names[0] > $splits[$nsplits]".
+		$selectstring .= " WHEN $section >= $splits[$nsplits]".
 		    " THEN '$splits[$nsplits]+'";
 	    } else {
 		my @line = split(/,/);
@@ -80,234 +155,92 @@ sub parsesection {
 		    }
 		    $selectstring .= " THEN $line[1]";
 		}
+		$outcomes{$section}{$line[1]} = $line[2];
 	    }
 	}
-	$selectstring .= " END AS $label";
-    }
-    return ($selectstring, $fromstring);
-}
-
-my $motionchart = 0; # motion chart format
-my $countries = 0; # match countries
-my $variable_file = "variables"; # file containing all the variables
-my $measure = "vaccinated";
-my $controlstring = "country,year,week,agegroup,risk,children";
-my $definition = "";
-my @options = ("unvaccinated", "vaccianted");
-
-GetOptions(
-    "chart|m" => \$motionchart,
-    "countries|c" => \$countries,
-    "definition=s" => \$definition,
-    "measure=s" => \$measure,
-    "control|o=s" => \$controlstring,
-    "variable-file|f=s" => \$variable_file
-);
-
-# extract control variables
-my %control;
-my @control_vars = split(/,/, $controlstring);
-foreach (@control_vars) {
-    $control{$_} = 1;
-}
-
-# compose database string
-
-my $selectstring = "SELECT year AS year, ".
-    "week AS week";
-my $fromstring = "FROM (SELECT";
-
-my $section = "";
-my $label;
-my @selects;
-my %lables;
-my %outcomes;
-
-open (IN, "$variable_file") or
-    die "Could not open variable file $variable_file\n";
-
-while (<IN>) {
-    chomp;
-    if (/\[(.+)\]/) {
-	my $newsection = $1;
-	if ($section ne "") {
-	    $sections{$label}=1;
-	    if (exists $control{$label}) {
-		my ($newselect, $newfrom) =
-		    &parsesection($section, $label, \@selects, \%outcomes);
-		$selectstring .= $newselect;
-		$fromstring .= $newfrom;
-	    }
-	}
-	$section = $newsection;
-	@selects = ();
-	$label = "";
-    } elsif (/label=([^\s]+)/) {
-	$label = $1;
-    } elsif (/[,=]/) {
-	push @selects, $_;
+	$selectstring .= " END AS $section";
     }
 }
-close(IN);
 
 $fromstring .= " FROM epidb_results_intake AS I, epidb_health_status";
 if ($definition ne "") {
     $fromstring .= "_$definition";
 }
-$fromstring .= " epidb_results_weekly AS W";
+$fromstring .= " AS S, epidb_results_weekly AS W";
 $fromstring .= " WHERE I.\"Q10\"<2".
     " AND S.epidb_results_weekly_id = W.id".
     " AND (W.\"Q2\" IS NULL OR W.\"Q2\" != 0)".
     " AND W.global_id = I.global_id".
-    " AND extract(year from age(to_timestamp(I.\"Q2\",'YYYY-MM'))) > 0)".
-    " AS statuses";
+    ") AS statuses";
 
 my $sqlstring = "$selectstring $fromstring".
-    " GROUP BY $controlstring,$measure".
-    " ORDER BY $controlstring,$measure";
-print "$sqlstring\n";
-exit;
+    " GROUP BY $timestring,$controlstring,$measure".
+    " ORDER BY $timestring,$controlstring,$measure";
+
 my $dbh = DBI->connect ( "dbi:Pg:dbname=flusurvey", "", "");
 if ( !defined $dbh ) {
     die "Cannot connect to database!\n";
 }
 
-# read header line
-my $header_line;
-if (!($header_line = <STDIN>)) {
-    die "No header line\n";
-}
-chomp($header_line);
-my @header = split /,/, $header_line;
-my $country_index = -1; # index of "country" column
-my $variable_index = -1; # index of column with measurement variable
-my $week_index = -1; # index of "week" column
-my $year_index = -1; # index of "year" column
-my $yearweek_index = -1; # index of "year-week" column
-my $ili_index = -1; # index of "ili" coulmn
-my $nonili_index = -1; # index of "nonili" coulmn
+print "$sqlstring\n";
+
+my $sth = $dbh->prepare($sqlstring);
+$sth->execute();
+
 my $count = -1;
 my $sum = 0;
-
-# find where the relevant columns are
-for (my $i = 0; $i < scalar(@header); $i++) {
-    if ("$header[$i]" eq "country") {
-	$country_index = $i;
-    }
-    # if ("$header[$i]" eq "$column") {
-    # 	$variable_index = $i;
-    # }
-    if ("$header[$i]" eq "week") {
-	$week_index = $i;
-    }
-    if ("$header[$i]" eq "year") {
-	$year_index = $i;
-    }
-    if ("$header[$i]" eq "year-week") {
-	$yearweek_index = $i;
-    }
-    if ("$header[$i]" eq "ili") {
-	$ili_index = $i;
-    }
-    if ("$header[$i]" eq "non_ili") {
-	$nonili_index = $i;
-    }
-}
-
-if ($countries && $country_index == -1) {
-    die "Input has no \"country\" column\n";
-}
-# if ($variable_index == -1) {
-#     die "Input has no \"$column\" column\n";
-# }
-if ($ili_index == -1) {
-    die "Input has no \"ili\" column\n";
-}
-if ($nonili_index == -1) {
-    die "Input has no \"non_ili\" column\n";
-}
-if ((($year_index == -1) || ($week_index == -1)) &&
-	$yearweek_index == -1) {
-    die "Input has no year/week columns\n";
-}
-if ($countries && $motionchart) {
-    die "Cannot split motionchart by countries\n";
-}
-
-my @data; # will store the data read in from csv
-my @nextdata; # will store one readahead from csv
-if (!(@nextdata = split /,/, <STDIN>)) {
-    die "No data\n";
-}
+my $nfail = 0;
 
 # variables to store counts
-my %vaccinated_ili;
-my %vaccinated_nonili;
-my %unvaccinated_ili;
-my %unvaccinated_nonili;
 
-while (<STDIN>) {
-    @data = @nextdata;
-    chomp;
-    @nextdata = split /,/;
+my %ili;
+my %nonili;
+my @matches;
+my @current_controls = "init" x (scalar @time_vars + scalar @control_vars);
 
-    my $week = 0;
-    my $year = 0;
+my $first = 0;
 
-    if ($week_index >= 0 && $year_index >= 0) {
-	#  we have got a "week" and "year" column
-	$week = $data[$week_index];
-	$year = $data[$year_index];
-    } else {
-	#  we have got a "year-week" column
-	($year, $week) = split /-/, $data[$yearweek_index];
-    }
-    if ($countries) {
-	my $country = $data[$country_index];
-	if (!(exists $vaccinated_ili{$country}{$year}{$week})) {
-	    $vaccinated_ili{$country}{$year}{$week} = 0;
-	}
-	if (!(exists $vaccinated_nonili{$country}{$year}{$week})) {
-	    $vaccinated_nonili{$country}{$year}{$week} = 0;
-	}
-	if (!(exists $unvaccinated_ili{$country}{$year}{$week})) {
-	    $unvaccinated_ili{$country}{$year}{$week} = 0;
-	}
-	if (!(exists $unvaccinated_nonili{$country}{$year}{$week})) {
-	    $unvaccinated_nonili{$country}{$year}{$week} = 0;
-	}
-    } else {
-	if (!(exists $vaccinated_ili{$year}{$week})) {
-	    $vaccinated_ili{$year}{$week} = 0;
-	}
-	if (!(exists $vaccinated_nonili{$year}{$week})) {
-	    $vaccinated_nonili{$year}{$week} = 0;
-	}
-	if (!(exists $unvaccinated_ili{$year}{$week})) {
-	    $unvaccinated_ili{$year}{$week} = 0;
-	}
-	if (!(exists $unvaccinated_nonili{$year}{$week})) {
-	    $unvaccinated_nonili{$year}{$week} = 0;
+while (my @row = $sth->fetchrow_array() ) {
+    print "@row\n";
+    my $fail = 0;
+    foreach (@row) {
+	if (!(defined $_)) {
+	    $fail = 1;
 	}
     }
-
-    # see if we're an unvaccinated group
-    # (which should be followed by a matching vaccinated group)
-    if ($data[$variable_index] == 0) {
-	my @unvaccinated = @data;
-
-	if (scalar (@nextdata) > $variable_index) {
-	    my $matching_group = 0;
-	    if ($nextdata[$variable_index] == 1) {
-		$matching_group = 1;
-		for (my $i = 0; $i < $variable_index; $i++) {
-		    if (!("$nextdata[$i]" eq "$unvaccinated[$i]")) {
-			$matching_group = 0;
-		    }
-		}
+    if (!$fail) {
+	# see if we've got a new combination of control groups
+	# (which should be followed by at least one matching group)
+	my $matching_group = 1;
+	for (my $i = 3; $i < (scalar @time_vars + scalar @control_vars); $i++) {
+	    if (!("$row[$i]" eq "$current_controls[$i]")) {
+		$matching_group = 0;
 	    }
-	    if ($matching_group) {
-		my @vaccinated = @nextdata;
+	}
+
+	if ($matching_group) {
+	    my @new_measure;
+	    for (my $i = 5 + (scalar @control_vars);
+		 $i < 5 + (scalar @control_vars) + (scalar @time_vars);
+		 $i++) {
+		push @new_measure, $row[$i];
+	    }
+	    push @matches, \@new_measure;
+	} else {
+	    	my $year = $row[3];
+	my $week = $row[4];
+
+	if (!(exists $ili{$year}{$week})) {
+	    $ili{$year}{$week} = {};
+	}
+	if (!(exists $nonili{$year}{$week})) {
+	    $nonili{$year}{$week} = {};
+	}
+
+	    }
+
+
+	my @vaccinated = @nextdata;
 		my $vaccinated_total =
 		    $vaccinated[$ili_index] + $vaccinated[$nonili_index];
 		my $unvaccinated_total =
@@ -315,21 +248,6 @@ while (<STDIN>) {
 		my $smaller_total = min($vaccinated_total,
 					$unvaccinated_total);
 		if ($vaccinated_total > 0 && $unvaccinated_total > 0) {
-		    if ($countries) {
-			my $country = $vaccinated[$country_index];
-			$unvaccinated_ili{$country}{$year}{$week} +=
-			    $unvaccinated[$ili_index] *
-				$smaller_total / $unvaccinated_total;
-			$unvaccinated_nonili{$country}{$year}{$week} +=
-			    $unvaccinated[$nonili_index] *
-				$smaller_total / $unvaccinated_total;
-			$vaccinated_ili{$country}{$year}{$week} +=
-			    $vaccinated[$ili_index] *
-				$smaller_total / $vaccinated_total;
-			$vaccinated_nonili{$country}{$year}{$week} +=
-			    $vaccinated[$nonili_index] *
-				$smaller_total / $vaccinated_total;
-		    } else {
 			$unvaccinated_ili{$year}{$week} +=
 			    $unvaccinated[$ili_index] *
 				$smaller_total / $unvaccinated_total;
@@ -353,6 +271,14 @@ while (<STDIN>) {
 	}
     }
 }
+
+    } else {
+	$nfail++;
+    }
+}
+
+# clean up
+$dbh->disconnect();
 
 my @categories;
 my @vaccinated_data;
