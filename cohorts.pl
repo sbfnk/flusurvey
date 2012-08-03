@@ -1,18 +1,39 @@
 #!/usr/bin/perl -w
-# -- extract cohort information from csv with data form cohorts.sql query
-# -- reads STDIN, relies on a header and a table sorted last by the measurement
-#    variable (so that matched groups are in subsequent lines)
-# -- needs a column called "vaccinated" and can use columns called
-#    "week" and "year"
-# -- also needs a column called "ili" and a column called "non_ili"
-# -- every column right of the "vaccinated" column will be ignored for the
-#    group matching (these columns should contain the data)
+#
+# cohorts.pl
+#
+# queries the epidb database to match cohorts according to a specified set of matching
+# variables, time variables and a measurement variable
+#
+# options:
+#
+#   -b, --dbname: name of the local database to query (containing the epidb tables);
+#                 default is "flusurvey"
+#   -t, --chart: create a motionchart HTML file (as opposed to a CSV table);
+#                default is to create a table
+#   -d, --definition: the ILI definition to use; by default the script gets ILI status
+#                     from epidb_health_status; if a string "str" is given here, it uses
+#                     epidb_health_status_str; e.g., "-d fever" will make the script use
+#                     epidb_health_status_fever for the ILI definition. The corresponding
+#                     table needs to be created separately in the SQL database;
+#                     default is no string, that is to use epidb_health_status
+#   -m, --measure: the measurement variable, e.g. vaccinated, transport
+#                  default is "vaccinated"
+#   -t, --time: the time variables, e.g. "year,week" or "year" or "none" (for aggregate figures)
+#               default is "year,week"
+#   -o, --control: the control variables, that is what is matched in cohorts
+#                  default is "agegroup,risk,children"
+#   -f, --variable-file: the file defining the different measurement, time and control variables
+#                        and relate them to columns in the database; see the "variables" file for
+#                        an example
+#                        default is "variables"
 
 use strict;
 use warnings;
 use Getopt::Long;
 use DBI;
 
+# subroutine for getting the minimum of two values
 sub min {
     [$_[0], $_[1]]->[$_[0] >= $_[1]];
 }
@@ -21,25 +42,29 @@ my $motionchart = 0; # motion chart format
 my $variable_file = "variables"; # file containing all the variables
 my $measure = "vaccinated"; # measurement variable
 my $timestring = "year,week"; # time variable(s)
-my $controlstring = "agegroup,risk,children"; # match variable(s)
-my $definition = "";
-my @options = ("unvaccinated", "vaccianted");
+my $controlstring = "agegroup,risk,children"; # matched control variable(s)
+my $dbname = "flusurvey"; # database name
+my $definition = ""; # ILI definition to use
 
+# get command line options
 GetOptions(
     "chart|t" => \$motionchart,
     "definition=s" => \$definition,
     "measure|m=s" => \$measure,
     "time=s" => \$timestring,
     "control|o=s" => \$controlstring,
-    "variable-file|f=s" => \$variable_file
+    "variable-file|f=s" => \$variable_file,
+    "db|b" => \$dbname
 );
 
 # extract control and measurement variables
 my @control_vars = split(/,/, $controlstring);
-my @time_vars = split(/,/, $timestring);
+my @time_vars;
+if ($timestring ne "none") {
+    @time_vars = split(/,/, $timestring);
+}
 
 # compose database string
-
 my $selectstring = "SELECT count(ili) AS ili, ".
     "count(non_ili) AS non_ili";
 my $fromstring = "FROM (SELECT NULLIF(S.status = 'ILI', false) AS ili, ".
@@ -70,10 +95,9 @@ while (<IN>) {
 }
 
 undef $section;
-
 close(IN);
 
-my %outcomes;
+my %outcomes; # the different outcome strings from the variables file
 
 foreach my $section ((@time_vars,@control_vars,$measure)) {
 
@@ -175,7 +199,8 @@ my $sqlstring = "$selectstring $fromstring".
     " GROUP BY $timestring,$controlstring,$measure".
     " ORDER BY $timestring,$controlstring,$measure";
 
-my $dbh = DBI->connect ( "dbi:Pg:dbname=flusurvey", "", "");
+# connect to database
+my $dbh = DBI->connect ( "dbi:Pg:dbname=$dbname", "", "");
 if ( !defined $dbh ) {
     die "Cannot connect to database!\n";
 }
@@ -188,7 +213,6 @@ my $sum = 0;
 my $nfail = 0;
 
 # variables to store counts
-
 my %matched_ili;
 my %matched_nonili;
 my @current_time = ("init") x (scalar @time_vars);
@@ -198,6 +222,7 @@ my %measure_range;
 my %measure_times; # to preserve sorting order
 my $index = 0;
 
+# go through db output and extract values
 while (my @row = $sth->fetchrow_array() ) {
     my $fail = 0;
     foreach (@row) {
@@ -227,6 +252,7 @@ my %ili;
 my %nonili;
 my @categories;
 
+# match cohorts
 foreach my $time (sort {$measure_times{$a} <=> $measure_times{$b}}
 		   keys %matched_ili) {
 
@@ -263,6 +289,7 @@ foreach my $time (sort {$measure_times{$a} <=> $measure_times{$b}}
     }
 }
 
+# find times at which we have data
 foreach my $time (keys %ili) {
     if (scalar keys %{ $ili{$time} } > 0) {
 	push @categories, $time;
@@ -373,7 +400,10 @@ if ($motionchart) {
 	    my $fraction = $ili{$time}{$_} * 100 /
 		($ili{$time}{$_} +
 		     $nonili{$time}{$_} + .0);
-	    print "$time,$outcomes{$measure}{$_},$fraction\n";
+	    if (scalar @time_vars > 0) {
+		print "$time,";
+	    }
+	    print "$outcomes{$measure}{$_},$fraction\n";
 	}
     }
 }
