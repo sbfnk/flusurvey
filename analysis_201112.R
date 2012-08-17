@@ -233,7 +233,7 @@ dt$vaccine.date <- as.Date(dt$date.vaccine, "%Y/%m/%d")
 dt$vaccine <- as.numeric(dt$vaccine.this.year==0 & (is.na(dt$vaccine.date) |
                            dt$vaccine.date <= dt$date)) 
 dt$children <- as.numeric((dt$household.0.4 == "t" | dt$household.5.18 == "t"))
-dt$symptoms.start.date <- as.Date(dt$symptoms.start.date, "%Y/%m/%d")
+dt$symptoms.start.date <- as.Date(dt$symptoms.start.date, "%Y-%m-%d")
 
 
 # one-per-user table
@@ -397,18 +397,57 @@ for (i in 1:nrow(countries)) {
 
 # HPA stuff
 
-peak <- dt[country=="uk" & symptoms.start.date > "2012-02-24" & symptoms.start.date < "2012-03-26" & age > 17]
+peak <- dt[country=="uk" & date > "2012-02-25" & date < "2012-04-09" & age > 17]
 peak <- peak[postcode!=""]
 
-# only keep participants that have a) completed a survey in the two weeks before 9 march 
-freq <-
-  data.table(aggregate(dt$global.id.number,
-                       by=list(dt$global.id.number),
-                       length))
-setkey(freq, Group.1)
-dt <- dt[freq]
-setnames(dt, "x", "nReports.1")
-setnames(dt, "x", "nReports.2")
+# need to have reported in 3 intervals
+
+peak <- peak[global.id.number %in%
+             intersect(
+                       intersect(
+                                 peak[date < "2012-03-12"]$global.id.number,
+                                 peak[date > "2012-03-10" & date <
+                                      "2012-03-26"]$global.id.number),
+                       peak[date > "2012-03-24"]$global.id.number)]
+
+peak1 <- peak[date < "2012-03-12"]
+peak2 <- peak[date > "2012-03-10" & date < "2012-03-26"]
+peak3 <- peak[date > "2012-03-25"]
+
+
+max1date <- data.table(aggregate(peak1$date, by=list(peak1$global.id.number),
+                                 max))
+setkey(max1date, Group.1)
+peak <- peak[max1date]
+setnames(peak, "x", "max1date")
+
+min2date <- data.table(aggregate(peak2$date, by=list(peak2$global.id.number),
+                                 min))
+setkey(min2date, Group.1)
+peak <- peak[min2date]
+setnames(peak, "x", "min2date")
+
+
+max2date <- data.table(aggregate(peak2$date, by=list(peak2$global.id.number),
+                                 max))
+setkey(max2date, Group.1)
+peak <- peak[max2date]
+setnames(peak, "x", "max2date")
+
+min3date <- data.table(aggregate(peak3$date, by=list(peak3$global.id.number),
+                                 min))
+setkey(min3date, Group.1)
+peak <- peak[min3date]
+setnames(peak, "x", "min3date")
+
+peak$diff1 <- difftime(peak$min2date, peak$max1date, units='days')
+peak$diff2 <- difftime(peak$min3date, peak$max2date, units='days')
+
+peak$diff1 <- difftime(peak$min2date, peak$max1date, units='days')
+
+peak <- peak[diff1<16 & diff2 < 16]
+
+# remove the ones that were reported to have ended earlier or started later
 
 peak$postcode <- tupper(peak$postcode)
 #peak$area <- toupper(sub("^([A-Za-z]+).+$", "\\1", peak$postcode))
