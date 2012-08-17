@@ -136,14 +136,19 @@ foreach my $section ((@time_vars,@control_vars,$measure)) {
 	    if (/ranges=([0-9,]+)/) {
 		my @splits = split(/,/, $1);
 		my $nsplits = (scalar @splits) - 1;
+		my $outcome_index = 0;
 		for (my $i = 0; $i < $nsplits; $i++) {
 		    $selectstring .= " WHEN $variable_names[$index] >= $splits[$i] ".
 			"AND $variable_names[$index] < $splits[$i+1] THEN ".
 			    "'$splits[$i]..$splits[$i+1]'";
-		    $outcomes{$section}{"$splits[$i]..$splits[$i+1]"} = 1
+		    $outcomes{$section}{"$splits[$i]..$splits[$i+1]"} =
+			"$splits[$i]..$splits[$i+1]";
+		    $outcome_index++;
 		}
 		$selectstring .= " WHEN $variable_names[$index] >= $splits[$nsplits]".
 		    " THEN '$splits[$nsplits]+'";
+		$outcomes{$section}{"$splits[$nsplits]+"} =
+		    "$splits[$nsplits]+";
 	    } else {
 		my @line = split(/,/);
 		my $logical = $line[0];
@@ -157,8 +162,13 @@ foreach my $section ((@time_vars,@control_vars,$measure)) {
 		    while (scalar(@strarray) > 0) {
 			my $char = shift(@strarray);
 			if ($char =~ /[\|&]/) {
-			    $selectstring .=
-				"$variable_names[$counter] = $current";
+			    if (scalar (@variable_names) > 1) {
+				$selectstring .=
+				    "$variable_names[$counter] = $current";
+			    } else {
+				$selectstring .=
+				    "$variable_names[0] = $current";
+			    }
 			    if ($char eq "|") {
 				$selectstring .= " OR ";
 			    } elsif ($char eq "&") {
@@ -171,8 +181,13 @@ foreach my $section ((@time_vars,@control_vars,$measure)) {
 			}
 		    }
 		    if ($current =~ /[^\s]/) {
-			$selectstring .=
-			    "$variable_names[$counter] = $current";
+			if (scalar (@variable_names) > 1) {
+			    $selectstring .=
+				"$variable_names[$counter] = $current";
+			} else {
+			    $selectstring .=
+				"$variable_names[0] = $current";
+			}
 		    }
 		    $selectstring .= " THEN $line[1]";
 		}
