@@ -23,14 +23,46 @@ db=I
 select=Q10
 db=I
 
+[week]
+select=extract(week FROM W.timestamp)
+
+[year]
+select=extract(year FROM date_trunc('week', W.timestamp))
+
 [transport]
 0,1,'using public transport'
 else,0,'not using public transport'
 select=Q7b
 db=I
 
-[week]
-select=extract(week FROM W.timestamp)
+[employment]
+0|1|2,0,'employed'
+3,1,'education'
+else,2,'not employed'
+select=Q4
+db=I
 
-[year]
-select=extract(year FROM date_trunc('week', W.timestamp))
+[occupation]
+0|1,0,'office'
+2,1,'service'
+3|4,2,'manual'
+select=Q4c
+db=I
+
+[mass_contact]
+'t',0,'no'
+else,1,'yes'
+select=Q5_4
+db=I
+
+[kids_daycare]
+0,0,'no'
+else,1,'yes'
+select=Q6b
+db=I
+
+[smoking]
+0,0,'no'
+1|2|3,1,'yes'
+select=Q13
+db=I
