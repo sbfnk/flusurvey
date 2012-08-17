@@ -240,15 +240,75 @@ names(vaccination.raw.data) <- c("vaccinated","risk","children","agegroup","year
 write.csv(vaccination.raw.data, "cohorts_fever_201011.raw", quote=F, row.names=F)
 
 # GI stuff
-dt$gi <- as.numeric(dt$diarrhoea == 1 | dt$vomiting == 1)
-dt$newgi <- dt$gi
-#dt[same==0, newgi := 0]
-r <- ftable(dt$week, dt$newgi, row.vars=1)
-gi.raw.data <- data.frame(expand.grid(rev(attr(r, "row.vars"))),
-                                   unclass(r))
-names(gi.raw.data) <- c("Week", "nongi", "gi")
-gi.raw.data$gi.incidence <- gi.raw.data$gi / (gi.raw.data$nongi + gi.raw.data$nongi)
-gi.11 <- gi.raw.data[-c(1, 20),]
-write.csv(gi.11, "gi_201011.csv", quote=F, row.names=F)
+dt$gi.or <- as.numeric(dt$diarrhoea == 1 | dt$vomiting == 1 | dt$nausea == 1)
+dt$gi.and <- as.numeric(dt$diarrhoea == 1 & dt$vomiting == 1 & dt$nausea == 1)
+dt$gi.or.novom <- as.numeric(dt$diarrhoea == 1 | dt$nausea == 1)
+dt$gi.and.novom <- as.numeric(dt$diarrhoea == 1 & dt$nausea == 1)
+dt$newgi.or <- dt$gi.or
+dt$newgi.and <- dt$gi.and
+dt$newgi.or.novom <- dt$gi.or.novom
+dt$newgi.and.novom <- dt$gi.and.novom
 
+for (i in 2:length(dt$gi.or)) {
+  if (dt$user_id[i-1] == dt$user_id[i] & dt$gi.or[i] == 1 & dt$gi.or[i-1] == 1) {
+    dt$newgi.or[i] <-  0
+  }
+}
+ 
+for (i in 2:length(dt$gi.and)) {
+  if (dt$user_id[i-1] == dt$user_id[i] & dt$gi.and[i] == 1 & dt$gi.and[i-1] == 1) {
+    dt$newgi.and[i] <-  0
+  }
+}
+ 
+for (i in 2:length(dt$gi.or.novom)) {
+  if (dt$user_id[i-1] == dt$user_id[i] & dt$gi.or.novom[i] == 1 & dt$gi.or.novom[i-1] == 1) {
+    dt$newgi.or.novom[i] <-  0
+  }
+}
+ 
+for (i in 2:length(dt$gi.and.novom)) {
+  if (dt$user_id[i-1] == dt$user_id[i] & dt$gi.and.novom[i] == 1 & dt$gi.and.novom[i-1] == 1) {
+    dt$newgi.and.novom[i] <-  0
+  }
+}
+ 
+#dt[same==0, newgi := 0]
+r.or <- ftable(dt$week, dt$newgi.or, row.vars=1)
+r.and <- ftable(dt$week, dt$newgi.and, row.vars=1)
+r.or.novom <- ftable(dt$week, dt$newgi.or.novom, row.vars=1)
+r.and.novom <- ftable(dt$week, dt$newgi.and.novom, row.vars=1)
+
+gi.or.raw.data <- data.frame(expand.grid(rev(attr(r.or, "row.vars"))),
+                                   unclass(r.or))
+gi.and.raw.data <- data.frame(expand.grid(rev(attr(r.and, "row.vars"))),
+                                   unclass(r.and))
+gi.or.novom.raw.data <- data.frame(expand.grid(rev(attr(r.or.novom, "row.vars"))),
+                                   unclass(r.or.novom))
+gi.and.novom.raw.data <- data.frame(expand.grid(rev(attr(r.and.novom, "row.vars"))),
+                                   unclass(r.and.novom))
+
+names(gi.or.raw.data) <- c("Week", "nongi", "gi")
+names(gi.and.raw.data) <- c("Week", "nongi", "gi")
+names(gi.or.novom.raw.data) <- c("Week", "nongi", "gi")
+names(gi.and.novom.raw.data) <- c("Week", "nongi", "gi")
+
+gi.or.raw.data$gi.incidence <-
+  gi.or.raw.data$gi / (gi.or.raw.data$nongi + gi.or.raw.data$nongi)
+gi.and.raw.data$gi.incidence <-
+  gi.and.raw.data$gi / (gi.and.raw.data$nongi + gi.and.raw.data$nongi)
+gi.or.novom.raw.data$gi.incidence <-
+  gi.or.novom.raw.data$gi / (gi.or.novom.raw.data$nongi + gi.or.novom.raw.data$nongi)
+gi.and.novom.raw.data$gi.incidence <-
+  gi.and.novom.raw.data$gi / (gi.and.novom.raw.data$nongi + gi.and.novom.raw.data$nongi)
+
+gi.or.11 <- gi.or.raw.data[-c(1, 20),]
+gi.and.11 <- gi.and.raw.data[-c(1, 20),]
+gi.or.novom.11 <- gi.or.novom.raw.data[-c(1, 20),]
+gi.and.novom.11 <- gi.and.novom.raw.data[-c(1, 20),]
+
+write.csv(gi.or.11, "gi_or_201011.csv", quote=F, row.names=F)
+write.csv(gi.and.11, "gi_and_201011.csv", quote=F, row.names=F)
+write.csv(gi.or.novom.11, "gi_or_novom_201011.csv", quote=F, row.names=F)
+write.csv(gi.and.novom.11, "gi_and_novom_201011.csv", quote=F, row.names=F)
 

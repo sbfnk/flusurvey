@@ -295,15 +295,43 @@ write.csv(vaccination.raw.data, "cohorts_fever_200910.raw", quote=F, row.names=F
 
 
 # GI stuff
-dt$gi <- as.numeric(dt$diarrhoea == 1 | dt$nausea == 1)
-dt$newgi <- dt$gi
+dt$gi.or <- as.numeric(dt$diarrhoea == 1 | dt$nausea == 1)
+dt$gi.and <- as.numeric(dt$diarrhoea == 1 & dt$nausea == 1)
+dt$newgi.or <- dt$gi.or
+dt$newgi.and <- dt$gi.and
+
+for (i in 2:length(dt$gi.or)) {
+  if (dt$global.id.number[i-1] == dt$global.id.number[i] & dt$gi.or[i] == 1 & dt$gi.or[i-1] == 1) {
+    dt$newgi.or[i] <-  0
+  }
+}
+ 
+for (i in 2:length(dt$gi.and)) {
+  if (dt$global.id.number[i-1] == dt$global.id.number[i] & dt$gi.and[i] == 1 & dt$gi.and[i-1] == 1) {
+    dt$newgi.and[i] <-  0
+  }
+}
+ 
 #dt[same==0, newgi := 0]
-r <- ftable(dt$week, dt$newgi, row.vars=1)
-gi.raw.data <- data.frame(expand.grid(rev(attr(r, "row.vars"))),
-                                   unclass(r))
-names(gi.raw.data) <- c("Week", "nongi", "gi")
-gi.raw.data$gi.incidence <- gi.raw.data$gi / (gi.raw.data$nongi + gi.raw.data$nongi)
-gi.10 <- gi.raw.data[-c(38),]
-write.csv(gi.10, "gi_200910.raw", quote=F, row.names=F)
+r.or <- ftable(dt$week, dt$newgi.or, row.vars=1)
+r.and <- ftable(dt$week, dt$newgi.and, row.vars=1)
+
+gi.or.raw.data <- data.frame(expand.grid(rev(attr(r.or, "row.vars"))),
+                                   unclass(r.or))
+gi.and.raw.data <- data.frame(expand.grid(rev(attr(r.and, "row.vars"))),
+                                   unclass(r.and))
+
+names(gi.or.raw.data) <- c("Week", "nongi", "gi")
+names(gi.and.raw.data) <- c("Week", "nongi", "gi")
+
+gi.or.raw.data$gi.incidence <-
+  gi.or.raw.data$gi / (gi.or.raw.data$nongi + gi.or.raw.data$nongi)
+gi.and.raw.data$gi.incidence <-
+  gi.and.raw.data$gi / (gi.and.raw.data$nongi + gi.and.raw.data$nongi)
+
+gi.or.10 <- gi.or.raw.data[-c(38),]
+gi.and.10 <- gi.and.raw.data[-c(38),]
+write.csv(gi.or.10, "gi_or_200910.raw", quote=F, row.names=F)
+write.csv(gi.and.10, "gi_and_200910.raw", quote=F, row.names=F)
 
 
