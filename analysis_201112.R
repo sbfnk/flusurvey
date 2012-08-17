@@ -231,6 +231,8 @@ dt$vaccine.date <- as.Date(dt$date.vaccine, "%Y/%m/%d")
 dt$vaccine <- as.numeric(dt$vaccine.this.year==0 & (is.na(dt$vaccine.date) |
                            dt$vaccine.date <= dt$date)) 
 dt$children <- as.numeric((dt$household.0.4 == "t" | dt$household.5.18 == "t"))
+dt$symptoms.start.date <- as.Date(dt$symptoms.start.date, "%Y/%m/%d")
+
 
 # one-per-user table
 ds <- dt[!duplicated(dt$global.id.number)]
@@ -392,8 +394,20 @@ for (i in 1:nrow(countries)) {
 
 
 # HPA stuff
-peak <- dt[country=="uk" & date > "2012-03-08" & date < "2012-03-23" & age > 17]
+
+peak <- dt[country=="uk" & symptoms.start.date > "2012-02-24" & symptoms.start.date < "2012-03-26" & age > 17]
 peak <- peak[postcode!=""]
+
+# only keep participants that have a) completed a survey in the two weeks before 9 march 
+freq <-
+  data.table(aggregate(dt$global.id.number,
+                       by=list(dt$global.id.number),
+                       length))
+setkey(freq, Group.1)
+dt <- dt[freq]
+setnames(dt, "x", "nReports.1")
+setnames(dt, "x", "nReports.2")
+
 peak$postcode <- tupper(peak$postcode)
 #peak$area <- toupper(sub("^([A-Za-z]+).+$", "\\1", peak$postcode))
 postcodes <- data.table(read.csv("../postcodes.csv", header=F, sep=","))
@@ -425,9 +439,6 @@ nrow(peak[age > 24 & age < 45])/nrow(peak) # 0.3541488
 nrow(peak[age > 44 & age < 65])/nrow(peak) # 0.4153122
 nrow(peak[age > 64])/nrow(peak) # 0.1467066
 
-
-
-
 nrow(ds[country=="uk" & ili==T])/nrow(ds[country=="uk"])*100
 nrow(ds[country=="uk" & ili==T & age < 20])/nrow(ds[country=="uk" & age < 20])*100
 nrow(ds[country=="uk" & ili==T & age >= 20 & age < 45])/nrow(ds[country=="uk" & age >=20 & age < 45])*100
@@ -445,6 +456,7 @@ nrow(ds[country=="uk" & ili==T & vm == 1])/nrow(ds[country=="uk"])*100
 #dt$active <- (dt$nReports > 4 & 
 
 # cohorts 
+
 # exclude users with bad age
 temp.data <- dt[!is.na(age)]
 temp.data$agegroup <- factor(temp.data$agegroup)
