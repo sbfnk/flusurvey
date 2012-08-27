@@ -234,7 +234,7 @@ dt$vaccine <- as.numeric(dt$vaccine.this.year==0 & (is.na(dt$vaccine.date) |
                            dt$vaccine.date <= dt$date)) 
 dt$children <- as.numeric((dt$household.0.4 == "t" | dt$household.5.18 == "t"))
 dt$symptoms.start.date <- as.Date(dt$symptoms.start.date, "%Y-%m-%d")
-
+dt$symptoms.end.date <- as.Date(dt$symptoms.end.date, "%Y-%m-%d")
 
 # one-per-user table
 ds <- dt[!duplicated(dt$global.id.number)]
@@ -400,20 +400,39 @@ for (i in 1:nrow(countries)) {
 peak <- dt[country=="uk" & date > "2012-02-25" & date < "2012-04-09" & age > 17]
 peak <- peak[postcode!=""]
 
-# need to have reported in 3 intervals
+peak$postcode <- toupper(peak$postcode)
+#peak$area <- toupper(sub("^([A-Za-z]+).+$", "\\1", peak$postcode))
+postcodes <- data.table(read.csv("../postcodes.csv", header=F, sep=","))
+setnames(postcodes, "V1", "postcode")
+setnames(postcodes, "V2", "region")
+postcodes[region=="W99999999"]$region <- "Wales"
+postcodes[region=="E12000001"]$region <- "North East England"
+postcodes[region=="E12000002"]$region <- "North West England"
+postcodes[region=="E12000003"]$region <- "Yorkshire and the Humber"
+postcodes[region=="E12000004"]$region <- "East Midlands"
+postcodes[region=="E12000005"]$region <- "West Midlands"
+postcodes[region=="E12000006"]$region <- "East of England"
+postcodes[region=="E12000007"]$region <- "London"
+postcodes[region=="E12000008"]$region <- "South East England"
+postcodes[region=="E12000009"]$region <- "South West England"
+postcodes[region=="L99999999"]$region <- "Channel Islands"
+postcodes[region=="N99999999"]$region <- "Northern Ireland"
+postcodes[region=="S99999999"]$region <- "Scotland"
 
-peak <- peak[global.id.number %in%
-             intersect(
-                       intersect(
-                                 peak[date < "2012-03-12"]$global.id.number,
-                                 peak[date > "2012-03-10" & date <
-                                      "2012-03-26"]$global.id.number),
-                       peak[date > "2012-03-24"]$global.id.number)]
+postcodes$postcode <- as.character(postcodes$postcode)
+peak <- join(peak,postcodes, by='postcode')
+peak$region <- factor(peak$region)
+
+peak <- peak[region!="Scotland"]
+setkey(peak, global.id.number)
+
+nb.users.noclean <- nrow(peak[!duplicated(peak$global.id.number)])
+
+# need to have reported in 3 intervals
 
 peak1 <- peak[date < "2012-03-12"]
 peak2 <- peak[date > "2012-03-10" & date < "2012-03-26"]
 peak3 <- peak[date > "2012-03-25"]
-
 
 max1date <- data.table(aggregate(peak1$date, by=list(peak1$global.id.number),
                                  max))
@@ -440,45 +459,50 @@ setkey(min3date, Group.1)
 peak <- peak[min3date]
 setnames(peak, "x", "min3date")
 
+maxdate <- data.table(aggregate(peak$date, by=list(peak$global.id.number),
+                                min))
+setkey(maxdate, Group.1)
+peak <- peak[maxdate]
+setnames(peak, "x", "maxdate")
+
 peak$diff1 <- difftime(peak$min2date, peak$max1date, units='days')
 peak$diff2 <- difftime(peak$min3date, peak$max2date, units='days')
 
-peak$diff1 <- difftime(peak$min2date, peak$max1date, units='days')
-
+peak <- peak[global.id.number %in%
+             intersect(
+                       intersect(
+                                 peak[date < "2012-03-12"]$global.id.number,
+                                 peak[date > "2012-03-10" & date <
+                                      "2012-03-26"]$global.id.number),
+                       peak[date > "2012-03-24"]$global.id.number)]
 peak <- peak[diff1<16 & diff2 < 16]
 
-# remove the ones that were reported to have ended earlier or started later
-
-peak$postcode <- tupper(peak$postcode)
-#peak$area <- toupper(sub("^([A-Za-z]+).+$", "\\1", peak$postcode))
-postcodes <- data.table(read.csv("../postcodes.csv", header=F, sep=","))
-setnames(postcodes, "V1", "postcode")
-setnames(postcodes, "V2", "region")
-postcodes[region=="W99999999"]$region <- "Wales"
-postcodes[region=="E12000001"]$region <- "North East England"
-postcodes[region=="E12000002"]$region <- "North West England"
-postcodes[region=="E12000003"]$region <- "Yorkshire and the Humber"
-postcodes[region=="E12000004"]$region <- "East Midlands"
-postcodes[region=="E12000005"]$region <- "West Midlands"
-postcodes[region=="E12000006"]$region <- "East of England"
-postcodes[region=="E12000007"]$region <- "London"
-postcodes[region=="E12000008"]$region <- "South East England"
-postcodes[region=="E12000009"]$region <- "South West England"
-postcodes[region=="L99999999"]$region <- "Channel Islands"
-postcodes[region=="N99999999"]$region <- "Northern Ireland"
-postcodes[region=="S99999999"]$region <- "Scotland"
-
-postcodes$postcode <- as.character(postcodes$postcode)
-peak <- join(peak,postcodes, by='postcode')
-peak$region <- factor(peak$region)
-
 peak.users <- peak[!duplicated(peak$global.id.number)]
+nb.users.clean <- nrow(peak.users)
 
-nrow(peak[gender==0])/nrow(peak[gender==1]) # 0.6723891
-nrow(peak[age < 25])/nrow(peak) # 0.08041061
-nrow(peak[age > 24 & age < 45])/nrow(peak) # 0.3541488
-nrow(peak[age > 44 & age < 65])/nrow(peak) # 0.4153122
-nrow(peak[age > 64])/nrow(peak) # 0.1467066
+nb.users.noclean
+nb.users.clean
+nb.users.clean/nb.users.noclean # 0.5874409
+
+# HPA definition
+peak$ili.hpa <- as.numeric(peak$fever.suddenly == 0 & peak$cough =="t")
+peak[is.na(ili.hpa)]$ili.hpa <- 0
+
+# remove the ones that were reported to have ended earlier or started later
+peak[symptoms.start.date > "2012-04-08"]$ili <- 0
+peak[symptoms.start.date > "2012-04-08"]$ili.hpa <- 0
+peak[symptoms.end.date < "2012-02-26"]$ili <- 0
+peak[symptoms.end.date < "2012-02-26"]$ili.hpa <- 0
+
+nrow(peak.users[gender==0])/nrow(peak.users[gender==1]) # 0.7365269
+nrow(peak.users[age < 25])/nrow(peak.users) # 0.02988506
+nrow(peak.users[age > 24 & age < 45])/nrow(peak.users) # 0.3436782
+nrow(peak.users[age > 44 & age < 65])/nrow(peak.users) # 0.4551724
+nrow(peak.users[age > 64])/nrow(peak.users) # 0.1712644
+
+table(peak.users$region) / nrow(peak.users)
+
+# higher education etc
 
 nrow(ds[country=="uk" & ili==T])/nrow(ds[country=="uk"])*100
 nrow(ds[country=="uk" & ili==T & age < 20])/nrow(ds[country=="uk" & age < 20])*100
