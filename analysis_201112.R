@@ -423,7 +423,7 @@ postcodes$postcode <- as.character(postcodes$postcode)
 peak <- join(peak,postcodes, by='postcode')
 peak$region <- factor(peak$region)
 
-peak <- peak[region!="Scotland"]
+peak <- peak[!(region %in% c("Scotland", "Channel Islands", "Northern Ireland"))]
 setkey(peak, global.id.number)
 
 nb.users.noclean <- nrow(peak[!duplicated(peak$global.id.number)])
@@ -501,6 +501,301 @@ nrow(peak.users[age > 44 & age < 65])/nrow(peak.users) # 0.4551724
 nrow(peak.users[age > 64])/nrow(peak.users) # 0.1712644
 
 table(peak.users$region) / nrow(peak.users)
+
+table(peak.users$education.msc) / nrow(peak.users)
+table(peak.users$education.bsc) / nrow(peak.users)
+table(peak.users$education.alevels) / nrow(peak.users)
+table(peak.users$education.gcse) / nrow(peak.users)
+table(peak.users$no.education) / nrow(peak.users)
+
+table(peak.users$occupation) / nrow(peak.users)
+
+t <- rowSums(peak.users[,c(27,29,31,33,35),with=F], na.rm=T)
+table(t[t>0])/length(t[t>0])
+
+nrow(peak.users[age<65])
+
+table(dt[(dt$global.id.number %in% peak.users$global.id.number) &
+         (!duplicated(dt$global.id.number)) &
+         (norisk == "f") &
+         (age < 65)
+         ]$vaccine) /
+  nrow(dt[(dt$global.id.number %in% peak.users$global.id.number) &
+          (!duplicated(dt$global.id.number)) &
+          (norisk == "f") &
+          (age < 65)
+          ])
+
+table(dt[(dt$global.id.number %in% peak.users$global.id.number) &
+         (!duplicated(dt$global.id.number)) &
+         (age >= 65)
+         ]$vaccine) /
+  nrow(dt[(dt$global.id.number %in% peak.users$global.id.number) &
+          (!duplicated(dt$global.id.number)) &
+          (age >= 65)
+          ])
+
+table(dt[(dt$global.id.number %in% peak.users$global.id.number) &
+         (!duplicated(dt$global.id.number)) &
+         (pregnant == 0)
+         ]$vaccine) /
+  nrow(dt[(dt$global.id.number %in% peak.users$global.id.number) &
+          (!duplicated(dt$global.id.number)) &
+          (pregnant == 0)
+          ])
+
+table(peak.users[
+         (norisk == "f") &
+         (age < 65)
+         ]$vaccine) /
+  nrow(peak.users[
+          (norisk == "f") &
+          (age < 65)
+          ])
+
+table(peak.users[
+         (age >= 65)
+         ]$vaccine) /
+  nrow(peak.users[
+          (age >= 65)
+          ])
+
+table(peak.users[
+         (pregnant == 0)
+         ]$vaccine) /
+  nrow(peak.users[
+          (pregnant == 0)
+          ])
+
+peak.users$ili <- FALSE
+peak.users$nbili <- with(peak, aggregate(ili,
+                                 list(global.id.number=global.id.number),
+                                 sum))$x
+peak.users$ili <- (peak.users$nbili > 0)
+
+peak.users$ili.hpa <- FALSE
+peak.users$nbili.hpa <- with(peak, aggregate(ili.hpa,
+                                 list(global.id.number=global.id.number),
+                                 sum))$x
+peak.users$ili.hpa <- (peak.users$nbili.hpa > 0)
+
+peak.users$ili.fever <- FALSE
+peak.users$nbili.fever <- with(peak, aggregate(ili.fever,
+                                 list(global.id.number=global.id.number),
+                                 sum))$x
+peak.users$ili.fever <- (peak.users$nbili.fever > 0)
+
+peak$ili.self <- (peak$Q11 == 0)
+peak[is.na(ili.self)]$ili.self <- FALSE
+peak.users$ili.self <- FALSE
+peak.users$nbili.self <- with(peak, aggregate(ili.self,
+                                              list(global.id.number=global.id.number),
+                                              sum))$x
+peak.users$ili.self <- (peak.users$nbili.self > 0)
+
+# self-reported ILI
+
+table(peak.users$ili.self)
+table(peak.users$ili.self)/nrow(peak.users)
+
+table(peak.users[(norisk == "f") & (age < 65)]$ili.self)
+table(peak.users[(norisk == "f") & (age < 65)]$ili.self) /
+  nrow(peak.users[(norisk == "f") & (age < 65)])
+
+table(peak.users[(norisk == "f") & (age < 65) & (vaccine == 1)]$ili.self)
+table(peak.users[(norisk == "f") & (age < 65) & (vaccine == 1)]$ili.self) /
+  nrow(peak.users[(norisk == "f") & (age < 65) & (vaccine == 1)])
+
+table(peak.users[(norisk == "f") & (age < 65) & (vaccine == 0)]$ili.self)
+table(peak.users[(norisk == "f") & (age < 65) & (vaccine == 0)]$ili.self) /
+  nrow(peak.users[(norisk == "f") & (age < 65) & (vaccine == 0)])
+
+table(peak.users[(norisk == "f") & (age >= 65)]$ili.self)
+table(peak.users[(norisk == "f") & (age >= 65)]$ili.self) /
+  nrow(peak.users[(norisk == "f") & (age >= 65)])
+
+table(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 1)]$ili.self)
+table(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 1)]$ili.self) /
+  nrow(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 1)])
+
+table(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 0)]$ili.self)
+table(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 0)]$ili.self) /
+  nrow(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 0)])
+
+table(peak.users[pregnant == 0]$ili.self)
+table(peak.users[pregnant == 0]$ili.self) /
+  nrow(peak.users[pregnant == 0])
+
+table(peak.users[pregnant == 0 & (vaccine == 1)]$ili.self)
+table(peak.users[pregnant == 0 & (vaccine == 1)]$ili.self) /
+  nrow(peak.users[pregnant == 0 & (vaccine == 1)])
+
+table(peak.users[pregnant == 0 & (vaccine == 0)]$ili.self)
+table(peak.users[pregnant == 0 & (vaccine == 0)]$ili.self) /
+  nrow(peak.users[pregnant == 0 & (vaccine == 0)])
+
+peak.users$agegroup <- cut(peak.users$age, breaks=c(0,18,25,35,45,55,65,75,
+                           max(dt$age, na.rm=T)), 
+                           include.lowest=T, right=F)
+
+table(peak.users[ili.self==1]$agegroup)
+table(peak.users[ili.self==1]$agegroup) / table(peak.users$agegroup)
+
+table(peak.users[ili.self==1]$gender)
+table(peak.users[ili.self==1]$gender) / table(peak.users$gender)
+
+# HPA definition
+
+table(peak.users$ili.hpa)
+table(peak.users$ili.hpa)/nrow(peak.users)
+
+table(peak.users[(norisk == "f") & (age < 65)]$ili.hpa)
+table(peak.users[(norisk == "f") & (age < 65)]$ili.hpa) /
+  nrow(peak.users[(norisk == "f") & (age < 65)])
+
+table(peak.users[(norisk == "f") & (age < 65) & (vaccine == 1)]$ili.hpa)
+table(peak.users[(norisk == "f") & (age < 65) & (vaccine == 1)]$ili.hpa) /
+  nrow(peak.users[(norisk == "f") & (age < 65) & (vaccine == 1)])
+
+table(peak.users[(norisk == "f") & (age < 65) & (vaccine == 0)]$ili.hpa)
+table(peak.users[(norisk == "f") & (age < 65) & (vaccine == 0)]$ili.hpa) /
+  nrow(peak.users[(norisk == "f") & (age < 65) & (vaccine == 0)])
+
+table(peak.users[(norisk == "f") & (age >= 65)]$ili.hpa)
+table(peak.users[(norisk == "f") & (age >= 65)]$ili.hpa) /
+  nrow(peak.users[(norisk == "f") & (age >= 65)])
+
+table(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 1)]$ili.hpa)
+table(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 1)]$ili.hpa) /
+  nrow(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 1)])
+
+table(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 0)]$ili.hpa)
+table(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 0)]$ili.hpa) /
+  nrow(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 0)])
+
+table(peak.users[pregnant == 0]$ili.hpa)
+table(peak.users[pregnant == 0]$ili.hpa) /
+  nrow(peak.users[pregnant == 0])
+
+table(peak.users[pregnant == 0 & (vaccine == 1)]$ili.hpa)
+table(peak.users[pregnant == 0 & (vaccine == 1)]$ili.hpa) /
+  nrow(peak.users[pregnant == 0 & (vaccine == 1)])
+
+table(peak.users[pregnant == 0 & (vaccine == 0)]$ili.hpa)
+table(peak.users[pregnant == 0 & (vaccine == 0)]$ili.hpa) /
+  nrow(peak.users[pregnant == 0 & (vaccine == 0)])
+
+peak.users$agegroup <- cut(peak.users$age, breaks=c(0,18,25,35,45,55,65,75,
+                           max(dt$age, na.rm=T)), 
+                           include.lowest=T, right=F)
+
+table(peak.users[ili.hpa==1]$agegroup)
+table(peak.users[ili.hpa==1]$agegroup) / table(peak.users$agegroup)
+
+table(peak.users[ili.hpa==1]$gender)
+table(peak.users[ili.hpa==1]$gender) / table(peak.users$gender)
+
+# ECDC
+
+table(peak.users$ili)
+table(peak.users$ili)/nrow(peak.users)
+
+table(peak.users[(norisk == "f") & (age < 65)]$ili)
+table(peak.users[(norisk == "f") & (age < 65)]$ili) /
+  nrow(peak.users[(norisk == "f") & (age < 65)])
+
+table(peak.users[(norisk == "f") & (age < 65) & (vaccine == 1)]$ili)
+table(peak.users[(norisk == "f") & (age < 65) & (vaccine == 1)]$ili) /
+  nrow(peak.users[(norisk == "f") & (age < 65) & (vaccine == 1)])
+
+table(peak.users[(norisk == "f") & (age < 65) & (vaccine == 0)]$ili)
+table(peak.users[(norisk == "f") & (age < 65) & (vaccine == 0)]$ili) /
+  nrow(peak.users[(norisk == "f") & (age < 65) & (vaccine == 0)])
+
+table(peak.users[(norisk == "f") & (age >= 65)]$ili)
+table(peak.users[(norisk == "f") & (age >= 65)]$ili) /
+  nrow(peak.users[(norisk == "f") & (age >= 65)])
+
+table(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 1)]$ili)
+table(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 1)]$ili) /
+  nrow(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 1)])
+
+table(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 0)]$ili)
+table(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 0)]$ili) /
+  nrow(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 0)])
+
+table(peak.users[pregnant == 0]$ili)
+table(peak.users[pregnant == 0]$ili) /
+  nrow(peak.users[pregnant == 0])
+
+table(peak.users[pregnant == 0 & (vaccine == 1)]$ili)
+table(peak.users[pregnant == 0 & (vaccine == 1)]$ili) /
+  nrow(peak.users[pregnant == 0 & (vaccine == 1)])
+
+table(peak.users[pregnant == 0 & (vaccine == 0)]$ili)
+table(peak.users[pregnant == 0 & (vaccine == 0)]$ili) /
+  nrow(peak.users[pregnant == 0 & (vaccine == 0)])
+
+peak.users$agegroup <- cut(peak.users$age, breaks=c(0,18,25,35,45,55,65,75,
+                           max(dt$age, na.rm=T)), 
+                           include.lowest=T, right=F)
+
+table(peak.users[ili==1]$agegroup)
+table(peak.users[ili==1]$agegroup) / table(peak.users$agegroup)
+
+table(peak.users[ili==1]$gender)
+table(peak.users[ili==1]$gender) / table(peak.users$gender)
+
+# ECDC + fever
+
+table(peak.users$ili.fever)
+table(peak.users$ili.fever)/nrow(peak.users)
+
+table(peak.users[(norisk == "f") & (age < 65)]$ili.fever)
+table(peak.users[(norisk == "f") & (age < 65)]$ili.fever) /
+  nrow(peak.users[(norisk == "f") & (age < 65)])
+
+table(peak.users[(norisk == "f") & (age < 65) & (vaccine == 1)]$ili.fever)
+table(peak.users[(norisk == "f") & (age < 65) & (vaccine == 1)]$ili.fever) /
+  nrow(peak.users[(norisk == "f") & (age < 65) & (vaccine == 1)])
+
+table(peak.users[(norisk == "f") & (age < 65) & (vaccine == 0)]$ili.fever)
+table(peak.users[(norisk == "f") & (age < 65) & (vaccine == 0)]$ili.fever) /
+  nrow(peak.users[(norisk == "f") & (age < 65) & (vaccine == 0)])
+
+table(peak.users[(norisk == "f") & (age >= 65)]$ili.fever)
+table(peak.users[(norisk == "f") & (age >= 65)]$ili.fever) /
+  nrow(peak.users[(norisk == "f") & (age >= 65)])
+
+table(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 1)]$ili.fever)
+table(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 1)]$ili.fever) /
+  nrow(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 1)])
+
+table(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 0)]$ili.fever)
+table(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 0)]$ili.fever) /
+  nrow(peak.users[(norisk == "f") & (age >= 65) & (vaccine == 0)])
+
+table(peak.users[pregnant == 0]$ili.fever)
+table(peak.users[pregnant == 0]$ili.fever) /
+  nrow(peak.users[pregnant == 0])
+
+table(peak.users[pregnant == 0 & (vaccine == 1)]$ili.fever)
+table(peak.users[pregnant == 0 & (vaccine == 1)]$ili.fever) /
+  nrow(peak.users[pregnant == 0 & (vaccine == 1)])
+
+table(peak.users[pregnant == 0 & (vaccine == 0)]$ili.fever)
+table(peak.users[pregnant == 0 & (vaccine == 0)]$ili.fever) /
+  nrow(peak.users[pregnant == 0 & (vaccine == 0)])
+
+peak.users$agegroup <- cut(peak.users$age, breaks=c(0,18,25,35,45,55,65,75,
+                           max(dt$age, na.rm=T)), 
+                           include.lowest=T, right=F)
+
+table(peak.users[ili.fever==1]$agegroup)
+table(peak.users[ili.fever==1]$agegroup) / table(peak.users$agegroup)
+
+table(peak.users[ili.fever==1]$gender)
+table(peak.users[ili.fever==1]$gender) / table(peak.users$gender)
 
 # higher education etc
 
