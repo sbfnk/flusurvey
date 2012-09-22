@@ -578,6 +578,55 @@ table(peak.users[
           (pregnant == 0)
           ])
 
+for (symptom in c("fever", "chills", "blocked.runny.nose", "sneezing",
+  "sore.throat", "cough", "shortness.breath", "headache",
+  "muscle.and.or.joint.pain", "chest.pain", "tired", "loss.appetite", "phlegm",
+  "watery.eyes", "nausea", "vomiting", "diarrhoea", "stomach.ache", "other")) { 
+  peak.users$nb <- with(peak, aggregate((get(symptom) == "t"),
+                                        list(global.id.number=global.id.number),
+                                        sum))$x
+  peak.users <- peak.users[, which(!grepl(symptom, colnames(peak.users))), with=FALSE]
+  peak.users <- peak.users[,symptom:=(nb>0), with=F]
+}
+
+for (symptom in c("fever.suddenly")) {
+  peak <- peak[is.na(get(symptom)), symptom := -1, with=F]  
+  peak.users$nb <- with(peak, aggregate((get(symptom) == 0),
+                                        list(global.id.number=global.id.number),
+                                        sum))$x
+  peak.users <- peak.users[, which(!grepl(symptom, colnames(peak.users))), with=FALSE]
+  peak.users <- peak.users[,symptom:=(nb>0), with=F]
+}
+
+for (change in c("visit.medical.service.no", "contact.medical.service.no",
+                 "no.medication")) {
+  peak.users$nb <- with(peak, aggregate((get(change) == "t"),
+                                        list(global.id.number=global.id.number),
+                                        sum))$x
+  peak.users <- peak.users[, which(!grepl(change, colnames(peak.users))), with=FALSE]
+  peak.users <- peak.users[,change:=(nb>0), with=F]
+}
+
+for (change in c("alter.routine")) {
+  peak <- peak[is.na(get(change)), change := -1, with=F]  
+  peak.users$nb <- with(peak, aggregate((get(change) > 0),
+                                        list(global.id.number=global.id.number),
+                                        sum))$x
+  peak.users <- peak.users[, which(!grepl(change, colnames(peak.users))), with=FALSE]
+  peak.users <- peak.users[,change:=(nb>0), with=F]
+}
+
+for (change in c("absent")) {
+  peak.users$nb <- with(peak, aggregate((get("alter.routine") == 1),
+                                        list(global.id.number=global.id.number),
+                                        sum))$x
+  peak.users <- peak.users[, which(!grepl(change, colnames(peak.users))), with=FALSE]
+  peak.users <- peak.users[,change:=(nb>0), with=F]
+}
+
+peak.users <- peak.users[, which(!grepl("nb", colnames(peak.users))), with=FALSE]
+
+
 peak.users$ili <- FALSE
 peak.users$nbili <- with(peak, aggregate(ili,
                                  list(global.id.number=global.id.number),
@@ -670,51 +719,51 @@ table(peak.users[ili.self==1]$fever.suddenly) / nrow(peak.users[ili.self==1])
 table(peak.users[ili.self==1]$shortness.breath)
 table(peak.users[ili.self==1]$shortness.breath) / nrow(peak.users[ili.self==1])
 
-table((peak.users[ili.self==1]$chills =="t" |
-       peak.users[ili.self==1]$blocked.runny.nose =="t" |
-       peak.users[ili.self==1]$sneezing =="t" |
-       peak.users[ili.self==1]$headache =="t" |
-       peak.users[ili.self==1]$chest.pain  =="t" |
-       peak.users[ili.self==1]$tired =="t" |
-       peak.users[ili.self==1]$loss.appetite  =="t" |
-       peak.users[ili.self==1]$phlegm =="t" |
-       peak.users[ili.self==1]$watery.eyes  =="t" |
-       peak.users[ili.self==1]$nausea  =="t" |
-       peak.users[ili.self==1]$vomiting == "t" |
-       peak.users[ili.self==1]$diarrhoea =="t" |
-       peak.users[ili.self==1]$stomach.ache =="t" |
-       peak.users[ili.self==1]$other =="t" |
-       (peak.users[ili.self==1]$fever == "t" &
-        peak.users[ili.self==1]$fever.suddenly  != 0)))
-table((peak.users[ili.self==1]$chills =="t" |
-       peak.users[ili.self==1]$blocked.runny.nose =="t" |
-       peak.users[ili.self==1]$sneezing =="t" |
-       peak.users[ili.self==1]$headache =="t" |
-       peak.users[ili.self==1]$chest.pain  =="t" |
-       peak.users[ili.self==1]$tired =="t" |
-       peak.users[ili.self==1]$loss.appetite  =="t" |
-       peak.users[ili.self==1]$phlegm =="t" |
-       peak.users[ili.self==1]$watery.eyes  =="t" |
-       peak.users[ili.self==1]$nausea  =="t" |
-       peak.users[ili.self==1]$vomiting == "t" |
-       peak.users[ili.self==1]$diarrhoea =="t" |
-       peak.users[ili.self==1]$stomach.ache =="t" |
-       peak.users[ili.self==1]$other =="t" |
-       (peak.users[ili.self==1]$fever == "t" &
-        peak.users[ili.self==1]$fever.suddenly  != 0))) /
+table((peak.users[ili.self==1]$chills == TRUE |
+       peak.users[ili.self==1]$blocked.runny.nose == TRUE |
+       peak.users[ili.self==1]$sneezing == TRUE |
+       peak.users[ili.self==1]$headache == TRUE |
+       peak.users[ili.self==1]$chest.pain  == TRUE |
+       peak.users[ili.self==1]$tired == TRUE |
+       peak.users[ili.self==1]$loss.appetite  == TRUE |
+       peak.users[ili.self==1]$phlegm == TRUE |
+       peak.users[ili.self==1]$watery.eyes  == TRUE |
+       peak.users[ili.self==1]$nausea  == TRUE |
+       peak.users[ili.self==1]$vomiting == TRUE |
+       peak.users[ili.self==1]$diarrhoea == TRUE |
+       peak.users[ili.self==1]$stomach.ache == TRUE |
+       peak.users[ili.self==1]$other == TRUE |
+       (peak.users[ili.self==1]$fever == TRUE &
+        peak.users[ili.self==1]$fever.suddenly == FALSE)))
+table((peak.users[ili.self==1]$chills == TRUE |
+       peak.users[ili.self==1]$blocked.runny.nose == TRUE |
+       peak.users[ili.self==1]$sneezing == TRUE |
+       peak.users[ili.self==1]$headache == TRUE |
+       peak.users[ili.self==1]$chest.pain  == TRUE |
+       peak.users[ili.self==1]$tired == TRUE |
+       peak.users[ili.self==1]$loss.appetite  == TRUE |
+       peak.users[ili.self==1]$phlegm == TRUE |
+       peak.users[ili.self==1]$watery.eyes  == TRUE |
+       peak.users[ili.self==1]$nausea  == TRUE |
+       peak.users[ili.self==1]$vomiting == TRUE |
+       peak.users[ili.self==1]$diarrhoea == TRUE |
+       peak.users[ili.self==1]$stomach.ache == TRUE |
+       peak.users[ili.self==1]$other == TRUE |
+       (peak.users[ili.self==1]$fever == TRUE &
+        peak.users[ili.self==1]$fever.suddenly == FALSE))) /
   nrow(peak.users[ili.self==1])
 
 table(peak.users[ili.self==1]$no.medication)
 table(peak.users[ili.self==1]$no.medication) / nrow(peak.users[ili.self==1])
 
-table(peak.users[ili.self==1]$visit.medical.service.gp)
-table(peak.users[ili.self==1]$visit.medical.service.gp) / nrow(peak.users[ili.self==1])
+table(peak.users[ili.self==1]$visit.medical.service.no)
+table(peak.users[ili.self==1]$visit.medical.service.no) / nrow(peak.users[ili.self==1])
 
-table(peak.users[ili.self==1]$visit.medical.service.ae)
-table(peak.users[ili.self==1]$visit.medical.service.ae) / nrow(peak.users[ili.self==1])
+table(peak.users[ili.self==1]$contact.medical.service.no)
+table(peak.users[ili.self==1]$contact.medical.service.no) / nrow(peak.users[ili.self==1])
 
-table(peak.users[ili.self==1]$contact.medical.service.nhs)
-table(peak.users[ili.self==1]$contact.medical.service.nhs) / nrow(peak.users[ili.self==1])
+table(peak.users[ili.self==1]$absent)
+table(peak.users[ili.self==1]$absent) / nrow(peak.users[ili.self==1])
 
 # HPA definition
 
@@ -782,51 +831,51 @@ table(peak.users[ili.hpa==1]$fever.suddenly) / nrow(peak.users[ili.hpa==1])
 table(peak.users[ili.hpa==1]$shortness.breath)
 table(peak.users[ili.hpa==1]$shortness.breath) / nrow(peak.users[ili.hpa==1])
 
-table((peak.users[ili.hpa==1]$chills =="t" |
-       peak.users[ili.hpa==1]$blocked.runny.nose =="t" |
-       peak.users[ili.hpa==1]$sneezing =="t" |
-       peak.users[ili.hpa==1]$headache =="t" |
-       peak.users[ili.hpa==1]$chest.pain  =="t" |
-       peak.users[ili.hpa==1]$tired =="t" |
-       peak.users[ili.hpa==1]$loss.appetite  =="t" |
-       peak.users[ili.hpa==1]$phlegm =="t" |
-       peak.users[ili.hpa==1]$watery.eyes  =="t" |
-       peak.users[ili.hpa==1]$nausea  =="t" |
-       peak.users[ili.hpa==1]$vomiting == "t" |
-       peak.users[ili.hpa==1]$diarrhoea =="t" |
-       peak.users[ili.hpa==1]$stomach.ache =="t" |
-       peak.users[ili.hpa==1]$other =="t" |
-       (peak.users[ili.hpa==1]$fever == "t" &
-        peak.users[ili.hpa==1]$fever.suddenly  != 0)))
-table((peak.users[ili.hpa==1]$chills =="t" |
-       peak.users[ili.hpa==1]$blocked.runny.nose =="t" |
-       peak.users[ili.hpa==1]$sneezing =="t" |
-       peak.users[ili.hpa==1]$headache =="t" |
-       peak.users[ili.hpa==1]$chest.pain  =="t" |
-       peak.users[ili.hpa==1]$tired =="t" |
-       peak.users[ili.hpa==1]$loss.appetite  =="t" |
-       peak.users[ili.hpa==1]$phlegm =="t" |
-       peak.users[ili.hpa==1]$watery.eyes  =="t" |
-       peak.users[ili.hpa==1]$nausea  =="t" |
-       peak.users[ili.hpa==1]$vomiting == "t" |
-       peak.users[ili.hpa==1]$diarrhoea =="t" |
-       peak.users[ili.hpa==1]$stomach.ache =="t" |
-       peak.users[ili.hpa==1]$other =="t" |
-       (peak.users[ili.hpa==1]$fever == "t" &
-        peak.users[ili.hpa==1]$fever.suddenly  != 0))) /
+table((peak.users[ili.hpa==1]$chills == TRUE |
+       peak.users[ili.hpa==1]$blocked.runny.nose == TRUE |
+       peak.users[ili.hpa==1]$sneezing == TRUE |
+       peak.users[ili.hpa==1]$headache == TRUE |
+       peak.users[ili.hpa==1]$chest.pain  == TRUE |
+       peak.users[ili.hpa==1]$tired == TRUE |
+       peak.users[ili.hpa==1]$loss.appetite  == TRUE |
+       peak.users[ili.hpa==1]$phlegm == TRUE |
+       peak.users[ili.hpa==1]$watery.eyes  == TRUE |
+       peak.users[ili.hpa==1]$nausea  == TRUE |
+       peak.users[ili.hpa==1]$vomiting == TRUE |
+       peak.users[ili.hpa==1]$diarrhoea == TRUE |
+       peak.users[ili.hpa==1]$stomach.ache == TRUE |
+       peak.users[ili.hpa==1]$other == TRUE |
+       (peak.users[ili.hpa==1]$fever == TRUE &
+        peak.users[ili.hpa==1]$fever.suddenly == FALSE)))
+table((peak.users[ili.hpa==1]$chills == TRUE |
+       peak.users[ili.hpa==1]$blocked.runny.nose == TRUE |
+       peak.users[ili.hpa==1]$sneezing == TRUE |
+       peak.users[ili.hpa==1]$headache == TRUE |
+       peak.users[ili.hpa==1]$chest.pain  == TRUE |
+       peak.users[ili.hpa==1]$tired == TRUE |
+       peak.users[ili.hpa==1]$loss.appetite  == TRUE |
+       peak.users[ili.hpa==1]$phlegm == TRUE |
+       peak.users[ili.hpa==1]$watery.eyes  == TRUE |
+       peak.users[ili.hpa==1]$nausea  == TRUE |
+       peak.users[ili.hpa==1]$vomiting == TRUE |
+       peak.users[ili.hpa==1]$diarrhoea == TRUE |
+       peak.users[ili.hpa==1]$stomach.ache == TRUE |
+       peak.users[ili.hpa==1]$other == TRUE |
+       (peak.users[ili.hpa==1]$fever == TRUE &
+        peak.users[ili.hpa==1]$fever.suddenly == FALSE))) /
   nrow(peak.users[ili.hpa==1])
 
 table(peak.users[ili.hpa==1]$no.medication)
 table(peak.users[ili.hpa==1]$no.medication) / nrow(peak.users[ili.hpa==1])
 
-table(peak.users[ili.hpa==1]$visit.medical.service.gp)
-table(peak.users[ili.hpa==1]$visit.medical.service.gp) / nrow(peak.users[ili.hpa==1])
+table(peak.users[ili.hpa==1]$visit.medical.service.no)
+table(peak.users[ili.hpa==1]$visit.medical.service.no) / nrow(peak.users[ili.hpa==1])
 
-table(peak.users[ili.hpa==1]$visit.medical.service.ae)
-table(peak.users[ili.hpa==1]$visit.medical.service.ae) / nrow(peak.users[ili.hpa==1])
+table(peak.users[ili.hpa==1]$contact.medical.service.no)
+table(peak.users[ili.hpa==1]$contact.medical.service.no) / nrow(peak.users[ili.hpa==1])
 
-table(peak.users[ili.hpa==1]$contact.medical.service.nhs)
-table(peak.users[ili.hpa==1]$contact.medical.service.nhs) / nrow(peak.users[ili.hpa==1])
+table(peak.users[ili.hpa==1]$absent)
+table(peak.users[ili.hpa==1]$absent) / nrow(peak.users[ili.hpa==1])
 
 # ECDC
 
@@ -894,51 +943,51 @@ table(peak.users[ili==1]$fever.suddenly) / nrow(peak.users[ili==1])
 table(peak.users[ili==1]$shortness.breath)
 table(peak.users[ili==1]$shortness.breath) / nrow(peak.users[ili==1])
 
-table((peak.users[ili==1]$chills =="t" |
-       peak.users[ili==1]$blocked.runny.nose =="t" |
-       peak.users[ili==1]$sneezing =="t" |
-       peak.users[ili==1]$headache =="t" |
-       peak.users[ili==1]$chest.pain  =="t" |
-       peak.users[ili==1]$tired =="t" |
-       peak.users[ili==1]$loss.appetite  =="t" |
-       peak.users[ili==1]$phlegm =="t" |
-       peak.users[ili==1]$watery.eyes  =="t" |
-       peak.users[ili==1]$nausea  =="t" |
-       peak.users[ili==1]$vomiting == "t" |
-       peak.users[ili==1]$diarrhoea =="t" |
-       peak.users[ili==1]$stomach.ache =="t" |
-       peak.users[ili==1]$other =="t" |
-       (peak.users[ili==1]$fever == "t" &
-        peak.users[ili==1]$fever.suddenly  != 0)))
-table((peak.users[ili==1]$chills =="t" |
-       peak.users[ili==1]$blocked.runny.nose =="t" |
-       peak.users[ili==1]$sneezing =="t" |
-       peak.users[ili==1]$headache =="t" |
-       peak.users[ili==1]$chest.pain  =="t" |
-       peak.users[ili==1]$tired =="t" |
-       peak.users[ili==1]$loss.appetite  =="t" |
-       peak.users[ili==1]$phlegm =="t" |
-       peak.users[ili==1]$watery.eyes  =="t" |
-       peak.users[ili==1]$nausea  =="t" |
-       peak.users[ili==1]$vomiting == "t" |
-       peak.users[ili==1]$diarrhoea =="t" |
-       peak.users[ili==1]$stomach.ache =="t" |
-       peak.users[ili==1]$other =="t" |
-       (peak.users[ili==1]$fever == "t" &
-        peak.users[ili==1]$fever.suddenly  != 0))) /
+table((peak.users[ili==1]$chills == TRUE |
+       peak.users[ili==1]$blocked.runny.nose == TRUE |
+       peak.users[ili==1]$sneezing == TRUE |
+       peak.users[ili==1]$headache == TRUE |
+       peak.users[ili==1]$chest.pain  == TRUE |
+       peak.users[ili==1]$tired == TRUE |
+       peak.users[ili==1]$loss.appetite  == TRUE |
+       peak.users[ili==1]$phlegm == TRUE |
+       peak.users[ili==1]$watery.eyes  == TRUE |
+       peak.users[ili==1]$nausea  == TRUE |
+       peak.users[ili==1]$vomiting == TRUE |
+       peak.users[ili==1]$diarrhoea == TRUE |
+       peak.users[ili==1]$stomach.ache == TRUE |
+       peak.users[ili==1]$other == TRUE |
+       (peak.users[ili==1]$fever == TRUE &
+        peak.users[ili==1]$fever.suddenly == FALSE)))
+table((peak.users[ili==1]$chills == TRUE |
+       peak.users[ili==1]$blocked.runny.nose == TRUE |
+       peak.users[ili==1]$sneezing == TRUE |
+       peak.users[ili==1]$headache == TRUE |
+       peak.users[ili==1]$chest.pain  == TRUE |
+       peak.users[ili==1]$tired == TRUE |
+       peak.users[ili==1]$loss.appetite  == TRUE |
+       peak.users[ili==1]$phlegm == TRUE |
+       peak.users[ili==1]$watery.eyes  == TRUE |
+       peak.users[ili==1]$nausea  == TRUE |
+       peak.users[ili==1]$vomiting == TRUE |
+       peak.users[ili==1]$diarrhoea == TRUE |
+       peak.users[ili==1]$stomach.ache == TRUE |
+       peak.users[ili==1]$other == TRUE |
+       (peak.users[ili==1]$fever == TRUE &
+        peak.users[ili==1]$fever.suddenly == FALSE))) /
   nrow(peak.users[ili==1])
 
 table(peak.users[ili==1]$no.medication)
 table(peak.users[ili==1]$no.medication) / nrow(peak.users[ili==1])
 
-table(peak.users[ili==1]$visit.medical.service.gp)
-table(peak.users[ili==1]$visit.medical.service.gp) / nrow(peak.users[ili==1])
+table(peak.users[ili==1]$visit.medical.service.no)
+table(peak.users[ili==1]$visit.medical.service.no) / nrow(peak.users[ili==1])
 
-table(peak.users[ili==1]$visit.medical.service.ae)
-table(peak.users[ili==1]$visit.medical.service.ae) / nrow(peak.users[ili==1])
+table(peak.users[ili==1]$contact.medical.service.no)
+table(peak.users[ili==1]$contact.medical.service.no) / nrow(peak.users[ili==1])
 
-table(peak.users[ili==1]$contact.medical.service.nhs)
-table(peak.users[ili==1]$contact.medical.service.nhs) / nrow(peak.users[ili==1])
+table(peak.users[ili==1]$absent)
+table(peak.users[ili==1]$absent) / nrow(peak.users[ili==1])
 
 # ECDC + fever
 
@@ -1006,51 +1055,99 @@ table(peak.users[ili.fever==1]$fever.suddenly) / nrow(peak.users[ili.fever==1])
 table(peak.users[ili.fever==1]$shortness.breath)
 table(peak.users[ili.fever==1]$shortness.breath) / nrow(peak.users[ili.fever==1])
 
-table((peak.users[ili.fever==1]$chills =="t" |
-       peak.users[ili.fever==1]$blocked.runny.nose =="t" |
-       peak.users[ili.fever==1]$sneezing =="t" |
-       peak.users[ili.fever==1]$headache =="t" |
-       peak.users[ili.fever==1]$chest.pain  =="t" |
-       peak.users[ili.fever==1]$tired =="t" |
-       peak.users[ili.fever==1]$loss.appetite  =="t" |
-       peak.users[ili.fever==1]$phlegm =="t" |
-       peak.users[ili.fever==1]$watery.eyes  =="t" |
-       peak.users[ili.fever==1]$nausea  =="t" |
-       peak.users[ili.fever==1]$vomiting == "t" |
-       peak.users[ili.fever==1]$diarrhoea =="t" |
-       peak.users[ili.fever==1]$stomach.ache =="t" |
-       peak.users[ili.fever==1]$other =="t" |
-       (peak.users[ili.fever==1]$fever == "t" &
-        peak.users[ili.fever==1]$fever.suddenly  != 0)))
-table((peak.users[ili.fever==1]$chills =="t" |
-       peak.users[ili.fever==1]$blocked.runny.nose =="t" |
-       peak.users[ili.fever==1]$sneezing =="t" |
-       peak.users[ili.fever==1]$headache =="t" |
-       peak.users[ili.fever==1]$chest.pain  =="t" |
-       peak.users[ili.fever==1]$tired =="t" |
-       peak.users[ili.fever==1]$loss.appetite  =="t" |
-       peak.users[ili.fever==1]$phlegm =="t" |
-       peak.users[ili.fever==1]$watery.eyes  =="t" |
-       peak.users[ili.fever==1]$nausea  =="t" |
-       peak.users[ili.fever==1]$vomiting == "t" |
-       peak.users[ili.fever==1]$diarrhoea =="t" |
-       peak.users[ili.fever==1]$stomach.ache =="t" |
-       peak.users[ili.fever==1]$other =="t" |
-       (peak.users[ili.fever==1]$fever == "t" &
-        peak.users[ili.fever==1]$fever.suddenly  != 0))) /
+table((peak.users[ili.fever==1]$chills == TRUE |
+       peak.users[ili.fever==1]$blocked.runny.nose == TRUE |
+       peak.users[ili.fever==1]$sneezing == TRUE |
+       peak.users[ili.fever==1]$headache == TRUE |
+       peak.users[ili.fever==1]$chest.pain  == TRUE |
+       peak.users[ili.fever==1]$tired == TRUE |
+       peak.users[ili.fever==1]$loss.appetite  == TRUE |
+       peak.users[ili.fever==1]$phlegm == TRUE |
+       peak.users[ili.fever==1]$watery.eyes  == TRUE |
+       peak.users[ili.fever==1]$nausea  == TRUE |
+       peak.users[ili.fever==1]$vomiting == TRUE |
+       peak.users[ili.fever==1]$diarrhoea == TRUE |
+       peak.users[ili.fever==1]$stomach.ache == TRUE |
+       peak.users[ili.fever==1]$other == TRUE |
+       (peak.users[ili.fever==1]$fever == TRUE &
+        peak.users[ili.fever==1]$fever.suddenly == FALSE)))
+table((peak.users[ili.fever==1]$chills == TRUE |
+       peak.users[ili.fever==1]$blocked.runny.nose == TRUE |
+       peak.users[ili.fever==1]$sneezing == TRUE |
+       peak.users[ili.fever==1]$headache == TRUE |
+       peak.users[ili.fever==1]$chest.pain  == TRUE |
+       peak.users[ili.fever==1]$tired == TRUE |
+       peak.users[ili.fever==1]$loss.appetite  == TRUE |
+       peak.users[ili.fever==1]$phlegm == TRUE |
+       peak.users[ili.fever==1]$watery.eyes  == TRUE |
+       peak.users[ili.fever==1]$nausea  == TRUE |
+       peak.users[ili.fever==1]$vomiting == TRUE |
+       peak.users[ili.fever==1]$diarrhoea == TRUE |
+       peak.users[ili.fever==1]$stomach.ache == TRUE |
+       peak.users[ili.fever==1]$other == TRUE |
+       (peak.users[ili.fever==1]$fever == TRUE &
+        peak.users[ili.fever==1]$fever.suddenly == FALSE))) /
   nrow(peak.users[ili.fever==1])
 
 table(peak.users[ili.fever==1]$no.medication)
 table(peak.users[ili.fever==1]$no.medication) / nrow(peak.users[ili.fever==1])
 
-table(peak.users[ili.fever==1]$visit.medical.service.gp)
-table(peak.users[ili.fever==1]$visit.medical.service.gp) / nrow(peak.users[ili.fever==1])
+table(peak.users[ili.fever==1]$visit.medical.service.no)
+table(peak.users[ili.fever==1]$visit.medical.service.no) / nrow(peak.users[ili.fever==1])
 
-table(peak.users[ili.fever==1]$visit.medical.service.ae)
-table(peak.users[ili.fever==1]$visit.medical.service.ae) / nrow(peak.users[ili.fever==1])
+table(peak.users[ili.fever==1]$contact.medical.service.no)
+table(peak.users[ili.fever==1]$contact.medical.service.no) / nrow(peak.users[ili.fever==1])
 
-table(peak.users[ili.fever==1]$contact.medical.service.nhs)
-table(peak.users[ili.fever==1]$contact.medical.service.nhs) / nrow(peak.users[ili.fever==1])
+table(peak.users[ili.fever==1]$absent)
+table(peak.users[ili.fever==1]$absent) / nrow(peak.users[ili.fever==1])
+
+peak.users$agegroup2 <- cut(peak.users$age, breaks=c(0,20,30,40,50,60,70,80,
+                           max(dt$age, na.rm=T)), include.lowest=T, right=F)
+
+# table(peak.users[ili.self==1 &
+#                  absent==T]$agegroup2)/table(peak.users[ili.self==1]$agegroup2)
+
+absent.age <- as.vector(table(peak.users[ili.self==1 &
+                                         absent==T]$agegroup2)/
+                        table(peak.users[ili.self==1]$agegroup2)) 
+absent.age[is.nan(absent.age)] <- 0
+agegroup.absent <- data.table(age=levels(peak.users$agegroup2),
+                                         absent=absent.age)
+
+png("absenteeism.png", width=640)
+ggplot(agegroup.absent[-1], aes(x=age, y=absent*100, group=1))+ geom_line()+
+  theme_bw(20)+  opts(panel.grid.major=theme_blank(),
+                      panel.grid.minor=theme_blank())+
+  scale_y_continuous("%", limits=c(0,80))
+dev.off()
+
+table(peak.users[vaccine==0]$ili.self)
+table(peak.users[vaccine==1]$ili.self)
+
+table(peak.users[vaccine==0]$ili.hpa)
+table(peak.users[vaccine==1]$ili.hpa)
+
+m <- data.table(melt(peak, measure.vars=c("ili.self", "ili.hpa")))
+
+png("ili_date.png", width=640)
+ggplot(m[value == 1 & symptoms.start.date>"2012-02-23"],
+       aes(x=symptoms.start.date, fill=variable))+ geom_histogram(binwidth=2,
+                                    position="dodge")+
+  scale_fill_brewer("ILI", labels=c("Self-reported", "HPA definition"),
+                    palette="Set1")+ theme_bw(20)+
+  opts(panel.grid.major=theme_blank(), panel.grid.minor=theme_blank())+
+  scale_y_continuous("Count")+ scale_x_date("Date")
+dev.off()
+
+png("ili_week.png", width=640)
+ggplot(m[value == 1 & symptoms.start.date>"2012-02-23"],
+       aes(x=symptoms.start.date, fill=variable))+ geom_histogram(binwidth=7,
+                                    position="dodge")+
+  scale_fill_brewer("ILI", labels=c("Self-reported", "HPA definition"),
+                    palette="Set1")+ theme_bw(20)+
+  opts(panel.grid.major=theme_blank(), panel.grid.minor=theme_blank())+
+  scale_y_continuous("Count")+ scale_x_date("Week", labels=c("",8,9,10,11,12,""))
+dev.off()
 
 # higher education etc
 
