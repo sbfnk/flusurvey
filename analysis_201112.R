@@ -16,6 +16,37 @@ age_years <- function(from, to)
    }
 }
 
+logistic.regression.or.ci <- function(regress.out, level=0.95)
+{
+################################################################
+# #
+# This function takes the output from a glm #
+# (logistic model) command in R and provides not #
+# only the usual output from the summary command, but #
+# adds confidence intervals for all coefficients and OR’s. #
+# #
+# This version accommodates multiple regression parameters #
+# #
+################################################################
+  usual.output <- summary(regress.out)
+  z.quantile <- qnorm(1-(1-level)/2)
+  number.vars <- length(regress.out$coefficients)
+  OR <- exp(regress.out$coefficients[-1])
+  temp.store.result <- matrix(rep(NA, number.vars*2), nrow=number.vars)
+  for(i in 1:number.vars)
+    {
+      temp.store.result[i,] <- summary(regress.out)$coefficients[i] +
+        c(-1, 1) * z.quantile * summary(regress.out)$coefficients[i+number.vars]
+    }
+  intercept.ci <- temp.store.result[1,]
+  slopes.ci <- temp.store.result[-1,]
+  
+  OR.ci <- exp(slopes.ci)
+  output <- list(regression.table = usual.output, intercept.ci = intercept.ci,
+                 slopes.ci = slopes.ci, OR=OR, OR.ci = OR.ci)
+  return(output)
+}
+
 # read tables
 sf <- read.csv('epidb_weekly.csv', sep=',', header=T)
 bf <- read.csv('epidb_intake.csv', sep=',', header=T)
@@ -34,11 +65,12 @@ sf$global.id.number <- translation$number[match(sf$global_id,
 # put data in data tables (for the rolling join to be used later)
 st <- data.table(sf)
 bt <- data.table(bf)
+bt$bid <- seq(1:nrow(bt))
 
 rm(sf)
 rm(bf)
 
-setnames(bt, 2, "bid")
+setnames(bt, 2, "global_id.bg")
 
 st$date <- as.Date(st$timestamp)
 bt$date <- as.Date(bt$timestamp)
@@ -247,16 +279,20 @@ dt$symptoms.start.date <- as.Date(dt$symptoms.start.date, "%Y-%m-%d")
 dt$symptoms.end.date <- as.Date(dt$symptoms.end.date, "%Y-%m-%d")
 
 # one-per-user table
-ds <- dt[!duplicated(dt$global.id.number)]
+# ds <- dt[!duplicated(dt$global.id.number)]
+# one-per-background-survey table
+ds <- dt[!duplicated(dt$bid)]
 
 ds$ili <- FALSE
 ds$nbili <- with(dt, aggregate(ili,
-                                    list(global.id.number=global.id.number),
+                                    ## list(global.id.number=global.id.number),
+                                    list(bid=bid),
                                     sum))$x
 ds$ili <- (ds$nbili > 0)
 
 ds$vaccinated <- with(dt, aggregate(vaccine,
-                                         list(global.id.number=global.id.number),
+                                         ## list(global.id.number=global.id.number),
+                                         list(bid=bid),
                                          sum))$x > 0
 ds$nonili <- 1-ds$ili
 ds$smoking <- ds$smoke %in% c(1,2,3)
@@ -1148,6 +1184,97 @@ ggplot(m[value == 1 & symptoms.start.date>"2012-02-23"],
   opts(panel.grid.major=theme_blank(), panel.grid.minor=theme_blank())+
   scale_y_continuous("Count")+ scale_x_date("Week", labels=c("",8,9,10,11,12,""))
 dev.off()
+
+# whole season
+whole.users <- dt[!duplicated(dt$bid)]
+
+whole.users$vaccinated <- with(dt, aggregate(vaccine,
+                                         ## list(global.id.number=global.id.number),
+                                         list(bid=bid),
+                                         sum))$x > 0
+
+for (symptom in c("fever", "chills", "blocked.runny.nose", "sneezing",
+  "sore.throat", "cough", "shortness.breath", "headache",
+  "muscle.and.or.joint.pain", "chest.pain", "tired", "loss.appetite", "phlegm",
+  "watery.eyes", "nausea", "vomiting", "diarrhoea", "stomach.ache", "other")) { 
+  whole.users$nb <- with(dt, aggregate((get(symptom) == "t"),
+                                        list(bid=bid),
+                                        sum))$x
+  whole.users <- whole.users[, which(!grepl(symptom, colnames(whole.users))), with=FALSE]
+  whole.users <- whole.users[,symptom:=(nb>0), with=F]
+}
+
+for (symptom in c("fever.suddenly")) {
+  dt <- dt[is.na(get(symptom)), symptom := -1, with=F]  
+  whole.users$nb <- with(dt, aggregate((get(symptom) == 0),
+                                        list(bid=bid),
+                                        sum))$x
+  whole.users <- whole.users[, which(!grepl(symptom, colnames(whole.users))), with=FALSE]
+  whole.users <- whole.users[,symptom:=(nb>0), with=F]
+}
+
+for (change in c("visit.medical.service.no", "contact.medical.service.no",
+                 "no.medication")) {
+  whole.users$nb <- with(dt, aggregate((get(change) == "t"),
+                                        list(bid=bid),
+                                        sum))$x
+  whole.users <- whole.users[, which(!grepl(change, colnames(whole.users))), with=FALSE]
+  whole.users <- whole.users[,change:=(nb>0), with=F]
+}
+
+for (change in c("alter.routine")) {
+  dt <- dt[is.na(get(change)), change := -1, with=F]  
+  whole.users$nb <- with(dt, aggregate((get(change) > 0),
+                                        list(bid=bid),
+                                        sum))$x
+  whole.users <- whole.users[, which(!grepl(change, colnames(whole.users))), with=FALSE]
+  whole.users <- whole.users[,change:=(nb>0), with=F]
+}
+
+for (change in c("absent")) {
+  whole.users$nb <- with(dt, aggregate((get("alter.routine") == 1),
+                                        list(bid=bid),
+                                        sum))$x
+  whole.users <- whole.users[, which(!grepl(change, colnames(whole.users))), with=FALSE]
+  whole.users <- whole.users[,change:=(nb>0), with=F]
+}
+
+whole.users <- whole.users[, which(!grepl("nb", colnames(whole.users))), with=FALSE]
+
+
+whole.users$ili <- FALSE
+whole.users$nbili <- with(dt, aggregate(ili,
+                                 list(bid=bid),
+                                 sum))$x
+whole.users$ili <- (whole.users$nbili > 0)
+
+whole.users$ili.fever <- FALSE
+whole.users$nbili.fever <- with(dt, aggregate(ili.fever,
+                                 list(bid=bid),
+                                 sum))$x
+whole.users$ili.fever <- (whole.users$nbili.fever > 0)
+whole.users[is.na(ili.fever)]$ili.fever <- F
+
+dt$ili.self <- (dt$Q11 == 0)
+dt[is.na(ili.self)]$ili.self <- FALSE
+whole.users$ili.self <- FALSE
+whole.users$nbili.self <- with(dt, aggregate(ili.self,
+                                              list(bid=bid),
+                                              sum))$x
+whole.users$ili.self <- (whole.users$nbili.self > 0)
+
+whole.users$agegroup2 <- cut(whole.users$age, breaks=c(0,20,30,40,50,60,70,80,
+                                                max(dt$age, na.rm=T)),
+                                                include.lowest=T, right=F) 
+
+whole.users$daycare <- (whole.users$Q6b>0)
+whole.users[is.na(daycare)]$daycare <- F
+
+whole.users$frequent.contact <- (whole.users$frequent.contact.children == "t" |
+                                 whole.users$frequent.contact.elderly == "t" |
+                                 whole.users$frequent.contact.people == "t")
+
+whole.users$smoking <- whole.users$smoke %in% c(1,2,3)
 
 # higher education etc
 
