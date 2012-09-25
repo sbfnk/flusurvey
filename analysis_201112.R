@@ -1390,4 +1390,122 @@ write.csv(gi.and.12, "gi_and_201112.csv", quote=F, row.names=F)
 write.csv(gi.or.novom.12, "gi_or_novom_201112.csv", quote=F, row.names=F)
 write.csv(gi.and.novom.12, "gi_and_novom_201112.csv", quote=F, row.names=F)
 
-# antibiotic use
+# logistic regressions
+
+whole.users$notvaccinated <- !(whole.users$vaccinated)
+season <- logistic.regression.or.ci(glm(ili ~ notvaccinated + children +
+                                        as.numeric(agegroup2) + daycare +
+                                        frequent.contact + atrisk + smoking,
+                                        data=whole.users, family=binomial)) 
+
+regressions <- data.table(week=levels(factor(dt$week)))
+setkey(regressions, week)
+for (variable in names(season$OR)) {
+  regressions <- regressions[,variable := 0.0,with=F]
+}
+
+for (thisweek in levels(factor(dt$week))) {
+  week.all <- dt[week == thisweek]
+  week.users <- week.all[!duplicated(week.all$bid)]
+  week.users$vaccinated <- with(week.all,
+                                aggregate(vaccine,
+                                          ## list(global.id.number=global.id.number),
+                                          list(bid=bid),
+                                          sum))$x > 0
+
+  for (symptom in c("fever", "chills", "blocked.runny.nose", "sneezing",
+                    "sore.throat", "cough", "shortness.breath", "headache",
+                    "muscle.and.or.joint.pain", "chest.pain", "tired", "loss.appetite", "phlegm",
+                    "watery.eyes", "nausea", "vomiting", "diarrhoea", "stomach.ache", "other")) { 
+    week.users$nb <- with(week.all,
+                          aggregate((get(symptom) == "t"),
+                                    list(bid=bid),
+                                    sum))$x
+    week.users <- week.users[, which(!grepl(symptom, colnames(week.users))), with=FALSE]
+    week.users <- week.users[,symptom:=(nb>0), with=F]
+  }
+
+  for (symptom in c("fever.suddenly")) {
+    week.all <- week.all[is.na(get(symptom)), symptom := -1, with=F]  
+    week.users$nb <- with(week.all, aggregate((get(symptom) == 0),
+                                              list(bid=bid),
+                                              sum))$x
+    week.users <- week.users[, which(!grepl(symptom, colnames(week.users))), with=FALSE]
+    week.users <- week.users[,symptom:=(nb>0), with=F]
+  }
+
+  for (change in c("visit.medical.service.no", "contact.medical.service.no",
+                   "no.medication")) {
+    week.users$nb <- with(week.all, aggregate((get(change) == "t"),
+                                               list(bid=bid),
+                                               sum))$x
+    week.users <- week.users[, which(!grepl(change, colnames(week.users))), with=FALSE]
+    week.users <- week.users[,change:=(nb>0), with=F]
+  }
+
+  for (change in c("alter.routine")) {
+    week.all <- week.all[is.na(get(change)), change := -1, with=F]  
+    week.users$nb <- with(week.all, aggregate((get(change) > 0),
+                                              list(bid=bid),
+                                              sum))$x
+    week.users <- week.users[, which(!grepl(change, colnames(week.users))), with=FALSE]
+    week.users <- week.users[,change:=(nb>0), with=F]
+  }
+
+  for (change in c("absent")) {
+    week.users$nb <- with(week.all, aggregate((get("alter.routine") == 1),
+                                              list(bid=bid),
+                                              sum))$x
+    week.users <- week.users[, which(!grepl(change, colnames(week.users))), with=FALSE]
+    week.users <- week.users[,change:=(nb>0), with=F]
+  }
+
+  week.users <- week.users[, which(!grepl("nb", colnames(week.users))), with=FALSE]
+
+
+  week.users$ili <- FALSE
+  week.users$nbili <- with(week.all, aggregate(ili,
+                                               list(bid=bid),
+                                               sum))$x
+  week.users$ili <- (week.users$nbili > 0)
+
+  week.users$ili.fever <- FALSE
+  week.users$nbili.fever <- with(week.all, aggregate(ili.fever,
+                                                     list(bid=bid),
+                                                     sum))$x
+  week.users$ili.fever <- (week.users$nbili.fever > 0)
+  week.users[is.na(ili.fever)]$ili.fever <- F
+
+  week.all$ili.self <- (week.all$Q11 == 0)
+  week.all[is.na(ili.self)]$ili.self <- FALSE
+  week.users$ili.self <- FALSE
+  week.users$nbili.self <- with(week.all, aggregate(ili.self,
+                                                    list(bid=bid),
+                                                    sum))$x
+  week.users$ili.self <- (week.users$nbili.self > 0)
+
+  week.users$agegroup2 <- cut(week.users$age, breaks=c(0,20,30,40,50,60,70,80,
+                                                max(dt$age, na.rm=T)),
+                              include.lowest=T, right=F) 
+
+  week.users$daycare <- (week.users$Q6b>0)
+  week.users[is.na(daycare)]$daycare <- F
+
+  week.users$frequent.contact <- (week.users$frequent.contact.children == "t" |
+                                  week.users$frequent.contact.elderly == "t" |
+                                  week.users$frequent.contact.people == "t")
+
+  week.users$smoking <- week.users$smoke %in% c(1,2,3)
+
+  week.users$notvaccinated <- !(week.users$vaccinated)
+  week.regression <-
+    logistic.regression.or.ci(glm(ili ~ notvaccinated + children +
+                                  as.numeric(agegroup2) + daycare +
+                                  frequent.contact + atrisk + smoking,
+                                  data=week.users, family=binomial))
+
+  for (variable in names(week.regression$OR)) {
+    regressions <- regressions[thisweek, variable :=
+                               week.regression$OR[[variable]], with=F] 
+  }
+}
