@@ -2,6 +2,8 @@ library(data.table)
 library(ggplot2)
 library(reshape)
 
+symptoms <- c("fever","chills","blocked.runny.nose","sneezing","sore.throat","cough","shortness.breath","headache","muscle.and.or.joint.pain","chest.pain","tired","loss.appetite","phlegm","watery.eyes","nausea","vomiting","diarrhoea","stomach.ache","other")
+
 # compute the age in years from a birthdate (from) and the current date (to)
 age_years <- function(from, to)
 {
@@ -258,6 +260,8 @@ setnames(dt, "x", "maxdate")
 dt$symptoms.start <- as.Date(dt$symptoms.start, "%Y-%m-%d")
 dt$week <- format(dt$date, format="%G-%W")
 dt[dt$week=="2011-00"]$week <- "2011-52"
+dt$symptoms.start.week <- format(dt$symptoms.start.date, format="%G-%W")
+dt[dt$symptoms.start.week=="2011-00"]$symptoms.start.week <- "2011-52"
 dt$weekweight <- 1/table(dt$week)[dt$week]
 dt$birthdate <- as.Date(dt$birthmonth, "%Y/%M/%d")
 
@@ -1398,8 +1402,8 @@ season <- logistic.regression.or.ci(glm(ili ~ notvaccinated + children +
                                         frequent.contact + atrisk + smoking,
                                         data=whole.users, family=binomial)) 
 
-regressions <- data.table(week=levels(factor(dt$week)))
-setkey(regressions, week)
+regressions <- data.table(yearweek=levels(factor(dt$week)))
+setkey(regressions, yearweek)
 for (variable in names(season$OR)) {
   regressions <- regressions[,variable := 0.0,with=F]
 }
@@ -1507,5 +1511,139 @@ for (thisweek in levels(factor(dt$week))) {
   for (variable in names(week.regression$OR)) {
     regressions <- regressions[thisweek, variable :=
                                week.regression$OR[[variable]], with=F] 
+  }
+}
+
+regressions$year <- as.numeric(substr(regressions$yearweek, 1, 4))
+regressions$week <- as.numeric(substr(regressions$yearweek, 6, 7))
+regressions$date <- as.Date(strptime(paste(regressions$year, regressions$week*7,sep=" "),format="%Y %j"))+5
+
+for (variable in names(week.regression$OR)) {
+  pdf(paste(variable, ".pdf", sep=""))
+  ggplot(regressions[yearweek < "2012-19"], aes(x=date, y=get(variable)))+
+    geom_line(lwd=1.5)+ scale_y_continuous(name="Weekly odds ratio")+
+      theme_bw(30)+ scale_x_date(name="")+ theme(panel.grid.major=element_blank(),
+                                                panel.grid.minor=element_blank())
+  dev.off()
+}
+
+# reporting delay distributions
+dt$diffdays.onset <- as.numeric(as.Date(dt$timestamp.1)-as.Date(dt$symptoms.start.date))
+
+pdf("onset_all_symptoms.pdf")
+ggplot(dt[same != 0 & diffdays.onset>=0 & diffdays.onset < 57], aes(x = diffdays.onset, y=..density..)) + geom_histogram(binwidth=1) + scale_x_continuous("days between symptom onset and report")+ scale_y_continuous("proportion of all symptom reports")+ theme_bw()
+dev.off()
+
+pdf("onset_ili.pdf")
+ggplot(dt[diffdays.onset>=0 & diffdays.onset < 57 & ili==T], aes(x = diffdays.onset, y=..density..)) + geom_histogram(binwidth=1) + scale_x_continuous("days between symptom onset and report")+ scale_y_continuous("proportion of symptom reports with ILI")+ theme_bw()
+dev.off()
+
+nrow(dt[diffdays.onset>7])/nrow(dt[diffdays.onset>=0])
+nrow(dt[diffdays.onset>14])/nrow(dt[diffdays.onset>=0])
+nrow(dt[diffdays.onset>21])/nrow(dt[diffdays.onset>=0])
+nrow(dt[diffdays.onset>28])/nrow(dt[diffdays.onset>=0])
+nrow(dt[diffdays.onset<0])/nrow(dt[!is.na(diffdays.onset)])
+
+nrow(dt[same != 0 & diffdays.onset>7])/nrow(dt[same != 0 & diffdays.onset>=0])
+nrow(dt[same != 0 & diffdays.onset>14])/nrow(dt[same != 0 & diffdays.onset>=0])
+nrow(dt[same != 0 & diffdays.onset>21])/nrow(dt[same != 0 & diffdays.onset>=0])
+nrow(dt[same != 0 & diffdays.onset>28])/nrow(dt[same != 0 & diffdays.onset>=0])
+nrow(dt[same != 0 & diffdays.onset<0])/nrow(dt[same != 0 & !is.na(diffdays.onset)])
+
+nrow(dt[ili==T & diffdays.onset>7])/nrow(dt[ili==T & diffdays.onset>=0])
+nrow(dt[ili==T & diffdays.onset>14])/nrow(dt[ili==T & diffdays.onset>=0])
+nrow(dt[ili==T & diffdays.onset>21])/nrow(dt[ili==T & diffdays.onset>=0])
+nrow(dt[ili==T & diffdays.onset>28])/nrow(dt[ili==T & diffdays.onset>=0])
+nrow(dt[ili==T & diffdays.onset<0])/nrow(dt[ili==T & !is.na(diffdays.onset)])
+
+nrow(dt[ili.fever==T & diffdays.onset>7])/nrow(dt[ili.fever==T & diffdays.onset>=0])
+nrow(dt[ili.fever==T & diffdays.onset>14])/nrow(dt[ili.fever==T & diffdays.onset>=0])
+nrow(dt[ili.fever==T & diffdays.onset>21])/nrow(dt[ili.fever==T & diffdays.onset>=0])
+nrow(dt[ili.fever==T & diffdays.onset>28])/nrow(dt[ili.fever==T & diffdays.onset>=0])
+nrow(dt[ili.fever==T & diffdays.onset<0])/nrow(dt[ili.fever==T & !is.na(diffdays.onset)])
+
+dt$diffdays.end <- as.numeric(as.Date(dt$timestamp.1)-as.Date(dt$symptoms.end.date))
+
+pdf("end_all_symptoms.pdf")
+ggplot(dt[diffdays.end>=0 & diffdays.end < 57], aes(x = diffdays.end, y=..density..)) + geom_histogram(binwidth=1) + scale_x_continuous("days between symptom end and report")+ scale_y_continuous("proportion of all symptom reports")+ theme_bw()
+dev.off()
+
+pdf("end_ili.pdf")
+ggplot(dt[diffdays.end>=0 & diffdays.end < 57 & ili==T], aes(x = diffdays.end, y=..density..)) + geom_histogram(binwidth=1) + scale_x_continuous("days between symptom end and report")+ scale_y_continuous("proportion of symptom reports with ILI")+ theme_bw()
+dev.off()
+
+nrow(dt[diffdays.end>7])/nrow(dt[diffdays.end>=0])
+nrow(dt[diffdays.end>14])/nrow(dt[diffdays.end>=0])
+nrow(dt[diffdays.end>21])/nrow(dt[diffdays.end>=0])
+nrow(dt[diffdays.end>28])/nrow(dt[diffdays.end>=0])
+nrow(dt[diffdays.end<0])/nrow(dt[!is.na(diffdays.end)])
+
+nrow(dt[ili==T & diffdays.end>7])/nrow(dt[ili==T & diffdays.end>=0])
+nrow(dt[ili==T & diffdays.end>14])/nrow(dt[ili==T & diffdays.end>=0])
+nrow(dt[ili==T & diffdays.end>21])/nrow(dt[ili==T & diffdays.end>=0])
+nrow(dt[ili==T & diffdays.end>28])/nrow(dt[ili==T & diffdays.end>=0])
+nrow(dt[ili==T & diffdays.end<0])/nrow(dt[ili==T & !is.na(diffdays.end)])
+
+nrow(dt[ili.fever==T & diffdays.end>7])/nrow(dt[ili.fever==T & diffdays.end>=0])
+nrow(dt[ili.fever==T & diffdays.end>14])/nrow(dt[ili.fever==T & diffdays.end>=0])
+nrow(dt[ili.fever==T & diffdays.end>21])/nrow(dt[ili.fever==T & diffdays.end>=0])
+nrow(dt[ili.fever==T & diffdays.end>28])/nrow(dt[ili.fever==T & diffdays.end>=0])
+nrow(dt[ili.fever==T & diffdays.end<0])/nrow(dt[ili.fever==T & !is.na(diffdays.end)])
+
+# add active user stuff
+
+dt$added.2week <- F
+dt$added.3week <- F
+
+lastrow <- nrow(dt)
+
+dt2 <- dt
+counter <- 1
+for (i in 1:lastrow) {
+  date.before <- dt[i]$date - 7
+  week.before <- format(date.before, format="%G-%W")
+  date.before.before <- dt[i]$date - 14
+  week.before.before <- format(date.before.before, format="%G-%W")
+  if (nrow(dt[bid == dt[i]$bid & week == week.before]) == 0) {
+    if (is.na(dt[i]$symptoms.start.week) |
+        dt[i]$symptoms.start.week != week.before) {
+      ## dt <- rbind(dt, dt[i])
+      newrow <- counter
+      dt2[newrow] <- dt[i]
+      dt2[newrow]$same <- as.integer(0)
+      dt2[newrow]$date <- date.before
+      dt2[newrow]$week <- week.before
+      dt2[newrow]$added.2week <- T
+      counter <- counter + 1
+    }
+    if (nrow(dt[bid == dt[i]$bid & week == week.before.before]) == 0) {
+      if (is.na(dt[i]$symptoms.start.week) |
+          dt[i]$symptoms.start.week != week.week.before) {
+        if (is.na(dt[i]$symptoms.start.week) |
+            dt[i]$symptoms.start.week != week.before) {
+          ## dt <- rbind(dt, dt[i])
+          ## newrow <- nrow(dt)
+          newrow <- counter
+          dt2[newrow] <- dt[i]
+          dt2[newrow]$same <- 0
+          dt2[newrow]$date <- date.before.before
+          dt2[newrow]$week <- week.before.before
+          dt2[newrow]$added.3week <- T
+          counter <- counter + 1
+        } else {
+          ## dt <- rbind(dt, dt[i])
+          ## newrow <- nrow(dt)
+          newrow <- counter
+          dt2[newrow] <- dt[i]
+          dt2[newrow]$same <- 0
+          dt2[newrow]$date <- date.before.before
+          dt2[newrow]$week <- week.before.before
+          dt2[newrow]$no.symptoms <- "t"
+          dt2[newrow, symptoms, with=F] <- rep("f", length(symptoms))
+          dt2[newrow]$added.3week <- T
+          counter <- counter + 1
+        }
+      }
+    }
   }
 }
