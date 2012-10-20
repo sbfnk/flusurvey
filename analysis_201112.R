@@ -1403,7 +1403,7 @@ whole.users$notvaccinated <- !(whole.users$vaccinated)
 season <- logistic.regression.or.ci(glm(ili ~ notvaccinated + children +
                                         as.numeric(agegroup2) + 
                                         frequent.contact + atrisk + smoking +
-                                        gender + tra, data=whole.users,
+                                        gender + transport, data=whole.users,
                                         family=binomial))  
 
 regressions <- data.table(yearweek=levels(factor(dt$week)))
@@ -1482,7 +1482,7 @@ for (thisweek in levels(factor(dt$week))) {
                                                      list(bid=bid),
                                                      sum))$x
   week.users$ili.fever <- (week.users$nbili.fever > 0)
-  week.users[is.na(ili.fever)]$ili.fever <- F
+  week.users <- week.users[is.na(ili.fever), "ili.fever" := F, with=F]
 
   week.all$ili.self <- (week.all$Q11 == 0)
   week.all[is.na(ili.self)]$ili.self <- FALSE
@@ -1508,8 +1508,9 @@ for (thisweek in levels(factor(dt$week))) {
   week.users$notvaccinated <- !(week.users$vaccinated)
   week.regression <-
     logistic.regression.or.ci(glm(ili ~ notvaccinated + children +
-                                  as.numeric(agegroup2) + daycare +
-                                  frequent.contact + atrisk + smoking,
+                                  as.numeric(agegroup2) + 
+                                  frequent.contact + atrisk + smoking +
+                                  gender + transport,
                                   data=week.users, family=binomial))
 
   for (variable in names(week.regression$OR)) {
@@ -1526,8 +1527,8 @@ for (variable in names(week.regression$OR)) {
   pdf(paste(variable, ".pdf", sep=""))
   ggplot(regressions[yearweek < "2012-19"], aes(x=date, y=get(variable)))+
     geom_line(lwd=1.5)+ scale_y_continuous(name="Weekly odds ratio")+
-      theme_bw(30)+ scale_x_date(name="")+ theme(panel.grid.major=element_blank(),
-                                                panel.grid.minor=element_blank())
+      theme_bw(30)+ scale_x_date(name="")+ opts(panel.grid.major=theme_blank(),
+                                                panel.grid.minor=theme_blank())
   dev.off()
 }
 
@@ -1540,7 +1541,7 @@ for (variable in names(season$OR)) {
 }
 
 for (thisweek in levels(factor(dt$week))) {
-  week.all <- dt[week == thisweek]
+  week.all <- dt[week <= thisweek]
   week.users <- week.all[!duplicated(week.all$bid)]
   week.users$vaccinated <- with(week.all,
                                 aggregate(vaccine,
@@ -1635,8 +1636,9 @@ for (thisweek in levels(factor(dt$week))) {
   week.users$notvaccinated <- !(week.users$vaccinated)
   week.regression <-
     logistic.regression.or.ci(glm(ili ~ notvaccinated + children +
-                                  as.numeric(agegroup2) + daycare +
-                                  frequent.contact + atrisk + smoking,
+                                  as.numeric(agegroup2) + 
+                                  frequent.contact + atrisk + smoking +
+                                  gender + transport,
                                   data=week.users, family=binomial))
 
   for (variable in names(week.regression$OR)) {
@@ -1649,6 +1651,14 @@ cregressions$year <- as.numeric(substr(cregressions$yearweek, 1, 4))
 cregressions$week <- as.numeric(substr(cregressions$yearweek, 6, 7))
 cregressions$date <- as.Date(strptime(paste(cregressions$year, cregressions$week*7,sep=" "),format="%Y %j"))+5
 
+for (variable in names(week.regression$OR)) {
+  pdf(paste("c_", variable, ".pdf", sep=""))
+  ggplot(cregressions[yearweek < "2012-19"], aes(x=date, y=get(variable)))
+    geom_line(lwd=1.5)+ scale_y_continuous(name="Weekly odds ratio")+
+      theme_bw(30)+ scale_x_date(name="")+ theme(panel.grid.major=element_blank(),
+                                                 panel.grid.minor=element_blank())
+  dev.off()
+}
 
 # reporting delay distributions
 dt$diffdays.onset <- as.numeric(as.Date(dt$timestamp.1)-as.Date(dt$symptoms.start.date))
