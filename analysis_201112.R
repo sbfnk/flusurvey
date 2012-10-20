@@ -1530,6 +1530,12 @@ for (variable in names(week.regression$OR)) {
       theme_bw(30)+ scale_x_date(name="")+ opts(panel.grid.major=theme_blank(),
                                                 panel.grid.minor=theme_blank())
   dev.off()
+  png(paste(variable, ".png", sep=""))
+  ggplot(regressions[yearweek < "2012-19"], aes(x=date, y=get(variable)))+
+    geom_line(lwd=1.5)+ scale_y_continuous(name="Weekly odds ratio")+
+      theme_bw(30)+ scale_x_date(name="")+ opts(panel.grid.major=theme_blank(),
+                                                panel.grid.minor=theme_blank())
+  dev.off()
 }
 
 # cumulative regressions
@@ -1653,8 +1659,14 @@ cregressions$date <- as.Date(strptime(paste(cregressions$year, cregressions$week
 
 for (variable in names(week.regression$OR)) {
   pdf(paste("c_", variable, ".pdf", sep=""))
-  ggplot(cregressions[yearweek < "2012-19"], aes(x=date, y=get(variable)))
-    geom_line(lwd=1.5)+ scale_y_continuous(name="Weekly odds ratio")+
+  ggplot(cregressions[yearweek < "2012-19"], aes(x=date, y=get(variable)))+
+    geom_line(lwd=1.5)+ scale_y_continuous(name="Cumulative odds ratio")+
+      theme_bw(30)+ scale_x_date(name="")+ theme(panel.grid.major=element_blank(),
+                                                 panel.grid.minor=element_blank())
+  dev.off()
+  png(paste("c_", variable, ".png", sep=""))
+  ggplot(cregressions[yearweek < "2012-19"], aes(x=date, y=get(variable)))+
+    geom_line(lwd=1.5)+ scale_y_continuous(name="Cumulative odds ratio")+
       theme_bw(30)+ scale_x_date(name="")+ theme(panel.grid.major=element_blank(),
                                                  panel.grid.minor=element_blank())
   dev.off()
