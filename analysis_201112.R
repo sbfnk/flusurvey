@@ -1401,15 +1401,17 @@ write.csv(gi.and.novom.12, "gi_and_novom_201112.csv", quote=F, row.names=F)
 
 whole.users$notvaccinated <- !(whole.users$vaccinated)
 season <- logistic.regression.or.ci(glm(ili ~ notvaccinated + children +
-                                        as.numeric(agegroup2) + 
-                                        frequent.contact + atrisk + smoking +
-                                        gender + transport, data=whole.users,
+                                        agegroup + country +
+                                        frequent.contact + atrisk +
+                                        gender, data=whole.users,
                                         family=binomial))  
 
 regressions <- data.table(yearweek=levels(factor(dt$week)))
 setkey(regressions, yearweek)
 for (variable in names(season$OR)) {
   regressions <- regressions[,variable := 0.0,with=F]
+  regressions <- regressions[,paste(variable, ".ci.low", sep="") := 0.0,with=F]
+  regressions <- regressions[,paste(variable, ".ci.high", sep="") := 0.0,with=F]
 }
 
 for (thisweek in levels(factor(dt$week))) {
@@ -1508,14 +1510,21 @@ for (thisweek in levels(factor(dt$week))) {
   week.users$notvaccinated <- !(week.users$vaccinated)
   week.regression <-
     logistic.regression.or.ci(glm(ili ~ notvaccinated + children +
-                                  as.numeric(agegroup2) + 
-                                  frequent.contact + atrisk + smoking +
-                                  gender + transport,
+                                  agegroup + country +
+                                  frequent.contact + atrisk + 
+                                  gender,
                                   data=week.users, family=binomial))
 
-  for (variable in names(week.regression$OR)) {
-    regressions <- regressions[thisweek, variable :=
-                               week.regression$OR[[variable]], with=F] 
+  for (i in 1:length(names(week.regression$OR))) {
+#  for (variable in names(week.regression$OR)) {
+    ## regressions <- regressions[thisweek, variable :=
+    ##                            week.regression$OR[[variable]], with=F] 
+    regressions <- regressions[thisweek, names(week.regression$OR[i]) :=
+                               week.regression$OR[[i]], with=F] 
+    regressions <- regressions[thisweek, paste(names(week.regression$OR[i]), ".ci.low", sep="") :=
+                               week.regression$OR.ci[i,1], with=F] 
+    regressions <- regressions[thisweek, paste(names(week.regression$OR[i]), ".ci.high", sep="") :=
+                               week.regression$OR.ci[i,2], with=F] 
   }
 }
 
@@ -1523,18 +1532,37 @@ regressions$year <- as.numeric(substr(regressions$yearweek, 1, 4))
 regressions$week <- as.numeric(substr(regressions$yearweek, 6, 7))
 regressions$date <- as.Date(strptime(paste(regressions$year, regressions$week*7,sep=" "),format="%Y %j"))+5
 
-for (variable in names(week.regression$OR)) {
-  pdf(paste(variable, ".pdf", sep=""))
-  ggplot(regressions[yearweek < "2012-19"], aes(x=date, y=get(variable)))+
-    geom_line(lwd=1.5)+ scale_y_continuous(name="Weekly odds ratio")+
-      theme_bw(30)+ scale_x_date(name="")+ opts(panel.grid.major=theme_blank(),
-                                                panel.grid.minor=theme_blank())
+for (variable in names(season$OR)) {
+#  filename <- gsub("[,\\[)]", "", gsub("\\]", "", names(season$OR)[1]))
+  pdf(paste(variable, "3.pdf", sep=""))
+  print(
+        ggplot(regressions[yearweek > "2011-45" & yearweek < "2012-14"], aes(x=date, y=get(variable)))+
+        geom_line()+
+        geom_errorbar(aes(ymin = get(paste(variable, ".ci.low", sep="")),
+                          ymax = get(paste(variable, ".ci.high", sep=""))))+
+        geom_point(size=3, shape=21, fill="white")+
+        scale_y_continuous(name="Weekly odds ratio")+
+        theme_bw(30)+
+        scale_x_date(name="")+
+        theme(panel.grid.major=element_blank(),
+             panel.grid.minor=element_blank())+
+        geom_abline(intercept=1, slope=0)
+        )
   dev.off()
-  png(paste(variable, ".png", sep=""))
-  ggplot(regressions[yearweek < "2012-19"], aes(x=date, y=get(variable)))+
-    geom_line(lwd=1.5)+ scale_y_continuous(name="Weekly odds ratio")+
-      theme_bw(30)+ scale_x_date(name="")+ opts(panel.grid.major=theme_blank(),
-                                                panel.grid.minor=theme_blank())
+  png(paste(variable, "3.png", sep=""))
+  print(
+        ggplot(regressions[yearweek > "2011-45" & yearweek < "2012-14"], aes(x=date, y=get(variable)))+
+        geom_line()+
+        geom_errorbar(aes(ymin = get(paste(variable, ".ci.low", sep="")),
+                          ymax = get(paste(variable, ".ci.high", sep=""))))+
+        geom_point(size=3, shape=21, fill="white")+
+        scale_y_continuous(name="Weekly odds ratio")+
+        theme_bw(30)+
+        scale_x_date(name="")+
+        theme(panel.grid.major=element_blank(),
+             panel.grid.minor=element_blank())+
+        geom_abline(intercept=1, slope=0)
+        )
   dev.off()
 }
 
@@ -1642,14 +1670,21 @@ for (thisweek in levels(factor(dt$week))) {
   week.users$notvaccinated <- !(week.users$vaccinated)
   week.regression <-
     logistic.regression.or.ci(glm(ili ~ notvaccinated + children +
-                                  as.numeric(agegroup2) + 
-                                  frequent.contact + atrisk + smoking +
-                                  gender + transport,
+                                  agegroup + country +
+                                  frequent.contact + atrisk + 
+                                  gender,
                                   data=week.users, family=binomial))
 
-  for (variable in names(week.regression$OR)) {
-    cregressions <- cregressions[thisweek, variable :=
-                               week.regression$OR[[variable]], with=F] 
+  for (i in 1:length(names(week.regression$OR))) {
+  ## for (variable in names(week.regression$OR)) {
+  ##   cregressions <- cregressions[thisweek, variable :=
+  ##                              week.regression$OR[[variable]], with=F] 
+    cregressions <- cregressions[thisweek, names(week.regression$OR[i]) :=
+                                 week.regression$OR[[i]], with=F] 
+    cregressions <- cregressions[thisweek, paste(names(week.regression$OR[i]), ".ci.low", sep="") :=
+                                 week.regression$OR.ci[i,1], with=F] 
+    cregressions <- cregressions[thisweek, paste(names(week.regression$OR[i]), ".ci.high", sep="") :=
+                                 week.regression$OR.ci[i,2], with=F] 
   }
 }
 
@@ -1657,18 +1692,38 @@ cregressions$year <- as.numeric(substr(cregressions$yearweek, 1, 4))
 cregressions$week <- as.numeric(substr(cregressions$yearweek, 6, 7))
 cregressions$date <- as.Date(strptime(paste(cregressions$year, cregressions$week*7,sep=" "),format="%Y %j"))+5
 
-for (variable in names(week.regression$OR)) {
-  pdf(paste("c_", variable, ".pdf", sep=""))
-  ggplot(cregressions[yearweek < "2012-19"], aes(x=date, y=get(variable)))+
-    geom_line(lwd=1.5)+ scale_y_continuous(name="Cumulative odds ratio")+
-      theme_bw(30)+ scale_x_date(name="")+ theme(panel.grid.major=element_blank(),
-                                                 panel.grid.minor=element_blank())
+for (variable in names(season$OR)) {
+  ## filename <- gsub("[,\\[)]", "", gsub("\\]", "", variable))
+  ## cat(filename, "\n")
+  pdf(paste("c_", variable, "3.pdf", sep=""))
+  print(
+        ggplot(cregressions[yearweek > "2011-45" & yearweek < "2012-14"], aes(x=date, y=get(variable)))+
+        geom_line()+
+        geom_errorbar(aes(ymin = get(paste(variable, ".ci.low", sep="")),
+                          ymax = get(paste(variable, ".ci.high", sep=""))))+
+        geom_point(size=3, shape=21, fill="white")+
+        scale_y_continuous(name="Cumulative odds ratio")+
+        theme_bw(30)+
+        scale_x_date(name="")+
+        theme(panel.grid.major=element_blank(),
+              panel.grid.minor=element_blank())+
+        geom_abline(intercept=1, slope=0)
+        )
   dev.off()
-  png(paste("c_", variable, ".png", sep=""))
-  ggplot(cregressions[yearweek < "2012-19"], aes(x=date, y=get(variable)))+
-    geom_line(lwd=1.5)+ scale_y_continuous(name="Cumulative odds ratio")+
-      theme_bw(30)+ scale_x_date(name="")+ theme(panel.grid.major=element_blank(),
-                                                 panel.grid.minor=element_blank())
+  png(paste("c_", variable, "3.png", sep=""))
+  print(
+        ggplot(cregressions[yearweek > "2011-45" & yearweek < "2012-14"], aes(x=date, y=get(variable)))+
+        geom_line()+
+        geom_errorbar(aes(ymin = get(paste(variable, ".ci.low", sep="")),
+                          ymax = get(paste(variable, ".ci.high", sep=""))))+
+        geom_point(size=3, shape=21, fill="white")+
+        scale_y_continuous(name="Cumulative odds ratio")+
+        theme_bw(30)+
+        scale_x_date(name="")+
+        theme(panel.grid.major=element_blank(),
+              panel.grid.minor=element_blank())+
+        geom_abline(intercept=1, slope=0)
+  )
   dev.off()
 }
 
@@ -1819,4 +1874,97 @@ for (i in 1:lastrow) {
       }
     }
   }
+}
+
+dt.added <- rbind(dt.short, dt2[1:(counter-1),])
+dt.added[dt.added$week=="2011-00"]$week <- "2011-52"
+
+incidence <-
+  data.table(expand.grid(
+             yearweek = levels(factor(dt.added$week)),
+             measure = c("realtime.report", "realtime.symptoms", "retrospective.symptoms"),
+             weeks = as.factor(seq(0, 3)),
+             def = c("ili", "self", "fever"),
+             value = 0.0
+             ))
+
+for (thisweek in levels(factor(dt.added$week))) {
+  week.all <- dt.added[week == thisweek]
+  week.all <- week.all[added.3week == F & added.2week == F]
+  week.users <- week.all[!duplicated(week.all$bid)]
+  incidence[yearweek == thisweek & weeks == 0 & def == "ili" & measure == "realtime.report"]$value <-
+    nrow(week.users[ili==1 & same != 0])/nrow(week.users)
+  incidence[yearweek == thisweek & weeks == 0 & def == "self" & measure == "realtime.report"]$value <-
+    nrow(week.users[ili.self==1 & same!=0])/nrow(week.users)
+  incidence[yearweek == thisweek & weeks == 0 & def == "fever" & measure == "realtime.report"]$value <-
+    nrow(week.users[ili.fever==1 & same!=0])/nrow(week.users)
+  incidence[yearweek == thisweek & weeks == 1 & def == "ili" & measure == "realtime.symptoms"]$value <-
+    nrow(week.users[ili==1 & same != 0 & symptoms.start.week == thisweek])/nrow(week.users)
+  incidence[yearweek == thisweek & weeks == 1 & def == "self" & measure == "realtime.symptoms"]$value <-
+    nrow(week.users[ili.self==1 & same != 0 & symptoms.start.week == thisweek])/nrow(week.users)
+  incidence[yearweek == thisweek & weeks == 1 & def == "fever" & measure == "realtime.symptoms"]$value <-
+    nrow(week.users[ili.fever==1 & same != 0 & symptoms.start.week == thisweek])/nrow(week.users)
+
+  week.all <- dt.added[(week == thisweek & (is.na(symptoms.start.week) | same == 0)) |
+                       (symptoms.start.week == thisweek & same != 0)]
+  week.all <- week.all[added.3week == F & added.2week == F]
+  week.users <- week.all[!duplicated(week.all$bid)]
+  incidence[yearweek == thisweek & weeks == 1 & def == "ili" & measure == "retrospective.symptoms"]$value <-
+    nrow(week.users[ili==1 & same != 0 & symptoms.start.week == thisweek])/nrow(week.users)
+  incidence[yearweek == thisweek & weeks == 1 & def == "self" & measure == "retrospective.symptoms"]$value <-
+    nrow(week.users[ili.self==1 & same != 0 & symptoms.start.week == thisweek])/nrow(week.users)
+  incidence[yearweek == thisweek & weeks == 1 & def == "fever" & measure == "retrospective.symptoms"]$value <-
+    nrow(week.users[ili.fever==1 & same != 0 & symptoms.start.week == thisweek])/nrow(week.users)
+
+  week.all <- dt.added[(week == thisweek & is.na(symptoms.start.week)) |
+                       symptoms.start.week == thisweek]
+  week.all <- week.all[added.3week==F]
+  week.users <- week.all[!duplicated(week.all$bid)]
+  incidence[yearweek == thisweek & weeks == 2 & def == "ili" & measure == "retrospective.symptoms"]$value <-
+    nrow(week.users[ili==1 & same != 0 & symptoms.start.week == thisweek])/nrow(week.users)
+  incidence[yearweek == thisweek & weeks == 2 & def == "self" & measure == "retrospective.symptoms"]$value <-
+    nrow(week.users[ili.self==1 & same != 0 & symptoms.start.week == thisweek])/nrow(week.users)
+  incidence[yearweek == thisweek & weeks == 2 & def == "fever" & measure == "retrospective.symptoms"]$value <-
+    nrow(week.users[ili.fever==1 & same != 0 & symptoms.start.week == thisweek])/nrow(week.users)
+
+  week.all <- dt.added[(week == thisweek & is.na(symptoms.start.week)) |
+                       symptoms.start.week == thisweek]
+  week.users <- week.all[!duplicated(week.all$bid)]
+  incidence[yearweek == thisweek & weeks == 3 & def == "ili" & measure == "retrospective.symptoms"]$value <-
+    nrow(week.users[ili==1 & same != 0 & symptoms.start.week == thisweek])/nrow(week.users)
+  incidence[yearweek == thisweek & weeks == 3 & def == "self" & measure == "retrospective.symptoms"]$value <-
+    nrow(week.users[ili.self==1 & same != 0 & symptoms.start.week == thisweek])/nrow(week.users)
+  incidence[yearweek == thisweek & weeks == 3 & def == "fever" & measure == "retrospective.symptoms"]$value <-
+    nrow(week.users[ili.fever==1 & same != 0 & symptoms.start.week == thisweek])/nrow(week.users)
+}
+
+incidence <- incidence[as.character(yearweek) > "2011-45" & as.character(yearweek) < "2012-19"]
+incidence$year <- as.numeric(substr(incidence$yearweek, 1, 4))
+incidence$week <- as.numeric(substr(incidence$yearweek, 6, 7))
+incidence$date <- as.Date(strptime(paste(incidence$year, incidence$week*7,sep=" "),format="%Y %j"))+5
+incidence <- incidence[value > 0]
+
+for (definition in unique(incidence$def)) {
+  pdf(paste("memory_", definition, ".pdf", sep=""), width=10)
+  print(
+        ggplot(droplevels(incidence[as.numeric(weeks) > 1 & measure == "retrospective.symptoms" & def==definition]), aes(x=date, y=value, group=weeks, color=weeks))+
+        geom_line()+
+        geom_point(size=3, shape=21, fill="white")+
+        scale_y_continuous(name="Weekly incidence")+
+        theme_bw(30)+
+        scale_x_date(name="")+
+        scale_color_brewer(palette="Set1")
+        )
+  dev.off()
+  pdf(paste("realtime_", definition, ".pdf", sep=""), width=10)
+  print(
+        ggplot(incidence[as.numeric(weeks) < 3 & def==definition], aes(x=date, y=value, group=measure, color=measure))+
+        geom_line()+
+        geom_point(size=3, shape=21, fill="white")+
+        scale_y_continuous(name="Weekly incidence")+
+        theme_bw(30)+
+        scale_x_date(name="")+
+        scale_color_brewer(palette="Set1")
+        )
+  dev.off()
 }
