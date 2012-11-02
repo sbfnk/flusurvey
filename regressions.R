@@ -117,7 +117,7 @@ whole.users$daycare <- (whole.users$Q6b>0)
 whole.users[is.na(daycare)]$daycare <- F
 
 whole.users$frequent.contact <- (whole.users$frequent.contact.children == "t" |
-                                 whole.users$frequent.contact.elderly == "t" |
+                                 table(whole.users$frequent.contact.elderly == "t" |
                                  whole.users$frequent.contact.people == "t")
 
 
@@ -126,11 +126,18 @@ whole.users$smoking <- whole.users$smoke %in% c(1,2,3)
 # logistic regressions
 
 whole.users$notvaccinated <- !(whole.users$vaccinated)
+whole.users <- whole.users[!is.na(agegroup)]
 season <- logistic.regression.or.ci(glm(ili ~ notvaccinated + children +
                                         agegroup + country +
                                         frequent.contact + atrisk +
                                         gender, data=whole.users,
                                         family=binomial))  
+season.results <- data.frame(row.names = names(season$OR),
+                             pvalue = signif(season$regression.table$coefficients[-1,4], 1),
+                             OR = round(season$OR, 2),
+                             OR.ci.low = round(season$OR.ci[,1], 2),
+                             OR.ci.high = round(season$OR.ci[,2], 2)
+                             )
 
 regressions <- data.table(yearweek=levels(factor(dt$week)))
 setkey(regressions, yearweek)
