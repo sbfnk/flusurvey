@@ -254,3 +254,52 @@ dt$ili.self <- (dt$Q11 == 0)
 dt[is.na(ili.self)]$ili.self <- FALSE
 
 dt$using.transport <- (dt$transport > 0)
+
+uk.ur <- read.csv("urban_rural.csv", header=F, sep=",")
+
+dt$postcode <- sub("[[:blank:]]+$", "", dt$postcode)
+dt$postcode <- toupper(dt$postcode)
+
+dt$work.postcode <- sub("[[:blank:]]+$", "", dt$work.postcode)
+dt$work.postcode <- toupper(dt$work.postcode)
+
+dt <- dt[country == "uk", "ur" := uk.ur$V3[match(dt[country == "uk",]$postcode,
+                            uk.ur$V1)], with=F] 
+dt <- dt[country == "uk", "uk.country" := uk.ur$V2[match(dt[country ==
+                            "uk"]$postcode, uk.ur$V1)], with=F]
+dt <- dt[country == "uk", "urban" := rep(0, length(dt[country ==
+                            "uk"]$postcode)), with=F]
+
+dt[country == "uk" & is.na(dt$ur),]$urban <- 2
+
+dt[dt$uk.country %in% c("E","W") & !(dt$ur %in% c(2,3,4,6,7,8)),]$urban <- 0
+dt[dt$uk.country %in% c("E","W") & dt$ur %in% c(1,5),]$urban <- 1
+
+dt[dt$uk.country == "S" & dt$ur %in% c(1,2),]$urban <- 1
+dt[dt$uk.country == "S" & dt$ur %in% c(3,4,5,6,7),]$urban <- 0
+
+dt[dt$uk.country == "N" & dt$ur %in% c(1,2,3,4),]$urban <- 1
+dt[dt$uk.country == "N" & !(dt$ur %in% c(5,6,7)),]$urban <- 0
+
+dt$urban <- as.factor(dt$urban)
+
+dt <- dt[country == "uk", "work.ur" := uk.ur$V3[match(dt[country ==
+                            "uk",]$work.postcode, uk.ur$V1)], with=F] 
+dt <- dt[country == "uk", "work.uk.country" := uk.ur$V2[match(dt[country ==
+                            "uk"]$work.postcode, uk.ur$V1)], with=F]
+dt <- dt[country == "uk", "work.urban" := rep(0, length(dt[country ==
+                            "uk"]$work.postcode)), with=F]
+
+dt[country == "uk" & is.na(dt$work.ur),]$work.urban <- 2
+
+dt[dt$work.uk.country %in% c("E","W") & !(dt$work.ur %in% c(2,3,4,6,7,8)),]$work.urban <- 0
+dt[dt$work.uk.country %in% c("E","W") & dt$work.ur %in% c(1,5),]$work.urban <- 1
+
+dt[dt$work.uk.country == "S" & dt$work.ur %in% c(1,2),]$work.urban <- 1
+dt[dt$work.uk.country == "S" & dt$work.ur %in% c(3,4,5,6,7),]$work.urban <- 0
+
+dt[dt$work.uk.country == "N" & dt$work.ur %in% c(1,2,3,4),]$work.urban <- 1
+dt[dt$work.uk.country == "N" & !(dt$work.ur %in% c(5,6,7)),]$work.urban <- 0
+
+dt$work.urban <- as.factor(dt$work.urban)
+

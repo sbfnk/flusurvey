@@ -32,6 +32,97 @@ logistic.regression.or.ci <- function(regress.out, level=0.95)
   return(output)
 }
 
+# whole season
+whole.users <- dt[!duplicated(dt$global.id.number)]
+
+whole.users$vaccinated <- with(dt, aggregate(vaccine,
+                                         ## list(global.id.number=global.id.number),
+                                         list(global.id.number=global.id.number),
+                                         sum))$x > 0
+
+for (symptom in c("fever", "chills", "blocked.runny.nose", "sneezing",
+  "sore.throat", "cough", "shortness.breath", "headache",
+  "muscle.and.or.joint.pain", "chest.pain", "tired", "loss.appetite", "phlegm",
+  "watery.eyes", "nausea", "vomiting", "diarrhoea", "stomach.ache", "other")) { 
+  whole.users$nb <- with(dt, aggregate((get(symptom) == "t"),
+                                        list(global.id.number=global.id.number),
+                                        sum))$x
+  whole.users <- whole.users[, which(!grepl(symptom, colnames(whole.users))), with=FALSE]
+  whole.users <- whole.users[,symptom:=(nb>0), with=F]
+}
+
+for (symptom in c("fever.suddenly")) {
+  dt <- dt[is.na(get(symptom)), symptom := -1, with=F]  
+  whole.users$nb <- with(dt, aggregate((get(symptom) == 0),
+                                        list(global.id.number=global.id.number),
+                                        sum))$x
+  whole.users <- whole.users[, which(!grepl(symptom, colnames(whole.users))), with=FALSE]
+  whole.users <- whole.users[,symptom:=(nb>0), with=F]
+}
+
+for (change in c("visit.medical.service.no", "contact.medical.service.no",
+                 "no.medication")) {
+  whole.users$nb <- with(dt, aggregate((get(change) == "t"),
+                                        list(global.id.number=global.id.number),
+                                        sum))$x
+  whole.users <- whole.users[, which(!grepl(change, colnames(whole.users))), with=FALSE]
+  whole.users <- whole.users[,change:=(nb>0), with=F]
+}
+
+for (change in c("alter.routine")) {
+  dt <- dt[is.na(get(change)), change := -1, with=F]  
+  whole.users$nb <- with(dt, aggregate((get(change) > 0),
+                                        list(global.id.number=global.id.number),
+                                        sum))$x
+  whole.users <- whole.users[, which(!grepl(change, colnames(whole.users))), with=FALSE]
+  whole.users <- whole.users[,change:=(nb>0), with=F]
+}
+
+for (change in c("absent")) {
+  whole.users$nb <- with(dt, aggregate((get("alter.routine") == 1),
+                                        list(global.id.number=global.id.number),
+                                        sum))$x
+  whole.users <- whole.users[, which(!grepl(change, colnames(whole.users))), with=FALSE]
+  whole.users <- whole.users[,change:=(nb>0), with=F]
+}
+
+whole.users <- whole.users[, which(!grepl("nb", colnames(whole.users))), with=FALSE]
+
+
+dt2 <- dt[!duplicated(dt[,c("symptoms.start.date", "global.id.number"),with=F])]
+whole.users$ili <- FALSE
+whole.users$nbili <- with(dt2, aggregate(ili,
+                                 list(global.id.number=global.id.number),
+                                 sum))$x
+whole.users$ili <- (whole.users$nbili > 0)
+
+whole.users$ili.fever <- FALSE
+whole.users$nbili.fever <- with(dt2, aggregate(ili.fever,
+                                 list(global.id.number=global.id.number),
+                                 sum))$x
+whole.users$ili.fever <- (whole.users$nbili.fever > 0)
+whole.users[is.na(ili.fever)]$ili.fever <- F
+
+whole.users$ili.self <- FALSE
+whole.users$nbili.self <- with(dt2, aggregate(ili.self,
+                                              list(global.id.number=global.id.number),
+                                              sum))$x
+whole.users$ili.self <- (whole.users$nbili.self > 0)
+
+whole.users$agegroup2 <- cut(whole.users$age, breaks=c(0,20,30,40,50,60,70,80,
+                                                max(dt$age, na.rm=T)),
+                                                include.lowest=T, right=F) 
+
+whole.users$daycare <- (whole.users$Q6b>0)
+whole.users[is.na(daycare)]$daycare <- F
+
+whole.users$frequent.contact <- (whole.users$frequent.contact.children == "t" |
+                                 whole.users$frequent.contact.elderly == "t" |
+                                 whole.users$frequent.contact.people == "t")
+
+
+whole.users$smoking <- whole.users$smoke %in% c(1,2,3)
+
 # logistic regressions
 
 whole.users$notvaccinated <- !(whole.users$vaccinated)
@@ -49,13 +140,15 @@ for (variable in names(season$OR)) {
   regressions <- regressions[,paste(variable, ".ci.high", sep="") := 0.0,with=F]
 }
 
+startweek <- min(dt$week)
 for (thisweek in levels(factor(dt$week))) {
-  week.all <- dt[week == thisweek]
+  endweek <- thisweek
+  week.all <- dt[week >= startweek & week < endweek]
   week.users <- week.all[!duplicated(week.all$bid)]
   week.users$vaccinated <- with(week.all,
                                 aggregate(vaccine,
                                           ## list(global.id.number=global.id.number),
-                                          list(bid=bid),
+                                          list(global.id.number=global.id.number),
                                           sum))$x > 0
 
   for (symptom in c("fever", "chills", "blocked.runny.nose", "sneezing",
@@ -64,7 +157,7 @@ for (thisweek in levels(factor(dt$week))) {
                     "watery.eyes", "nausea", "vomiting", "diarrhoea", "stomach.ache", "other")) { 
     week.users$nb <- with(week.all,
                           aggregate((get(symptom) == "t"),
-                                    list(bid=bid),
+                                    list(global.id.number=global.id.number),
                                     sum))$x
     week.users <- week.users[, which(!grepl(symptom, colnames(week.users))), with=FALSE]
     week.users <- week.users[,symptom:=(nb>0), with=F]
@@ -73,7 +166,7 @@ for (thisweek in levels(factor(dt$week))) {
   for (symptom in c("fever.suddenly")) {
     week.all <- week.all[is.na(get(symptom)), symptom := -1, with=F]  
     week.users$nb <- with(week.all, aggregate((get(symptom) == 0),
-                                              list(bid=bid),
+                                              list(global.id.number=global.id.number),
                                               sum))$x
     week.users <- week.users[, which(!grepl(symptom, colnames(week.users))), with=FALSE]
     week.users <- week.users[,symptom:=(nb>0), with=F]
@@ -82,7 +175,7 @@ for (thisweek in levels(factor(dt$week))) {
   for (change in c("visit.medical.service.no", "contact.medical.service.no",
                    "no.medication")) {
     week.users$nb <- with(week.all, aggregate((get(change) == "t"),
-                                               list(bid=bid),
+                                               list(global.id.number=global.id.number),
                                                sum))$x
     week.users <- week.users[, which(!grepl(change, colnames(week.users))), with=FALSE]
     week.users <- week.users[,change:=(nb>0), with=F]
@@ -91,7 +184,7 @@ for (thisweek in levels(factor(dt$week))) {
   for (change in c("alter.routine")) {
     week.all <- week.all[is.na(get(change)), change := -1, with=F]  
     week.users$nb <- with(week.all, aggregate((get(change) > 0),
-                                              list(bid=bid),
+                                              list(global.id.number=global.id.number),
                                               sum))$x
     week.users <- week.users[, which(!grepl(change, colnames(week.users))), with=FALSE]
     week.users <- week.users[,change:=(nb>0), with=F]
@@ -99,7 +192,7 @@ for (thisweek in levels(factor(dt$week))) {
 
   for (change in c("absent")) {
     week.users$nb <- with(week.all, aggregate((get("alter.routine") == 1),
-                                              list(bid=bid),
+                                              list(global.id.number=global.id.number),
                                               sum))$x
     week.users <- week.users[, which(!grepl(change, colnames(week.users))), with=FALSE]
     week.users <- week.users[,change:=(nb>0), with=F]
@@ -110,13 +203,13 @@ for (thisweek in levels(factor(dt$week))) {
 
   week.users$ili <- FALSE
   week.users$nbili <- with(week.all, aggregate(ili,
-                                               list(bid=bid),
+                                               list(global.id.number=global.id.number),
                                                sum))$x
   week.users$ili <- (week.users$nbili > 0)
 
   week.users$ili.fever <- FALSE
   week.users$nbili.fever <- with(week.all, aggregate(ili.fever,
-                                                     list(bid=bid),
+                                                     list(global.id.number=global.id.number),
                                                      sum))$x
   week.users$ili.fever <- (week.users$nbili.fever > 0)
   week.users <- week.users[is.na(ili.fever), "ili.fever" := F, with=F]
@@ -125,7 +218,7 @@ for (thisweek in levels(factor(dt$week))) {
   week.all[is.na(ili.self)]$ili.self <- FALSE
   week.users$ili.self <- FALSE
   week.users$nbili.self <- with(week.all, aggregate(ili.self,
-                                                    list(bid=bid),
+                                                    list(global.id.number=global.id.number),
                                                     sum))$x
   week.users$ili.self <- (week.users$nbili.self > 0)
 
@@ -209,13 +302,16 @@ for (variable in names(season$OR)) {
   cregressions <- cregressions[,variable := 0.0,with=F]
 }
 
+startweek <- min(dt[week != min(dt$week)]$week)
 for (thisweek in levels(factor(dt$week))) {
-  week.all <- dt[week <= thisweek]
+  endweek <- thisweek
+  week.all <- dt[country == "uk" & !is.na(agegroup) &
+                 week >= startweek & week <= endweek] 
   week.users <- week.all[!duplicated(week.all$bid)]
   week.users$vaccinated <- with(week.all,
                                 aggregate(vaccine,
                                           ## list(global.id.number=global.id.number),
-                                          list(bid=bid),
+                                          list(global.id.number=global.id.number),
                                           sum))$x > 0
 
   for (symptom in c("fever", "chills", "blocked.runny.nose", "sneezing",
@@ -224,7 +320,7 @@ for (thisweek in levels(factor(dt$week))) {
                     "watery.eyes", "nausea", "vomiting", "diarrhoea", "stomach.ache", "other")) { 
     week.users$nb <- with(week.all,
                           aggregate((get(symptom) == "t"),
-                                    list(bid=bid),
+                                    list(global.id.number=global.id.number),
                                     sum))$x
     week.users <- week.users[, which(!grepl(symptom, colnames(week.users))), with=FALSE]
     week.users <- week.users[,symptom:=(nb>0), with=F]
@@ -233,7 +329,7 @@ for (thisweek in levels(factor(dt$week))) {
   for (symptom in c("fever.suddenly")) {
     week.all <- week.all[is.na(get(symptom)), symptom := -1, with=F]  
     week.users$nb <- with(week.all, aggregate((get(symptom) == 0),
-                                              list(bid=bid),
+                                              list(global.id.number=global.id.number),
                                               sum))$x
     week.users <- week.users[, which(!grepl(symptom, colnames(week.users))), with=FALSE]
     week.users <- week.users[,symptom:=(nb>0), with=F]
@@ -242,7 +338,7 @@ for (thisweek in levels(factor(dt$week))) {
   for (change in c("visit.medical.service.no", "contact.medical.service.no",
                    "no.medication")) {
     week.users$nb <- with(week.all, aggregate((get(change) == "t"),
-                                               list(bid=bid),
+                                               list(global.id.number=global.id.number),
                                                sum))$x
     week.users <- week.users[, which(!grepl(change, colnames(week.users))), with=FALSE]
     week.users <- week.users[,change:=(nb>0), with=F]
@@ -251,7 +347,7 @@ for (thisweek in levels(factor(dt$week))) {
   for (change in c("alter.routine")) {
     week.all <- week.all[is.na(get(change)), change := -1, with=F]  
     week.users$nb <- with(week.all, aggregate((get(change) > 0),
-                                              list(bid=bid),
+                                              list(global.id.number=global.id.number),
                                               sum))$x
     week.users <- week.users[, which(!grepl(change, colnames(week.users))), with=FALSE]
     week.users <- week.users[,change:=(nb>0), with=F]
@@ -259,7 +355,7 @@ for (thisweek in levels(factor(dt$week))) {
 
   for (change in c("absent")) {
     week.users$nb <- with(week.all, aggregate((get("alter.routine") == 1),
-                                              list(bid=bid),
+                                              list(global.id.number=global.id.number),
                                               sum))$x
     week.users <- week.users[, which(!grepl(change, colnames(week.users))), with=FALSE]
     week.users <- week.users[,change:=(nb>0), with=F]
@@ -270,13 +366,13 @@ for (thisweek in levels(factor(dt$week))) {
 
   week.users$ili <- FALSE
   week.users$nbili <- with(week.all, aggregate(ili,
-                                               list(bid=bid),
+                                               list(global.id.number=global.id.number),
                                                sum))$x
   week.users$ili <- (week.users$nbili > 0)
 
   week.users$ili.fever <- FALSE
   week.users$nbili.fever <- with(week.all, aggregate(ili.fever,
-                                                     list(bid=bid),
+                                                     list(global.id.number=global.id.number),
                                                      sum))$x
   week.users$ili.fever <- (week.users$nbili.fever > 0)
   week.users[is.na(ili.fever)]$ili.fever <- F
@@ -285,7 +381,7 @@ for (thisweek in levels(factor(dt$week))) {
   week.all[is.na(ili.self)]$ili.self <- FALSE
   week.users$ili.self <- FALSE
   week.users$nbili.self <- with(week.all, aggregate(ili.self,
-                                                    list(bid=bid),
+                                                    list(global.id.number=global.id.number),
                                                     sum))$x
   week.users$ili.self <- (week.users$nbili.self > 0)
 
@@ -300,15 +396,24 @@ for (thisweek in levels(factor(dt$week))) {
                                   week.users$frequent.contact.elderly == "t" |
                                   week.users$frequent.contact.people == "t")
 
+  week.users$frequent.contact.with.children <- (week.users$frequent.contact.children == "t")
+  week.users$frequent.contact.with.elderly <- (week.users$frequent.contact.elderly == "t")
+  week.users$frequent.contact.with.people <- (week.users$frequent.contact.people == "t")
+
   week.users$smoking <- week.users$smoke %in% c(1,2,3)
 
   week.users$notvaccinated <- !(week.users$vaccinated)
   week.regression <-
     logistic.regression.or.ci(glm(ili ~ notvaccinated + children +
-                                  agegroup + country +
-                                  frequent.contact + atrisk + 
-                                  gender,
+                                  transport, 
                                   data=week.users, family=binomial))
+
+  week.results <- data.frame(row.names = names(week.regression$OR),
+                             pvalue = signif(week.regression$regression.table$coefficients[-1,4], 1),
+                             OR = round(week.regression$OR, 2),
+                             OR.ci.low = round(week.regression$OR.ci[,1], 2),
+                             OR.ci.high = round(week.regression$OR.ci[,2], 2)
+                             )
 
   for (i in 1:length(names(week.regression$OR))) {
   ## for (variable in names(week.regression$OR)) {
