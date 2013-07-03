@@ -5,6 +5,10 @@ db=I
 ranges=0,20,45,65
 select=extract(year from age(to_timestamp(I."Q2",'YYYY-MM')))
 
+[agegroup2]
+ranges=0,10,20,30,40,50,60,70
+select=extract(year from age(to_timestamp(I."Q2",'YYYY-MM')))
+
 [risk]
 't',0,'not in a risk group'
 'f',1,'in a risk group'
