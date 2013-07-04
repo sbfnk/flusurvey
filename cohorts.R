@@ -396,6 +396,3 @@ using.transport2.uk$ili.risk <- using.transport2.uk$cases / using.transport2.uk$
 1-pbinom(11,150,0.09)
 1-pbinom(11,150,0.1)
 1-pbinom(11,150,0.15)
-
-
-
