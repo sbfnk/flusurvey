@@ -18,8 +18,8 @@ age_years <- function(from, to)
    }
 }
 
-sf <- read.csv('epidb_weekly.csv', sep=',', header=T)
-bf <- read.csv('epidb_intake.csv', sep=',', header=T)
+sf <- read.csv('weekly_12.csv', sep=',', header=T)
+bf <- read.csv('intake_12.csv', sep=',', header=T)
 
 # create translation table so that every participant gets a unique ID number
 # (called global.id.number)
@@ -47,12 +47,14 @@ bt$date <- as.Date(bt$timestamp)
 
 # rolling join of symptoms and background, by id number (first) and date
 # (second) 
+bt <-  bt[!duplicated(bt[, list(global.id.number, date)], fromLast=T)]
 setkey(st, global.id.number, date)
 setkey(bt, global.id.number, date)
 dt <- bt[st, roll=TRUE]
+dt[,country := "uk"]
 
 #cleanup (some participants have only a weekly survey, no background one)
-dt <- dt[!is.na(country)]
+dt <- dt[!is.na(global.id.number)]
 
 rm(bt)
 rm(st)
@@ -229,7 +231,7 @@ dt$symptoms.start <- as.Date(dt$symptoms.start, "%Y-%m-%d")
 dt$week <- format(dt$date, format="%G-%W")
 dt[dt$week=="2011-00"]$week <- "2011-52"
 dt$weekweight <- 1/table(dt$week)[dt$week]
-dt$birthdate <- as.Date(dt$birthmonth, "%Y/%M/%d")
+dt$birthdate <- as.Date(paste(dt$birthmonth, "-01",sep=""))
 
 # more variables to be used later
 dt$norisk <- factor(dt$norisk)
@@ -263,6 +265,12 @@ dt$postcode <- toupper(dt$postcode)
 dt$work.postcode <- sub("[[:blank:]]+$", "", dt$work.postcode)
 dt$work.postcode <- toupper(dt$work.postcode)
 
+dt <- dt[country == "uk", "ur" := uk.ur$V3[match(dt[country == "uk",]$postcode,
+                            uk.ur$V1)], with=F] 
+dt <- dt[country == "uk", "uk.country" := uk.ur$V2[match(dt[country ==
+                            "uk"]$postcode, uk.ur$V1)], with=F]
+dt <- dt[country == "uk", "urban" := rep(0, length(dt[country ==
+                            "uk"]$postcode)), with=F]
 dt <- dt[country == "uk", "ur" := uk.ur$V3[match(dt[country == "uk",]$postcode,
                             uk.ur$V1)], with=F] 
 dt <- dt[country == "uk", "uk.country" := uk.ur$V2[match(dt[country ==
