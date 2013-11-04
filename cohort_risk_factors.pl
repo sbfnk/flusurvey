@@ -3,7 +3,8 @@
 use strict;
 use warnings;
 
-my @variables = ("gender","agegroup3","children","mass_contact_children","smoking","transport","risk","employment","vaccinated");
+#my @variables = ("gender","agegroup3","children","mass_contact_children","smoking","transport","risk","employment","vaccinated");
+my @variables = ("gender","agegroup3","mass_contact_children","smoking","risk","vaccinated");
 
 print("pdf(\"cohorts.pdf\", width=10, height=5)\n\n");
 for (my $i = 0; $i < (scalar @variables); $i++)
@@ -14,7 +15,7 @@ for (my $i = 0; $i < (scalar @variables); $i++)
            "-b postgres ".
            "-t epidb ".
            "-m $variable ".
-#           "-d fever ".
+           "-d fever ".
            "-o ".join(",", @variables)." ".
            "> $variable.csv");
     push @variables, $variable;
