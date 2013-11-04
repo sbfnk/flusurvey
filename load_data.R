@@ -18,167 +18,259 @@ age_years <- function(from, to)
    }
 }
 
-sf <- read.csv('weekly_12.csv', sep=',', header=T)
-bf <- read.csv('intake_12.csv', sep=',', header=T)
+sf13 <- read.csv('weekly_13.csv', sep=',', header=T)
+bf13 <- read.csv('intake_13.csv', sep=',', header=T)
+cf13 <- read.csv('contact_13.csv', sep=',', header=T)
 
 # create translation table so that every participant gets a unique ID number
 # (called global.id.number)
-translation <- data.frame(global_id = unique(bf$global_id))
+translation <- data.frame(global_id = unique(bf13$global_id))
 translation$number <- seq(1,nrow(translation))
 
 # assign global id numbers
-bf$global.id.number <- translation$number[match(bf$global_id,
+bf13$global.id.number <- translation$number[match(bf13$global_id,
                                                 translation$global_id)]
-sf$global.id.number <- translation$number[match(sf$global_id,
+sf13$global.id.number <- translation$number[match(sf13$global_id,
+                                                translation$global_id)]
+cf13$global.id.number <- translation$number[match(cf13$global_id,
                                                 translation$global_id)]
 
 # put data in data tables (for the rolling join to be used later)
-st <- data.table(sf)
-bt <- data.table(bf)
-bt$bid <- seq(1:nrow(bt))
+st13 <- data.table(sf13)
+bt13 <- data.table(bf13)
+ct13 <- data.table(cf13)
+bt13$bid <- seq(1:nrow(bt13))
+ct13$cid <- seq(1:nrow(ct13))
 
-rm(sf)
-rm(bf)
+rm(sf13)
+rm(bf13)
+rm(cf13)
 
-setnames(bt, 2, "global_id.bg")
+setnames(bt13, 2, "global_id.bg")
+setnames(ct13, 2, "global_id.contacts")
 
-st$date <- as.Date(st$timestamp)
-bt$date <- as.Date(bt$timestamp)
+st13$date <- as.Date(st13$timestamp)
+bt13$date <- as.Date(bt13$timestamp)
+ct13$date <- as.Date(ct13$timestamp)
 
 # rolling join of symptoms and background, by id number (first) and date
 # (second) 
-bt <-  bt[!duplicated(bt[, list(global.id.number, date)], fromLast=T)]
-setkey(st, global.id.number, date)
-setkey(bt, global.id.number, date)
-dt <- bt[st, roll=TRUE]
-dt[,country := "uk"]
-
-#cleanup (some participants have only a weekly survey, no background one)
-dt <- dt[!is.na(global.id.number)]
-
-rm(bt)
-rm(st)
+bt13 <-  bt13[!duplicated(bt13[, list(global.id.number, date)], fromLast=T)]
+ct13 <-  ct13[!duplicated(ct13[, list(global.id.number, date)], fromLast=T)]
+setkey(st13, global.id.number, date)
+setkey(bt13, global.id.number, date)
+setkey(ct13, global.id.number, date)
 
 # set convenient names
-setnames(dt, "Q0", "self")
-setnames(dt, "Q1", "gender")
-setnames(dt, "Q2", "birthmonth")
-setnames(dt, "Q3", "postcode")
-setnames(dt, "Q4", "occupation")
-setnames(dt, "Q4b_0_open", "work.postcode")
-setnames(dt, "Q4d_0", "no.education")
-setnames(dt, "Q4d_1", "education.gcse")
-setnames(dt, "Q4d_2", "education.alevels")
-setnames(dt, "Q4d_3", "education.bsc")
-setnames(dt, "Q4d_4", "education.msc")
-setnames(dt, "Q4d_5", "education.stillin")
-setnames(dt, "Q5_0", "frequent.contact.children")
-setnames(dt, "Q5_1", "frequent.contact.elderly")
-setnames(dt, "Q5_2", "frequent.contact.patients")
-setnames(dt, "Q5_3", "frequent.contact.people")
-setnames(dt, "Q6_0", "household.0.4")
-setnames(dt, "Q6_0_open", "nb.household.0.4")
-setnames(dt, "Q6_1", "household.5.18")
-setnames(dt, "Q6_1_open", "nb.household.5.18")
-setnames(dt, "Q6_2", "household.19.44")
-setnames(dt, "Q6_2_open", "nb.household.19.44")
-setnames(dt, "Q6_3", "household.45.64")
-setnames(dt, "Q6_3_open", "nb.household.45.64")
-setnames(dt, "Q6_4", "household.65+")
-setnames(dt, "Q6_4_open", "nb.household.65+")
-setnames(dt, "Q7", "transport")
-setnames(dt, "Q7b", "howlong.transport")
-setnames(dt, "Q9", "vaccine.last.year")
-setnames(dt, "Q10", "vaccine.this.year")
-setnames(dt, "Q10b_1_open", "date.vaccine")
-setnames(dt, "Q10c_0", "why.vaccine.riskgroup")
-setnames(dt, "Q10c_1", "why.vaccine.protected")
-setnames(dt, "Q10c_2", "why.vaccine.protect.others")
-setnames(dt, "Q10c_3", "why.vaccine.doctor")
-setnames(dt, "Q10c_4", "why.vaccine.work.recommended")
-setnames(dt, "Q10c_5", "why.vaccine.convenient")
-setnames(dt, "Q10c_6", "why.vaccine.free")
-setnames(dt, "Q10c_7", "why.vaccine.nomiss.work")
-setnames(dt, "Q10c_8", "why.vaccine.always")
-setnames(dt, "Q10c_9", "why.vaccine.other")
-setnames(dt, "Q10d_0", "why.not.vaccine.notyet")
-setnames(dt, "Q10d_1", "why.not.vaccine.notoffered")
-setnames(dt, "Q10d_2", "why.not.vaccine.norisk")
-setnames(dt, "Q10d_3", "why.not.vaccine.natural")
-setnames(dt, "Q10d_4", "why.not.vaccine.noteffective")
-setnames(dt, "Q10d_5", "why.not.vaccine.minor")
-setnames(dt, "Q10d_6", "why.not.vaccine.unlikely")
-setnames(dt, "Q10d_7", "why.not.vaccine.cause")
-setnames(dt, "Q10d_8", "why.not.vaccine.side.effects")
-setnames(dt, "Q10d_9", "why.not.vaccine.dont.like")
-setnames(dt, "Q10d_10", "why.not.vaccine.unavailable")
-setnames(dt, "Q10d_11", "why.not.vaccine.not.free")
-setnames(dt, "Q10d_12", "why.not.vaccine.no.reason")
-setnames(dt, "Q10d_13", "why.not.vaccine.doctor")
-setnames(dt, "Q10d_14", "why.not.vaccine.other")
-setnames(dt, "Q11_0", "norisk")
-setnames(dt, "Q11_1", "risk.asthma")
-setnames(dt, "Q11_2", "risk.diabetes")
-setnames(dt, "Q11_3", "risk.lung")
-setnames(dt, "Q11_4", "risk.heart")
-setnames(dt, "Q11_5", "risk.kidney")
-setnames(dt, "Q11_6", "risk.immune")
-setnames(dt, "Q12", "pregnant")
-setnames(dt, "Q13", "smoke")
-setnames(dt, "Q14_1", "allergy.hayfever")
-setnames(dt, "Q14_2", "allergy.dust")
-setnames(dt, "Q14_3", "allergy.animals")
-setnames(dt, "Q14_4", "allergy.other")
-setnames(dt, "Q14_5", "allergy.none")
-setnames(dt, "Q1_0", "no.symptoms")
-setnames(dt, "Q1_1", "fever")
-setnames(dt, "Q1_2", "chills")
-setnames(dt, "Q1_3", "blocked.runny.nose")
-setnames(dt, "Q1_4", "sneezing")
-setnames(dt, "Q1_5", "sore.throat")
-setnames(dt, "Q1_6", "cough")
-setnames(dt, "Q1_7", "shortness.breath")
-setnames(dt, "Q1_8", "headache")
-setnames(dt, "Q1_9", "muscle.and.or.joint.pain")
-setnames(dt, "Q1_10", "chest.pain")
-setnames(dt, "Q1_11", "tired")
-setnames(dt, "Q1_12", "loss.appetite")
-setnames(dt, "Q1_13", "phlegm")
-setnames(dt, "Q1_14", "watery.eyes")
-setnames(dt, "Q1_15", "nausea")
-setnames(dt, "Q1_16", "vomiting")
-setnames(dt, "Q1_17", "diarrhoea")
-setnames(dt, "Q1_18", "stomach.ache")
-setnames(dt, "Q1_19", "other")
-setnames(dt, "Q2.1", "same")
-setnames(dt, "Q3_0_open", "symptoms.start.date")
-setnames(dt, "Q4_0_open", "symptoms.end.date")
-setnames(dt, "Q5", "symptoms.suddenly")
-setnames(dt, "Q6_1_open.1", "fever.start")
-setnames(dt, "Q6b.1", "fever.suddenly")
-setnames(dt, "Q7_0", "visit.medical.service.no")
-setnames(dt, "Q7_1", "visit.medical.service.gp")
-setnames(dt, "Q7_2", "visit.medical.service.ae")
-setnames(dt, "Q7_3", "visit.medical.service.hospital")
-setnames(dt, "Q7_4", "visit.medical.service.other")
-setnames(dt, "Q7_5", "visit.medical.service.appointment")
-setnames(dt, "Q7b.1", "visit.medical.service.howsoon")
-setnames(dt, "Q8_0", "contact.medical.service.no")
-setnames(dt, "Q8_1", "contact.medical.service.gp.receptionist")
-setnames(dt, "Q8_2", "contact.medical.service.gp.doctor")
-setnames(dt, "Q8_3", "contact.medical.service.nhs")
-setnames(dt, "Q8_5", "contact.medical.service.other")
-setnames(dt, "Q9_0", "no.medication")
-setnames(dt, "Q9_1", "medication.painkillers")
-setnames(dt, "Q9_2", "medication.cough")
-setnames(dt, "Q9_3", "medication.antiviral")
-setnames(dt, "Q9_4", "medication.antibiotic")
-setnames(dt, "Q9_5", "medication.other")
-setnames(dt, "Q9_6", "medication.dontknow")
-setnames(dt, "Q10.1", "alter.routine")
-setnames(dt, "Q10c", "howlong.altered")
-setnames(dt, "Q12_multi_row1_col1", "howmany.household.ili")
-setnames(dt, "Q13_multi_row1_col1", "howmany.other.ili")
+setnames(bt13, "Q0", "self")
+setnames(bt13, "Q1", "gender")
+setnames(bt13, "Q2", "birthmonth")
+setnames(bt13, "Q3", "postcode")
+setnames(bt13, "Q4", "occupation")
+setnames(bt13, "Q4b_0_open", "work.postcode")
+setnames(bt13, "Q4d_0", "no.education")
+setnames(bt13, "Q4d_1", "education.gcse")
+setnames(bt13, "Q4d_2", "education.alevels")
+setnames(bt13, "Q4d_3", "education.bsc")
+setnames(bt13, "Q4d_4", "education.msc")
+setnames(bt13, "Q4d_5", "education.stillin")
+setnames(bt13, "Q5_0", "frequent.contact.children")
+setnames(bt13, "Q5_1", "frequent.contact.elderly")
+setnames(bt13, "Q5_2", "frequent.contact.patients")
+setnames(bt13, "Q5_3", "frequent.contact.people")
+setnames(bt13, "Q6_0", "household.0.4")
+setnames(bt13, "Q6_0_open", "nb.household.0.4")
+setnames(bt13, "Q6_1", "household.5.18")
+setnames(bt13, "Q6_1_open", "nb.household.5.18")
+setnames(bt13, "Q6_2", "household.19.44")
+setnames(bt13, "Q6_2_open", "nb.household.19.44")
+setnames(bt13, "Q6_3", "household.45.64")
+setnames(bt13, "Q6_3_open", "nb.household.45.64")
+setnames(bt13, "Q6_4", "household.65+")
+setnames(bt13, "Q6_4_open", "nb.household.65+")
+setnames(bt13, "Q7", "transport")
+setnames(bt13, "Q7b", "howlong.transport")
+setnames(bt13, "Q9", "vaccine.last.year")
+setnames(bt13, "Q10", "vaccine.this.year")
+setnames(bt13, "Q10b_1_open", "date.vaccine")
+setnames(bt13, "Q10c_0", "why.vaccine.riskgroup")
+setnames(bt13, "Q10c_1", "why.vaccine.protected")
+setnames(bt13, "Q10c_2", "why.vaccine.protect.others")
+setnames(bt13, "Q10c_3", "why.vaccine.doctor")
+setnames(bt13, "Q10c_4", "why.vaccine.work.recommended")
+setnames(bt13, "Q10c_5", "why.vaccine.convenient")
+setnames(bt13, "Q10c_6", "why.vaccine.free")
+setnames(bt13, "Q10c_7", "why.vaccine.nomiss.work")
+setnames(bt13, "Q10c_8", "why.vaccine.always")
+setnames(bt13, "Q10c_9", "why.vaccine.other")
+setnames(bt13, "Q10d_0", "why.not.vaccine.notyet")
+setnames(bt13, "Q10d_1", "why.not.vaccine.notoffered")
+setnames(bt13, "Q10d_2", "why.not.vaccine.norisk")
+setnames(bt13, "Q10d_3", "why.not.vaccine.natural")
+setnames(bt13, "Q10d_4", "why.not.vaccine.noteffective")
+setnames(bt13, "Q10d_5", "why.not.vaccine.minor")
+setnames(bt13, "Q10d_6", "why.not.vaccine.unlikely")
+setnames(bt13, "Q10d_7", "why.not.vaccine.cause")
+setnames(bt13, "Q10d_8", "why.not.vaccine.side.effects")
+setnames(bt13, "Q10d_9", "why.not.vaccine.dont.like")
+setnames(bt13, "Q10d_10", "why.not.vaccine.unavailable")
+setnames(bt13, "Q10d_11", "why.not.vaccine.not.free")
+setnames(bt13, "Q10d_12", "why.not.vaccine.no.reason")
+setnames(bt13, "Q10d_13", "why.not.vaccine.doctor")
+setnames(bt13, "Q10d_14", "why.not.vaccine.other")
+setnames(bt13, "Q11_0", "norisk")
+setnames(bt13, "Q11_1", "risk.asthma")
+setnames(bt13, "Q11_2", "risk.diabetes")
+setnames(bt13, "Q11_3", "risk.lung")
+setnames(bt13, "Q11_4", "risk.heart")
+setnames(bt13, "Q11_5", "risk.kidney")
+setnames(bt13, "Q11_6", "risk.immune")
+setnames(bt13, "Q12", "pregnant")
+setnames(bt13, "Q13", "smoke")
+setnames(bt13, "Q14_1", "allergy.hayfever")
+setnames(bt13, "Q14_2", "allergy.dust")
+setnames(bt13, "Q14_3", "allergy.animals")
+setnames(bt13, "Q14_4", "allergy.other")
+setnames(bt13, "Q14_5", "allergy.none")
+
+setnames(st13, "Q1_0", "no.symptoms")
+setnames(st13, "Q1_1", "fever")
+setnames(st13, "Q1_2", "chills")
+setnames(st13, "Q1_3", "blocked.runny.nose")
+setnames(st13, "Q1_4", "sneezing")
+setnames(st13, "Q1_5", "sore.throat")
+setnames(st13, "Q1_6", "cough")
+setnames(st13, "Q1_7", "shortness.breath")
+setnames(st13, "Q1_8", "headache")
+setnames(st13, "Q1_9", "muscle.and.or.joint.pain")
+setnames(st13, "Q1_10", "chest.pain")
+setnames(st13, "Q1_11", "tired")
+setnames(st13, "Q1_12", "loss.appetite")
+setnames(st13, "Q1_13", "phlegm")
+setnames(st13, "Q1_14", "watery.eyes")
+setnames(st13, "Q1_15", "nausea")
+setnames(st13, "Q1_16", "vomiting")
+setnames(st13, "Q1_17", "diarrhoea")
+setnames(st13, "Q1_18", "stomach.ache")
+setnames(st13, "Q1_19", "other")
+setnames(st13, "Q2", "same")
+setnames(st13, "Q3_0_open", "symptoms.start.date")
+setnames(st13, "Q4_0_open", "symptoms.end.date")
+setnames(st13, "Q5", "symptoms.suddenly")
+setnames(st13, "Q6_1_open", "fever.start")
+setnames(st13, "Q6b", "fever.suddenly")
+# setnames(st13, "Q7_0", "visit.medical.service.no")
+# setnames(st13, "Q7_1", "visit.medical.service.gp")
+# setnames(st13, "Q7_2", "visitp.medical.service.ae")
+# setnames(st13, "Q7_3", "visit.medical.service.hospital")
+# setnames(st13, "Q7_4", "visit.medical.service.other")
+# setnames(st13, "Q7_5", "visit.medical.service.appointment")
+# setnames(st13, "Q7b", "visit.medical.service.howsoon")
+# setnames(st13, "Q8_0", "contact.medical.service.no")
+# setnames(st13, "Q8_1", "contact.medical.service.gp.receptionist")
+# setnames(st13, "Q8_2", "contact.medical.service.gp.doctor")
+# setnames(st13, "Q8_3", "contact.medical.service.nhs")
+# setnames(st13, "Q8_5", "contact.medical.service.other")
+# setnames(st13, "Q9_0", "no.medication")
+# setnames(st13, "Q9_1", "medication.painkillers")
+# setnames(st13, "Q9_2", "medication.cough")
+# setnames(st13, "Q9_3", "medication.antiviral")
+# setnames(st13, "Q9_4", "medication.antibiotic")
+# setnames(st13, "Q9_5", "medication.other")
+# setnames(st13, "Q9_6", "medication.dontknow")
+# setnames(st13, "Q10", "alter.routine")
+# setnames(st13, "Q10c", "howlong.altered")
+# setnames(st13, "Q12_multi_row1_col1", "howmany.household.ili")
+# setnames(st13, "Q13_multi_row1_col1", "howmany.other.ili")
+
+setnames(ct13, "Q1_multi_row1_col1", "conversational.home.0-4")
+setnames(ct13, "Q1_multi_row1_col2", "conversational.home.5-18")
+setnames(ct13, "Q1_multi_row1_col3", "conversational.home.19-44")
+setnames(ct13, "Q1_multi_row1_col4", "conversational.home.45-64")
+setnames(ct13, "Q1_multi_row1_col5", "conversational.home.65+")
+setnames(ct13, "Q1_multi_row2_col1", "conversational.work.0-4")
+setnames(ct13, "Q1_multi_row2_col2", "conversational.work.5-18")
+setnames(ct13, "Q1_multi_row2_col3", "conversational.work.19-44")
+setnames(ct13, "Q1_multi_row2_col4", "conversational.work.45-64")
+setnames(ct13, "Q1_multi_row2_col5", "conversational.work.65+")
+setnames(ct13, "Q1_multi_row3_col1", "conversational.other.0-4")
+setnames(ct13, "Q1_multi_row3_col2", "conversational.other.5-18")
+setnames(ct13, "Q1_multi_row3_col3", "conversational.other.19-44")
+setnames(ct13, "Q1_multi_row3_col4", "conversational.other.45-64")
+setnames(ct13, "Q1_multi_row3_col5", "conversational.other.65+")
+setnames(ct13, "Q2_multi_row1_col1", "physical.home.0-4")
+setnames(ct13, "Q2_multi_row1_col2", "physical.home.5-18")
+setnames(ct13, "Q2_multi_row1_col3", "physical.home.19-44")
+setnames(ct13, "Q2_multi_row1_col4", "physical.home.45-64")
+setnames(ct13, "Q2_multi_row1_col5", "physical.home.65+")
+setnames(ct13, "Q2_multi_row2_col1", "physical.work.0-4")
+setnames(ct13, "Q2_multi_row2_col2", "physical.work.5-18")
+setnames(ct13, "Q2_multi_row2_col3", "physical.work.19-44")
+setnames(ct13, "Q2_multi_row2_col4", "physical.work.45-64")
+setnames(ct13, "Q2_multi_row2_col5", "physical.work.65+")
+setnames(ct13, "Q2_multi_row3_col1", "physical.other.0-4")
+setnames(ct13, "Q2_multi_row3_col2", "physical.other.5-18")
+setnames(ct13, "Q2_multi_row3_col3", "physical.other.19-44")
+setnames(ct13, "Q2_multi_row3_col4", "physical.other.45-64")
+setnames(ct13, "Q2_multi_row3_col5", "physical.other.65+")
+setnames(ct13, "Q3", "public.transport")
+setnames(ct13, "Q4", "enclosed.indoor.space")
+setnames(ct13, "Q5", "furthest.travelled")
+
+ct13[,"conversational.home" := get("conversational.home.0-4") +
+     get("conversational.home.5-18") + get("conversational.home.19-44") +
+     get("conversational.home.45-64") + get("conversational.home.65+"), with=F]
+ct13[,"conversational.work" := get("conversational.work.0-4") +
+     get("conversational.work.5-18") + get("conversational.work.19-44") +
+     get("conversational.work.45-64") + get("conversational.work.65+"), with=F]
+ct13[,"conversational.other" := get("conversational.other.0-4") +
+     get("conversational.other.5-18") + get("conversational.other.19-44") +
+     get("conversational.other.45-64") + get("conversational.other.65+"), with=F]
+ct13[,"conversational.0-4" := get("conversational.home.0-4") +
+     get("conversational.work.0-4") + get("conversational.other.0-4"), with=F]
+ct13[,"conversational.5-18" := get("conversational.home.5-18") +
+     get("conversational.work.5-18") + get("conversational.other.5-18"), with=F]
+ct13[,"conversational.19-44" := get("conversational.home.19-44") +
+     get("conversational.work.19-44") + get("conversational.other.19-44"), with=F]
+ct13[,"conversational.45-64" := get("conversational.home.45-64") +
+     get("conversational.work.45-64") + get("conversational.other.45-64"), with=F]
+ct13[,"conversational.65+" := get("conversational.home.65+") +
+     get("conversational.work.65+") + get("conversational.other.65+"), with=F]
+ct13[,"conversational" := get("conversational.home") +
+     get("conversational.work") + get("conversational.other"), with=F]
+ct13[,"physical.home" := get("physical.home.0-4") +
+     get("physical.home.5-18") + get("physical.home.19-44") +
+     get("physical.home.45-64") + get("physical.home.65+"), with=F]
+ct13[,"physical.work" := get("physical.work.0-4") +
+     get("physical.work.5-18") + get("physical.work.19-44") +
+     get("physical.work.45-64") + get("physical.work.65+"), with=F]
+ct13[,"physical.other" := get("physical.other.0-4") +
+     get("physical.other.5-18") + get("physical.other.19-44") +
+     get("physical.other.45-64") + get("physical.other.65+"), with=F]
+ct13[,"physical.0-4" := get("physical.home.0-4") +
+     get("physical.work.0-4") + get("physical.other.0-4"), with=F]
+ct13[,"physical.5-18" := get("physical.home.5-18") +
+     get("physical.work.5-18") + get("physical.other.5-18"), with=F]
+ct13[,"physical.19-44" := get("physical.home.19-44") +
+     get("physical.work.19-44") + get("physical.other.19-44"), with=F]
+ct13[,"physical.45-64" := get("physical.home.45-64") +
+     get("physical.work.45-64") + get("physical.other.45-64"), with=F]
+ct13[,"physical.65+" := get("physical.home.65+") +
+     get("physical.work.65+") + get("physical.other.65+"), with=F]
+ct13[,"physical" := get("physical.home") +
+     get("physical.work") + get("physical.other"), with=F]
+
+dt13 <- bt13[ct13[st13, roll=TRUE], roll = TRUE]
+dt13[,country := "uk"]
+
+#cleanup (some participants have only a weekly survey, no background one)
+dt13 <- dt13[!is.na(global.id.number)]
+
+rm(bt13)
+rm(st13)
+rm(ct13)
+
+dt <- dt13
 
 # assign some useful variables: ili yes/no, number of reports, symptoms start
 # (as date), week of report, weight (for histograms later,
@@ -229,7 +321,8 @@ setnames(dt, "x", "maxdate")
 
 dt$symptoms.start <- as.Date(dt$symptoms.start, "%Y-%m-%d")
 dt$week <- format(dt$date, format="%G-%W")
-dt[dt$week=="2011-00"]$week <- "2011-52"
+dt[dt$week=="2013-00"]$week <- "2012-53"
+dt[dt$week=="2013-53"]$week <- "2012-53"
 dt$weekweight <- 1/table(dt$week)[dt$week]
 dt$birthdate <- as.Date(paste(dt$birthmonth, "-01",sep=""))
 
@@ -244,13 +337,14 @@ dt$age <- apply(dt, 1, function(x) { age_years(as.Date(x["birthdate"]),
 dt$agegroup <- cut(dt$age, breaks=c(0,18,45,65, max(dt$age, na.rm=T)),
                    include.lowest=T, right=F)
 dt$vaccine.date <- as.Date(dt$date.vaccine, "%Y/%m/%d")
-dt$vaccine <- as.numeric(dt$vaccine.this.year==0 & (is.na(dt$vaccine.date) |
-                           dt$vaccine.date <= dt$date)) 
+## dt$vaccine <- as.numeric(dt$vaccine.this.year==0 & (is.na(dt$vaccine.date) |
+##                            dt$vaccine.date <= dt$date)) 
 dt$children <- as.numeric((dt$household.0.4 == "t" | dt$household.5.18 == "t"))
 dt$symptoms.start.date <- as.Date(dt$symptoms.start.date, "%Y-%m-%d")
 dt$symptoms.end.date <- as.Date(dt$symptoms.end.date, "%Y-%m-%d")
 dt$symptoms.start.week <- format(dt$symptoms.start.date, format="%G-%W")
-dt[dt$symptoms.start.week=="2011-00"]$symptoms.start.week <- "2011-52"
+dt[dt$symptoms.start.week=="2013-00"]$symptoms.start.week <- "2012-52"
+dt[dt$symptoms.start.week=="2013-53"]$symptoms.start.week <- "2012-52"
 
 dt$ili.self <- (dt$Q11 == 0)
 dt[is.na(ili.self)]$ili.self <- FALSE
@@ -311,3 +405,4 @@ dt[dt$work.uk.country == "N" & !(dt$work.ur %in% c(5,6,7)),]$work.urban <- 0
 
 dt$work.urban <- as.factor(dt$work.urban)
 
+saveRDS(dt, "flusurvey_201213.rds")
