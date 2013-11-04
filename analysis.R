@@ -15,44 +15,44 @@ age_years <- function(from, to)
 }
 
 # read tables
-sf12 <- read.csv('weekly.csv', sep=',', header=T)
-bf12 <- read.csv('intake.csv', sep=',', header=T)
-cf12 <- read.csv('contact.csv', sep=',', header=T)
+sf12 <- read.csv('weekly_12.csv', sep=',', header=T)
+bf12 <- read.csv('intake_12.csv', sep=',', header=T)
+cf12 <- read.csv('contact_12.csv', sep=',', header=T)
 
-translation <- data.frame(global_id = unique(bf$global_id))
+translation <- data.frame(global_id = unique(bf12$global_id))
 translation$number <- seq(1,nrow(translation))
 
-bf$global.id.number <- translation$number[match(bf$global_id,
+bf12$global.id.number <- translation$number[match(bf12$global_id,
                                                 translation$global_id)]
-sf$global.id.number <- translation$number[match(sf$global_id,
+sf12$global.id.number <- translation$number[match(sf12$global_id,
                                                 translation$global_id)]
-cf$global.id.number <- translation$number[match(cf$global_id,
+cf12$global.id.number <- translation$number[match(cf12$global_id,
                                                 translation$global_id)]
 
-st <- data.table(sf)
-bt <- data.table(bf)
-ct <- data.table(cf)
+st12 <- data.table(sf12)
+bt12 <- data.table(bf12)
+ct12 <- data.table(cf12)
 
-rm(sf)
-rm(bf)
-rm(cf)
+rm(sf12)
+rm(bf12)
+rm(cf12)
 
-setnames(bt, 1, "bid")
-setnames(ct, 1, "cid")
+setnames(bt12, 1, "bid")
+setnames(ct12, 1, "cid")
 
-st$date <- as.Date(st$timestamp)
-bt$date <- as.Date(bt$timestamp)
-ct$date <- as.Date(ct$timestamp)
+st12$date <- as.Date(st12$timestamp)
+bt12$date <- as.Date(bt12$timestamp)
+ct12$date <- as.Date(ct12$timestamp)
 
-setkey(st, global.id.number, date)
-setkey(bt, global.id.number, date)
-setkey(ct, global.id.number, date)
+setkey(st12, global.id.number, date)
+setkey(bt12, global.id.number, date)
+setkey(ct12, global.id.number, date)
 
-dt <- bt[ct[st, roll=TRUE], roll=TRUE]
+dt12 <- bt12[ct12[st12, roll=TRUE], roll=TRUE]
 
-rm(bt)
-rm(ct)
-rm(st)
+rm(bt12)
+rm(ct12)
+rm(st12)
 
 setnames(dt, 8, "self")
 setnames(dt, 10, "gender")
