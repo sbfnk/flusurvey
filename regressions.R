@@ -117,7 +117,7 @@ whole.users$daycare <- (whole.users$Q6b>0)
 whole.users[is.na(daycare)]$daycare <- F
 
 whole.users$frequent.contact <- (whole.users$frequent.contact.children == "t" |
-                                 table(whole.users$frequent.contact.elderly == "t" |
+                                 whole.users$frequent.contact.elderly == "t" |
                                  whole.users$frequent.contact.people == "t")
 
 
@@ -309,10 +309,13 @@ for (variable in names(season$OR)) {
   cregressions <- cregressions[,variable := 0.0,with=F]
 }
 
-startweek <- min(dt[week != min(dt$week)]$week)
+## startweek <- min(dt[week != min(dt$week)]$week)
+startweek <- min(dt$week)
 for (thisweek in levels(factor(dt$week))) {
   endweek <- thisweek
-  week.all <- dt[country == "uk" & !is.na(agegroup) &
+  ## week.all <- dt[country == "uk" & !is.na(agegroup) &
+  ##                week >= startweek & week <= endweek] 
+  week.all <- dt[!is.na(agegroup) &
                  week >= startweek & week <= endweek] 
   week.users <- week.all[!duplicated(week.all$bid)]
   week.users$vaccinated <- with(week.all,
