@@ -48,11 +48,65 @@ setkey(st12, global.id.number, date)
 setkey(bt12, global.id.number, date)
 setkey(ct12, global.id.number, date)
 
-dt12 <- bt12[ct12[st12, roll=TRUE], roll=TRUE]
+ctst <- ct[st, roll=TRUE, allow.cartesian=T]
+ctst <- ctst[!duplicated(ctst)]
+
+dt <- bt[ctst, roll=TRUE, allow.cartesian=T]
+dt <- dt[!duplicated(dt)]
 
 rm(bt12)
 rm(ct12)
 rm(st12)
+
+sf13 <- read.csv('weekly_13.csv', sep=',', header=T)
+bf13 <- read.csv('intake_13.csv', sep=',', header=T)
+cf13 <- read.csv('contact_13.csv', sep=',', header=T)
+
+bf13 <- bf13[,-c(10,101)]
+
+write.table(bf13[,-c(10,101)], 'intake_13.csv', sep=',', row.names=F, col.names=T, quote=F)
+write.table(cf13[,-39], 'contact_13.csv', sep=',', row.names=F, col.names=T, quote=F)
+
+translation13 <- data.frame(global_id = unique(bf13$global_id))
+translation13$number <- seq(1,nrow(translation13))
+
+bf13$global.id.number <- translation13$number[match(bf13$global_id,
+                                                translation$global_id)]
+sf13$global.id.number <- translation13$number[match(sf13$global_id,
+                                                translation$global_id)]
+cf13$global.id.number <- translation13$number[match(cf13$global_id,
+                                                translation$global_id)]
+
+st13 <- data.table(sf13)
+bt13 <- data.table(bf13)
+ct13 <- data.table(cf13)
+
+rm(sf13)
+rm(bf13)
+rm(cf13)
+
+setnames(bt13, 1, "bid")
+setnames(ct13, 1, "cid")
+
+st13$date <- as.Date(st13$timestamp)
+bt13$date <- as.Date(bt13$timestamp)
+ct13$date <- as.Date(ct13$timestamp)
+
+setkey(st13, global.id.number, date)
+setkey(bt13, global.id.number, date)
+setkey(ct13, global.id.number, date)
+
+ctst13 <- ct13[st13, roll=TRUE, allow.cartesian=T]
+ctst13 <- ctst13[!duplicated(ctst13)]
+
+dt13 <- bt13[ctst13, roll=TRUE, allow.cartesian=T]
+dt13 <- dt13[!duplicated(dt13)]
+
+rm(bt13)
+rm(ct13)
+rm(st13)
+
+dt <- rbind(dt, dt13)
 
 setnames(dt, 8, "self")
 setnames(dt, 10, "gender")
