@@ -347,11 +347,16 @@ setkey(maxdate, Group.1)
 st13 <- st13[maxdate]
 setnames(st13, "x", "maxdate")
 
-st13$symptoms.start.date <- as.Date(st13$symptoms.start.date, "%Y-%m-%d")
 st13$week <- format(st13$date, format="%G-%W")
 st13[st13$week=="2013-00"]$week <- "2012-53"
 st13[st13$week=="2013-53"]$week <- "2012-53"
 st13$weekweight <- 1/table(st13$week)[st13$week]
+
+st13$symptoms.start.date <- as.Date(st13$symptoms.start.date, "%Y-%m-%d")
+st13$symptoms.end.date <- as.Date(st13$symptoms.end.date, "%Y-%m-%d")
+st13$symptoms.start.week <- format(st13$symptoms.start.date, format="%G-%W")
+st13[st13$symptoms.start.week=="2013-00"]$symptoms.start.week <- "2012-53"
+st13[st13$symptoms.start.week=="2013-53"]$symptoms.start.week <- "2012-53"
 
 ## more variables to be used later
 bt13[, country := "uk"]
@@ -372,12 +377,6 @@ bt13$vaccine.date <- as.Date(bt13$date.vaccine, "%Y/%m/%d")
 ##                            bt13$vaccine.date <= bt13$date))
 bt13$children <- as.numeric((bt13$household.0.4 == "t" | bt13
                              $household.5.18 == "t"))
-
-st13$symptoms.start.date <- as.Date(st13$symptoms.start.date, "%Y-%m-%d")
-st13$symptoms.end.date <- as.Date(st13$symptoms.end.date, "%Y-%m-%d")
-st13$symptoms.start.week <- format(st13$symptoms.start.date, format="%G-%W")
-st13[st13$symptoms.start.week=="2013-00"]$symptoms.start.week <- "2012-53"
-st13[st13$symptoms.start.week=="2013-53"]$symptoms.start.week <- "2012-53"
 
 st13$ili.self <- (st13$what.do.you.think == 0)
 st13[is.na(ili.self)]$ili.self <- FALSE
@@ -778,10 +777,17 @@ setkey(maxdate, Group.1)
 st12 <- st12[maxdate]
 setnames(st12, "x", "maxdate")
 
-st12$symptoms.start.date <- as.Date(st12$symptoms.start.date, "%Y-%m-%d")
 st12$week <- format(st12$date, format="%G-%W")
 st12[st12$week=="2011-00"]$week <- "2011-53"
 st12$weekweight <- 1/table(st12$week)[st12$week]
+
+st12$symptoms.start.date <- as.Date(st12$symptoms.start.date, "%Y-%m-%d")
+st12$symptoms.end.date <- as.Date(st12$symptoms.end.date, "%Y-%m-%d")
+st12$symptoms.start.week <- format(st12$symptoms.start.date, format="%G-%W")
+st12[st12$symptoms.start.week=="2011-00"]$symptoms.start.week <- "2011-53"
+
+st12$ili.self <- (st12$what.do.you.think == 0)
+st12[is.na(ili.self)]$ili.self <- FALSE
 
 ## more variables to be used later
 bt12[, country := "uk"]
@@ -802,14 +808,6 @@ bt12$vaccine.date <- as.Date(bt12$date.vaccine, "%Y/%m/%d")
 ##                            bt12$vaccine.date <= bt12$date))
 bt12$children <- as.numeric((bt12$household.0.4 == "t" | bt12
                              $household.5.18 == "t"))
-
-st12$symptoms.start.date <- as.Date(st12$symptoms.start.date, "%Y-%m-%d")
-st12$symptoms.end.date <- as.Date(st12$symptoms.end.date, "%Y-%m-%d")
-st12$symptoms.start.week <- format(st12$symptoms.start.date, format="%G-%W")
-st12[st12$symptoms.start.week=="2011-00"]$symptoms.start.week <- "2011-53"
-
-st12$ili.self <- (st12$what.do.you.think == 0)
-st12[is.na(ili.self)]$ili.self <- FALSE
 
 bt12$using.transport <- (bt12$transport > 0)
 
@@ -1042,7 +1040,7 @@ setnames(st11, "WeeklyQ8c", "howlong.altered")
 setnames(st11, "WeeklyQ9a", "howmany.household.ili")
 setnames(st11, "WeeklyQ9b", "howmany.other.ili")
 setnames(st11, "WeeklyQ10", "vaccine.this.year.since.registration")
-setnames(st11, "WeeklyQ11", "waht.do.you.think")
+setnames(st11, "WeeklyQ11", "what.do.you.think")
 setnames(st11, "ContactQ1", "symptom.conversational")
 setnames(st11, "ContactQ2", "symptom.physical")
 setnames(st11, "ContactQ3", "symptom.public.transport")
@@ -1137,10 +1135,17 @@ setkey(maxdate, Group.1)
 st11 <- st11[maxdate]
 setnames(st11, "x", "maxdate")
 
-st11$symptoms.start.date <- as.Date(st11$symptoms.start.date, "%Y-%m-%d")
 st11$week <- format(st11$date, format="%G-%W")
 st11[st11$week=="2010-00"]$week <- "2010-53"
 st11$weekweight <- 1/table(st11$week)[st11$week]
+
+st11$symptoms.start.date <- as.Date(st11$symptoms.start.date, "%Y-%m-%d")
+st11$symptoms.end.date <- as.Date(st11$symptoms.end.date, "%Y-%m-%d")
+st11$symptoms.start.week <- format(st11$symptoms.start.date, format="%G-%W")
+st11[st11$symptoms.start.week=="2010-00"]$symptoms.start.week <- "2010-53"
+
+st11$ili.self <- (st11$what.do.you.think == 0)
+st11[is.na(ili.self)]$ili.self <- FALSE
 
 ## more variables to be used later
 bt11[, country := "uk"]
@@ -1155,14 +1160,6 @@ bt11$agegroup <- cut(bt11$age, breaks=c(0,18,45,65, max(bt11$age, na.rm=T)),
                      include.lowest=T, right=F)
 bt11$children <- as.numeric((bt11$household.0.4 == "t" | bt11
                              $household.5.18 == "t"))
-
-st11$symptoms.start.date <- as.Date(st11$symptoms.start.date, "%Y-%m-%d")
-st11$symptoms.end.date <- as.Date(st11$symptoms.end.date, "%Y-%m-%d")
-st11$symptoms.start.week <- format(st11$symptoms.start.date, format="%G-%W")
-st11[st11$symptoms.start.week=="2011-00"]$symptoms.start.week <- "2011-53"
-
-st11$ili.self <- (st11$what.do.you.think == 0)
-st11[is.na(ili.self)]$ili.self <- FALSE
 
 bt11$using.transport <- (bt11$transport > 0)
 
@@ -1220,25 +1217,23 @@ bt11[bt11$work.uk.country == "N" & !(bt11$work.ur %in% c(5,6,7)),]$work.urban <-
 
 bt11$work.urban <- as.factor(bt11$work.urban)
 
-data.12 <- list(symptoms = st11, background = bt11, contact = ct11)
-saveRDS(data.12, "flusurvey_201112_raw.rds")
+data.11 <- list(symptoms = st11, background = bt11, contact = ct11)
+saveRDS(data.11, "flusurvey_201011_raw.rds")
 
 ## rolling join of symptoms and background, by id number (first) and date
 ## (second)
-dt12 <- bt11[ct11[st11, roll=TRUE], roll = TRUE]
+dt11 <- bt11[ct11[st11, roll=TRUE], roll = TRUE]
 
 rm(bt11)
 rm(st11)
 rm(ct11)
 
-dt12 <- dt12[!is.na(global.id.number)]
+dt11 <- dt11[!is.na(global.id.number)]
 
-saveRDS(dt12, "flusurvey_201112.rds")
-
+saveRDS(dt11, "flusurvey_201011.rds")
 
 ## 2010
 
-## 2009
 ## read tables
 sf <- read.csv('200910/symptoms_200910.csv', header=T, sep=';');
 bf <- read.csv('200910/background_200910.csv', header=T, sep=';');
