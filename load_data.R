@@ -25,7 +25,7 @@ bf14 <- read.csv('intake_14.csv', sep=',', header=T)
 ## create translation table so that every participant gets a unique ID number
 ## (called global.id.number)
 translation <- data.frame(global_id = unique(bf14$global_id))
-translation$number <- seq(1,nrow(translation))
+translation$number <- 140000 + seq(1,nrow(translation))
 
 ## assign global id numbers
 bf14$global.id.number <- translation$number[match(bf14$global_id,
@@ -220,27 +220,29 @@ symptoms.14 <- c("fever","chills","blocked.runny.nose","sneezing","sore.throat",
 for (symptom in symptoms.14) {
     st14 <- st14[get(symptom) == "f", paste("symptom.", symptom, sep = "") := as.integer(0), with = F]
     st14 <- st14[get(symptom) == "t", paste("symptom.", symptom, sep = "") := as.integer(1), with = F]
+    st14 <- st14[, !symptom, with = F]
+    setnames(st14, paste("symptom.", symptom, sep = ""), symptom)
 }
 
 st14$ili <- ((st14$symptoms.suddenly == 0) &
-             (st14$symptom.fever == 1 | st14$symptom.tired == 1 |
-              st14$symptom.headache == 1 |
-              st14$symptom.muscle.and.or.joint.pain ==1) &
-             (st14$symptom.sore.throat == 1 | st14$symptom.cough ==1 |
-              st14$symptom.shortness.breath == 1))
+             (st14$fever == 1 | st14$tired == 1 |
+              st14$headache == 1 |
+              st14$muscle.and.or.joint.pain ==1) &
+             (st14$sore.throat == 1 | st14$cough ==1 |
+              st14$shortness.breath == 1))
 st14$ili <- as.numeric(st14$ili)
 
 st14$ili.notired <- ((st14$symptoms.suddenly == 0) &
-                     (st14$symptom.fever == 1 | st14$symptom.headache == 1 |
-                      st14$symptom.muscle.and.or.joint.pain ==1) &
-                     (st14$symptom.sore.throat == 1 | st14$symptom.cough ==1 |
-                      st14$symptom.shortness.breath == 1))
+                     (st14$fever == 1 | st14$headache == 1 |
+                      st14$muscle.and.or.joint.pain ==1) &
+                     (st14$sore.throat == 1 | st14$cough ==1 |
+                      st14$shortness.breath == 1))
 st14$ili.notired <- as.numeric(st14$ili.notired)
 
 st14$ili.fever <- ((st14$symptoms.suddenly == 0) &
-                   (st14$symptom.fever == 1) &
-                   (st14$symptom.sore.throat == 1 | st14$symptom.cough ==1 |
-                    st14$symptom.shortness.breath == 1))
+                   (st14$fever == 1) &
+                   (st14$sore.throat == 1 | st14$cough ==1 |
+                    st14$shortness.breath == 1))
 st14$ili.fever <- as.numeric(st14$ili.fever)
 
 
@@ -374,7 +376,7 @@ cf13 <- read.csv('contact_13.csv', sep=',', header=T)
 ## create translation table so that every participant gets a unique ID number
 ## (called global.id.number)
 translation <- data.frame(global_id = unique(bf13$global_id))
-translation$number <- seq(1,nrow(translation))
+translation$number <- 130000 + seq(1,nrow(translation))
 
 ## assign global id numbers
 bf13$global.id.number <- translation$number[match(bf13$global_id,
@@ -649,13 +651,20 @@ ct13 <- ct13[,"physical.65+" := get("physical.home.65+") +
 ct13 <- ct13[,"physical" := get("physical.home") +
      get("physical.work") + get("physical.other"), with=F]
 
+ct13$week <- format(ct13$date, format="%G-%W")
+ct13[ct13$week=="2013-53"]$week <- "2012-53"
+ct13[ct13$week=="2013-00"]$week <- "2012-53"
+
 ## assign some useful variables: ili yes/no, number of reports, symptoms start
 ## (as date), week of report, weight (for histograms later,
 ## i.e. 1/(number of reports that week), and birthdate
 symptoms.13 <- c("fever","chills","blocked.runny.nose","sneezing","sore.throat","cough","shortness.breath","headache","muscle.and.or.joint.pain","chest.pain","tired","loss.appetite","phlegm","watery.eyes","nausea","vomiting","diarrhoea","stomach.ache","other.symptoms")
 
 for (symptom in symptoms.13) {
-    st13[, paste(symptom) := as.numeric(get(symptom))-1, with = F]
+    st13 <- st13[get(symptom) == "f", paste("symptom.", symptom, sep = "") := as.integer(0), with = F]
+    st13 <- st13[get(symptom) == "t", paste("symptom.", symptom, sep = "") := as.integer(1), with = F]
+    st13 <- st13[, !symptom, with = F]
+    setnames(st13, paste("symptom.", symptom, sep = ""), symptom)
 }
 
 st13$ili <- ((st13$symptoms.suddenly == 0) &
@@ -797,10 +806,6 @@ saveRDS(data.13, "flusurvey_201213_raw.rds")
 ## (second)
 dt13 <- bt13[ct13[st13, roll=TRUE], roll = TRUE]
 
-rm(bt13)
-rm(st13)
-rm(ct13)
-
 ##cleanup (some participants have only a weekly survey, no background one)
 dt13 <- dt13[!is.na(global.id.number)]
 
@@ -814,7 +819,7 @@ cf12 <- read.csv('contact_12.csv', sep=',', header=T)
 ## create translation table so that every participant gets a unique ID number
 ## (called global.id.number)
 translation <- data.frame(global_id = unique(bf12$global_id))
-translation$number <- seq(1,nrow(translation))
+translation$number <- 120000 + seq(1,nrow(translation))
 
 ## assign global id numbers
 bf12$global.id.number <- translation$number[match(bf12$global_id,
@@ -1082,13 +1087,19 @@ ct12 <- ct12[,"physical.65+" := get("physical.home.65+") +
 ct12 <- ct12[,"physical" := get("physical.home") +
      get("physical.work") + get("physical.other"), with=F]
 
+ct12$week <- format(ct12$date, format="%G-%W")
+ct12[ct12$week=="2011-00"]$week <- "2011-53"
+
 ## assign some useful variables: ili yes/no, number of reports, symptoms start
 ## (as date), week of report, weight (for histograms later,
 ## i.e. 1/(number of reports that week), and birthdate
 symptoms.12 <- c("fever","chills","blocked.runny.nose","sneezing","sore.throat","cough","shortness.breath","headache","muscle.and.or.joint.pain","chest.pain","tired","loss.appetite","phlegm","watery.eyes","nausea","vomiting","diarrhoea","stomach.ache","other.symptoms")
 
 for (symptom in symptoms.12) {
-    st12[, paste(symptom) := as.numeric(get(symptom))-1, with = F]
+    st12 <- st12[get(symptom) == "f", paste("symptom.", symptom, sep = "") := as.integer(0), with = F]
+    st12 <- st12[get(symptom) == "t", paste("symptom.", symptom, sep = "") := as.integer(1), with = F]
+    st12 <- st12[, !symptom, with = F]
+    setnames(st12, paste("symptom.", symptom, sep = ""), symptom)
 }
 
 st12$ili <- ((st12$symptoms.suddenly == 0) &
@@ -1228,10 +1239,6 @@ saveRDS(data.12, "flusurvey_201112_raw.rds")
 ## (second)
 dt12 <- bt12[ct12[st12, roll=TRUE], roll = TRUE]
 
-rm(bt12)
-rm(st12)
-rm(ct12)
-
 dt12 <- dt12[!is.na(global.id.number)]
 
 saveRDS(dt12, "flusurvey_201112.rds")
@@ -1245,7 +1252,7 @@ cf11 <- read.csv('201011/contactdata_2011-04-06.csv', header=T, sep=',');
 ## create translation table so that every participant gets a unique ID number
 ## (called global.id.number)
 translation <- data.frame(global_id = unique(bf11$user_id))
-translation$number <- seq(1,nrow(translation))
+translation$number <- 110000 + seq(1,nrow(translation))
 
 ## assign global id numbers
 bf11$global.id.number <- translation$number[match(bf11$user_id,
@@ -1272,7 +1279,7 @@ setnames(ct11, "user_id", "user_id.contacts")
 
 st11$date <- as.Date(st11$date, format = "%d/%m/%Y")
 bt11$date <- as.Date(bt11$created, format = "%d/%m/%Y")
-ct11$date <- as.Date(ct11$date, format = "%d/%m/%Y")
+ct11$date <- as.Date(sub(" .*", "", ct11$date), format = "%Y-%m-%d")
 
 st11 <- st11[!duplicated(bt11[, list(global.id.number, date)], fromLast=T)]
 bt11 <- bt11[!duplicated(bt11[, list(global.id.number, date)], fromLast=T)]
@@ -1436,68 +1443,15 @@ setnames(ct11, "ContactQ2.12", "physical.other.19-44")
 setnames(ct11, "ContactQ2.13", "physical.other.45-64")
 setnames(ct11, "ContactQ2.14", "physical.other.65+")
 
-ct11 <- ct11[get("conversational.home.0-4") == "None", "conversational.home.0-4" := "0"]
-ct11 <- ct11[get("conversational.home.5-18") == "None", "conversational.home.5-18" := "0"]
-ct11 <- ct11[get("conversational.home.19-44") == "None", "conversational.home.19-44" := "0"]
-ct11 <- ct11[get("conversational.home.45-64") == "None", "conversational.home.45-64" := "0"]
-ct11 <- ct11[get("conversational.home.65+") == "None", "conversational.home.65+" := "0"]
-ct11 <- ct11[get("conversational.work.0-4") == "None", "conversational.work.0-4" := "0"]
-ct11 <- ct11[get("conversational.work.5-18") == "None", "conversational.work.5-18" := "0"]
-ct11 <- ct11[get("conversational.work.19-44") == "None", "conversational.work.19-44" := "0"]
-ct11 <- ct11[get("conversational.work.45-64") == "None", "conversational.work.45-64" := "0"]
-ct11 <- ct11[get("conversational.work.65+") == "None", "conversational.work.65+" := "0"]
-ct11 <- ct11[get("conversational.other.0-4") == "None", "conversational.other.0-4" := "0"]
-ct11 <- ct11[get("conversational.other.5-18") == "None", "conversational.other.5-18" := "0"]
-ct11 <- ct11[get("conversational.other.19-44") == "None", "conversational.other.19-44" := "0"]
-ct11 <- ct11[get("conversational.other.45-64") == "None", "conversational.other.45-64" := "0"]
-ct11 <- ct11[get("conversational.other.65+") == "None", "conversational.other.65+" := "0"]
-ct11 <- ct11[get("physical.home.0-4") == "None", "physical.home.0-4" := "0"]
-ct11 <- ct11[get("physical.home.5-18") == "None", "physical.home.5-18" := "0"]
-ct11 <- ct11[get("physical.home.19-44") == "None", "physical.home.19-44" := "0"]
-ct11 <- ct11[get("physical.home.45-64") == "None", "physical.home.45-64" := "0"]
-ct11 <- ct11[get("physical.home.65+") == "None", "physical.home.65+" := "0"]
-ct11 <- ct11[get("physical.work.0-4") == "None", "physical.work.0-4" := "0"]
-ct11 <- ct11[get("physical.work.5-18") == "None", "physical.work.5-18" := "0"]
-ct11 <- ct11[get("physical.work.19-44") == "None", "physical.work.19-44" := "0"]
-ct11 <- ct11[get("physical.work.45-64") == "None", "physical.work.45-64" := "0"]
-ct11 <- ct11[get("physical.work.65+") == "None", "physical.work.65+" := "0"]
-ct11 <- ct11[get("physical.other.0-4") == "None", "physical.other.0-4" := "0"]
-ct11 <- ct11[get("physical.other.5-18") == "None", "physical.other.5-18" := "0"]
-ct11 <- ct11[get("physical.other.19-44") == "None", "physical.other.19-44" := "0"]
-ct11 <- ct11[get("physical.other.45-64") == "None", "physical.other.45-64" := "0"]
-ct11 <- ct11[get("physical.other.65+") == "None", "physical.other.65+" := "0"]
+conversation.categories.11 <- c("conversational.home.0-4", "conversational.home.5-18", "conversational.home.19-44", "conversational.home.45-64", "conversational.home.65+", "conversational.work.0-4", "conversational.work.5-18", "conversational.work.19-44", "conversational.work.45-64", "conversational.work.65+", "conversational.other.0-4", "conversational.other.5-18", "conversational.other.19-44", "conversational.other.45-64", "conversational.other.65+", "physical.home.0-4", "physical.home.5-18", "physical.home.19-44", "physical.home.45-64", "physical.home.65+", "physical.work.0-4", "physical.work.5-18", "physical.work.19-44", "physical.work.45-64", "physical.work.65+", "physical.other.0-4", "physical.other.5-18", "physical.other.19-44", "physical.other.45-64", "physical.other.65+")
 
-ct11 <- ct11[, "conversational.home.0-4" := as.numeric(as.character(get("conversational.home.0-4")))]
-ct11 <- ct11[, "conversational.home.5-18" := as.numeric(as.character(get("conversational.home.5-18")))]
-ct11 <- ct11[, "conversational.home.19-44" := as.numeric(as.character(get("conversational.home.19-44")))]
-ct11 <- ct11[, "conversational.home.45-64" := as.numeric(as.character(get("conversational.home.45-64")))]
-ct11 <- ct11[, "conversational.home.65+" := as.numeric(as.character(get("conversational.home.65+")))]
-ct11 <- ct11[, "conversational.work.0-4" := as.numeric(as.character(get("conversational.work.0-4")))]
-ct11 <- ct11[, "conversational.work.5-18" := as.numeric(as.character(get("conversational.work.5-18")))]
-ct11 <- ct11[, "conversational.work.19-44" := as.numeric(as.character(get("conversational.work.19-44")))]
-ct11 <- ct11[, "conversational.work.45-64" := as.numeric(as.character(get("conversational.work.45-64")))]
-ct11 <- ct11[, "conversational.work.65+" := as.numeric(as.character(get("conversational.work.65+")))]
-ct11 <- ct11[, "conversational.other.0-4" := as.numeric(as.character(get("conversational.other.0-4")))]
-ct11 <- ct11[, "conversational.other.5-18" := as.numeric(as.character(get("conversational.other.5-18")))]
-ct11 <- ct11[, "conversational.other.19-44" := as.numeric(as.character(get("conversational.other.19-44")))]
-ct11 <- ct11[, "conversational.other.45-64" := as.numeric(as.character(get("conversational.other.45-64")))]
-ct11 <- ct11[, "conversational.other.65+" := as.numeric(as.character(get("conversational.other.65+")))]
-ct11 <- ct11[, "physical.home.0-4" := as.numeric(as.character(get("physical.home.0-4")))]
-ct11 <- ct11[, "physical.home.5-18" := as.numeric(as.character(get("physical.home.5-18")))]
-ct11 <- ct11[, "physical.home.19-44" := as.numeric(as.character(get("physical.home.19-44")))]
-ct11 <- ct11[, "physical.home.45-64" := as.numeric(as.character(get("physical.home.45-64")))]
-ct11 <- ct11[, "physical.home.65+" := as.numeric(as.character(get("physical.home.65+")))]
-ct11 <- ct11[, "physical.work.0-4" := as.numeric(as.character(get("physical.work.0-4")))]
-ct11 <- ct11[, "physical.work.5-18" := as.numeric(as.character(get("physical.work.5-18")))]
-ct11 <- ct11[, "physical.work.19-44" := as.numeric(as.character(get("physical.work.19-44")))]
-ct11 <- ct11[, "physical.work.45-64" := as.numeric(as.character(get("physical.work.45-64")))]
-ct11 <- ct11[, "physical.work.65+" := as.numeric(as.character(get("physical.work.65+")))]
-ct11 <- ct11[, "physical.other.0-4" := as.numeric(as.character(get("physical.other.0-4")))]
-ct11 <- ct11[, "physical.other.5-18" := as.numeric(as.character(get("physical.other.5-18")))]
-ct11 <- ct11[, "physical.other.19-44" := as.numeric(as.character(get("physical.other.19-44")))]
-ct11 <- ct11[, "physical.other.45-64" := as.numeric(as.character(get("physical.other.45-64")))]
-ct11 <- ct11[, "physical.other.65+" := as.numeric(as.character(get("physical.other.65+")))]
-
+for (category in conversation.categories.11) {
+    ct11 <- ct11[get(category) == "None", paste(category) := "0"]
+    ct11 <- ct11[, paste(category) := as.numeric(as.character(get(category)))]
+    ct11 <- ct11[get(category) == 17, paste(category) := 25]
+    ct11 <- ct11[get(category) == 18, paste(category) := 50]
+    ct11 <- ct11[get(category) == 19, paste(category) := 100]
+}
 
 ct11 <- ct11[,"conversational.home" := get("conversational.home.0-4") +
      get("conversational.home.5-18") + get("conversational.home.19-44") +
@@ -1541,6 +1495,9 @@ ct11 <- ct11[,"physical.65+" := get("physical.home.65+") +
      get("physical.work.65+") + get("physical.other.65+"), with=F]
 ct11 <- ct11[,"physical" := get("physical.home") +
      get("physical.work") + get("physical.other"), with=F]
+
+ct11$week <- format(ct11$date, format="%G-%W")
+ct11[ct11$week=="2010-00"]$week <- "2010-53"
 
 ## assign some useful variables: ili yes/no, number of reports, symptoms start
 ## (as date), week of report, weight (for histograms later,
@@ -1675,10 +1632,6 @@ saveRDS(data.11, "flusurvey_201011_raw.rds")
 ## (second)
 dt11 <- bt11[ct11[st11, roll=TRUE], roll = TRUE]
 
-rm(bt11)
-rm(st11)
-rm(ct11)
-
 dt11 <- dt11[!is.na(global.id.number)]
 
 saveRDS(dt11, "flusurvey_201011.rds")
@@ -1694,7 +1647,7 @@ sf10 <- read.csv('200910/symptoms_200910.csv', header=T, sep=';');
 ## create translation table so that every participant gets a unique ID number
 ## (called global.id.number)
 translation <- data.frame(global_id = unique(bf10$uid))
-translation$number <- seq(1,nrow(translation))
+translation$number <- 100000 + seq(1,nrow(translation))
 
 ## assign global id numbers
 bf10$global.id.number <- translation$number[match(bf10$uid, translation$global_id)]
@@ -1888,80 +1841,16 @@ setnames(ct10, "q4023", "physical.other.65+")
 setnames(ct10, "q4024", "public.transport")
 setnames(ct10, "q4025", "enclosed.indoor.space")
 
-ct10 <- ct10[is.null(get("conversational.home.0-4")), "conversational.home.0-4" := "0"]
-ct10 <- ct10[is.null(get("conversational.home.5-18")), "conversational.home.5-18" := "0"]
-ct10 <- ct10[is.null(get("conversational.home.19-64")), "conversational.home.19-64" := "0"]
-ct10 <- ct10[is.null(get("conversational.home.65+")), "conversational.home.65+" := "0"]
-ct10 <- ct10[is.null(get("conversational.work.0-4")), "conversational.work.0-4" := "0"]
-ct10 <- ct10[is.null(get("conversational.work.5-18")), "conversational.work.5-18" := "0"]
-ct10 <- ct10[is.null(get("conversational.work.19-64")), "conversational.work.19-64" := "0"]
-ct10 <- ct10[is.null(get("conversational.work.65+")), "conversational.work.65+" := "0"]
-ct10 <- ct10[is.null(get("conversational.other.0-4")), "conversational.other.0-4" := "0"]
-ct10 <- ct10[is.null(get("conversational.other.5-18")), "conversational.other.5-18" := "0"]
-ct10 <- ct10[is.null(get("conversational.other.19-64")), "conversational.other.19-64" := "0"]
-ct10 <- ct10[is.null(get("conversational.other.65+")), "conversational.other.65+" := "0"]
-ct10 <- ct10[is.null(get("physical.home.0-4")), "physical.home.0-4" := "0"]
-ct10 <- ct10[is.null(get("physical.home.5-18")), "physical.home.5-18" := "0"]
-ct10 <- ct10[is.null(get("physical.home.19-64")), "physical.home.19-64" := "0"]
-ct10 <- ct10[is.null(get("physical.home.65+")), "physical.home.65+" := "0"]
-ct10 <- ct10[is.null(get("physical.work.0-4")), "physical.work.0-4" := "0"]
-ct10 <- ct10[is.null(get("physical.work.5-18")), "physical.work.5-18" := "0"]
-ct10 <- ct10[is.null(get("physical.work.19-64")), "physical.work.19-64" := "0"]
-ct10 <- ct10[is.null(get("physical.work.65+")), "physical.work.65+" := "0"]
-ct10 <- ct10[is.null(get("physical.other.0-4")), "physical.other.0-4" := "0"]
-ct10 <- ct10[is.null(get("physical.other.5-18")), "physical.other.5-18" := "0"]
-ct10 <- ct10[is.null(get("physical.other.19-64")), "physical.other.19-64" := "0"]
-ct10 <- ct10[is.null(get("physical.other.65+")), "physical.other.65+" := "0"]
+conversation.categories.10 <- c("conversational.home.0-4", "conversational.home.5-18", "conversational.home.19-64", "conversational.home.65+", "conversational.work.0-4", "conversational.work.5-18", "conversational.work.19-64", "conversational.work.65+", "conversational.other.0-4", "conversational.other.5-18", "conversational.other.19-64", "conversational.other.65+", "physical.home.0-4", "physical.home.5-18", "physical.home.19-64", "physical.home.65+", "physical.work.0-4", "physical.work.5-18", "physical.work.19-64", "physical.work.65+", "physical.other.0-4", "physical.other.5-18", "physical.other.19-64", "physical.other.65+")
 
-ct10 <- ct10[, "conversational.home.0-4" := as.numeric(as.character(get("conversational.home.0-4")))]
-ct10 <- ct10[, "conversational.home.5-18" := as.numeric(as.character(get("conversational.home.5-18")))]
-ct10 <- ct10[, "conversational.home.19-64" := as.numeric(as.character(get("conversational.home.19-64")))]
-ct10 <- ct10[, "conversational.home.65+" := as.numeric(as.character(get("conversational.home.65+")))]
-ct10 <- ct10[, "conversational.work.0-4" := as.numeric(as.character(get("conversational.work.0-4")))]
-ct10 <- ct10[, "conversational.work.5-18" := as.numeric(as.character(get("conversational.work.5-18")))]
-ct10 <- ct10[, "conversational.work.19-64" := as.numeric(as.character(get("conversational.work.19-64")))]
-ct10 <- ct10[, "conversational.work.65+" := as.numeric(as.character(get("conversational.work.65+")))]
-ct10 <- ct10[, "conversational.other.0-4" := as.numeric(as.character(get("conversational.other.0-4")))]
-ct10 <- ct10[, "conversational.other.5-18" := as.numeric(as.character(get("conversational.other.5-18")))]
-ct10 <- ct10[, "conversational.other.19-64" := as.numeric(as.character(get("conversational.other.19-64")))]
-ct10 <- ct10[, "conversational.other.65+" := as.numeric(as.character(get("conversational.other.65+")))]
-ct10 <- ct10[, "physical.home.0-4" := as.numeric(as.character(get("physical.home.0-4")))]
-ct10 <- ct10[, "physical.home.5-18" := as.numeric(as.character(get("physical.home.5-18")))]
-ct10 <- ct10[, "physical.home.19-64" := as.numeric(as.character(get("physical.home.19-64")))]
-ct10 <- ct10[, "physical.home.65+" := as.numeric(as.character(get("physical.home.65+")))]
-ct10 <- ct10[, "physical.work.0-4" := as.numeric(as.character(get("physical.work.0-4")))]
-ct10 <- ct10[, "physical.work.5-18" := as.numeric(as.character(get("physical.work.5-18")))]
-ct10 <- ct10[, "physical.work.19-64" := as.numeric(as.character(get("physical.work.19-64")))]
-ct10 <- ct10[, "physical.work.65+" := as.numeric(as.character(get("physical.work.65+")))]
-ct10 <- ct10[, "physical.other.0-4" := as.numeric(as.character(get("physical.other.0-4")))]
-ct10 <- ct10[, "physical.other.5-18" := as.numeric(as.character(get("physical.other.5-18")))]
-ct10 <- ct10[, "physical.other.19-64" := as.numeric(as.character(get("physical.other.19-64")))]
-ct10 <- ct10[, "physical.other.65+" := as.numeric(as.character(get("physical.other.65+")))]
-
-ct10 <- ct10[, "conversational.home.0-4" := as.numeric(as.character(get("conversational.home.0-4")))]
-ct10 <- ct10[, "conversational.home.5-18" := as.numeric(as.character(get("conversational.home.5-18")))]
-ct10 <- ct10[, "conversational.home.19-64" := as.numeric(as.character(get("conversational.home.19-64")))]
-ct10 <- ct10[, "conversational.home.65+" := as.numeric(as.character(get("conversational.home.65+")))]
-ct10 <- ct10[, "conversational.work.0-4" := as.numeric(as.character(get("conversational.work.0-4")))]
-ct10 <- ct10[, "conversational.work.5-18" := as.numeric(as.character(get("conversational.work.5-18")))]
-ct10 <- ct10[, "conversational.work.19-64" := as.numeric(as.character(get("conversational.work.19-64")))]
-ct10 <- ct10[, "conversational.work.65+" := as.numeric(as.character(get("conversational.work.65+")))]
-ct10 <- ct10[, "conversational.other.0-4" := as.numeric(as.character(get("conversational.other.0-4")))]
-ct10 <- ct10[, "conversational.other.5-18" := as.numeric(as.character(get("conversational.other.5-18")))]
-ct10 <- ct10[, "conversational.other.19-64" := as.numeric(as.character(get("conversational.other.19-64")))]
-ct10 <- ct10[, "conversational.other.65+" := as.numeric(as.character(get("conversational.other.65+")))]
-ct10 <- ct10[, "physical.home.0-4" := as.numeric(as.character(get("physical.home.0-4")))]
-ct10 <- ct10[, "physical.home.5-18" := as.numeric(as.character(get("physical.home.5-18")))]
-ct10 <- ct10[, "physical.home.19-64" := as.numeric(as.character(get("physical.home.19-64")))]
-ct10 <- ct10[, "physical.home.65+" := as.numeric(as.character(get("physical.home.65+")))]
-ct10 <- ct10[, "physical.work.0-4" := as.numeric(as.character(get("physical.work.0-4")))]
-ct10 <- ct10[, "physical.work.5-18" := as.numeric(as.character(get("physical.work.5-18")))]
-ct10 <- ct10[, "physical.work.19-64" := as.numeric(as.character(get("physical.work.19-64")))]
-ct10 <- ct10[, "physical.work.65+" := as.numeric(as.character(get("physical.work.65+")))]
-ct10 <- ct10[, "physical.other.0-4" := as.numeric(as.character(get("physical.other.0-4")))]
-ct10 <- ct10[, "physical.other.5-18" := as.numeric(as.character(get("physical.other.5-18")))]
-ct10 <- ct10[, "physical.other.19-64" := as.numeric(as.character(get("physical.other.19-64")))]
-ct10 <- ct10[, "physical.other.65+" := as.numeric(as.character(get("physical.other.65+")))]
+for (category in conversation.categories.10) {
+    ct10 <- ct10[get(category) == "NULL", paste(category) := "0"]
+    ct10 <- ct10[get(category) == "16-24", paste(category) := "16"]
+    ct10 <- ct10[get(category) == "25-49", paste(category) := "25"]
+    ct10 <- ct10[get(category) == "50-99", paste(category) := "50"]
+    ct10 <- ct10[get(category) == "100 or more", paste(category) := "100"]
+    ct10 <- ct10[, paste(category) := as.numeric(as.character(get(category)))]
+}
 
 ct10 <- ct10[,"conversational.home" := get("conversational.home.0-4") +
      get("conversational.home.5-18") + get("conversational.home.19-64") +
@@ -2001,6 +1890,10 @@ ct10 <- ct10[,"physical.65+" := get("physical.home.65+") +
      get("physical.work.65+") + get("physical.other.65+"), with=F]
 ct10 <- ct10[,"physical" := get("physical.home") +
      get("physical.work") + get("physical.other"), with=F]
+
+
+ct10$week <- format(ct10$date, format="%G-%W")
+ct10[ct10$week=="2009-00"]$week <- "2009-53"
 
 ## assign some useful variables: ili yes/no, number of reports, symptoms start
 ## (as date), week of report, weight (for histograms later,
@@ -2130,3 +2023,29 @@ dt10 <- dt10[!is.na(global.id.number)]
 
 saveRDS(dt10, "flusurvey_200910.rds")
 
+## merge what we can merge
+join.vertical <- function (...) {
+    x <- list(...)
+    for (i in 1:(length(x) - 1)) {
+        for (j in 2:(i + 1)) {
+            names.diff <- setdiff(names(x[[j - 1]]), names(x[[i + 1]]))
+            if (length(names.diff) > 0) {
+                x[[j - 1]] <- x[[j - 1]][, !names.diff, with = F]
+            }
+        }
+        names.diff.reverse <- setdiff(names(x[[i + 1]]), names(x[[i]]))
+        if (length(names.diff.reverse) > 0) {
+            x[[i + 1]] <- x[[i + 1]][, !names.diff.reverse, with = F]
+        }
+    }
+    res <- do.call("rbind", c(x, list(use.names = T)))
+}
+
+st <- join.vertical(st14, st13, st12, st11, st10)
+bt <- join.vertical(bt14, bt13, bt12, bt11, bt10)
+ct <- join.vertical(ct13, ct12, ct11, ct10)
+dt <- join.vertical(dt14, dt13, dt12, dt11, dt10)
+
+data <- list(symptoms = st, background = bt, contact = ct)
+saveRDS(data, "flusurvey_200914_raw.rds")
+saveRDS(dt, "flusurvey_200914.rds")
