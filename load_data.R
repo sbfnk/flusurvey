@@ -1898,6 +1898,11 @@ ct10[ct10$week=="2009-00"]$week <- "2009-53"
 ## assign some useful variables: ili yes/no, number of reports, symptoms start
 ## (as date), week of report, weight (for histograms later,
 ## i.e. 1/(number of reports that week), and birthdate
+st10$ili.fever <- ((st10$fever.suddenly == 1) &
+                   (st10$sore.throat == 1 | st10$cough ==1))
+st10$ili.fever <- as.numeric(st10$ili.fever)
+
+
 freq <-
     data.table(aggregate(st10$global.id.number,
                          by=list(st10$global.id.number),
@@ -2013,7 +2018,7 @@ bt10[bt10$work.uk.country == "N" & !(bt10$work.ur %in% c(5,6,7)),]$work.urban <-
 
 bt10$work.urban <- as.factor(bt10$work.urban)
 
-data.10 <- list(symptoms = st10, background = bt10, contact = ct10)
+data.10 <- list(symptoms = st10, background = bt10, contact = ct10, vaccination = vt10)
 saveRDS(data.10, "flusurvey_200910_raw.rds")
 
 ## rolling join of symptoms and background, by id number (first) and date
