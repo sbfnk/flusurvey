@@ -1,6 +1,6 @@
 library('data.table')
 
-dt10 <- readRDS("flusurvey_201011_raw.rds")
+dt10 <- readRDS("flusurvey_200910_raw.rds")
 dt11 <- readRDS("flusurvey_201011_raw.rds")
 dt12 <- readRDS("flusurvey_201112_raw.rds")
 dt13 <- readRDS("flusurvey_201213_raw.rds")
@@ -27,7 +27,12 @@ setkey(dt10$background, global.id.number)
 setkey(dt10$vaccination, global.id.number)
 dt10$background <- merge(dt10$background, dt10$vaccination)
 dt10$background[, vaccine.this.year := as.numeric(had.seasonal.vaccine == 1)]
+dt10$background[, vaccine.this.year.swineflu := as.numeric(had.swineflu.vaccine == 1)]
 setnames(dt10$background, "date.y", "date")
+
+dt11$background <- dt11$background[, vaccine.this.year.swineflu := NA_real_]
+dt12$background <- dt12$background[, vaccine.this.year.swineflu := NA_real_]
+dt13$background <- dt13$background[, vaccine.this.year.swineflu := NA_real_]
 
 st <- join.vertical(dt13$symptoms, dt12$symptoms, dt11$symptoms, dt10$symptoms)
 bt <- join.vertical(dt13$background, dt12$background, dt11$background, dt10$background)
@@ -48,7 +53,7 @@ ct <- ct[, season := as.numeric(format(date, "%Y")) + shos]
 ct <- ct[season %in% as.numeric(names(which(table(ct$season) > 100)))]
 
 st <- st[, list(ili = as.numeric(any(ili.fever ==1))), by = list(global.id.number, season)]
-bt <- bt[, list(vaccinated = as.numeric(any(vaccine.this.year == 0))), by = list(global.id.number, season)]
+bt <- bt[, list(vaccinated = as.numeric(any(vaccine.this.year == 0)), vaccinated.swineflu = as.numeric(any(vaccine.this.year.swineflu == 0))), by = list(global.id.number, season)]
 ct <- ct[, list(physical = mean(physical),
                 conversational = mean(conversational),
                 reports = length(physical)),
@@ -61,5 +66,4 @@ setkey(ct, global.id.number, season)
 dt <- merge(merge(st, bt), ct)
 dt[is.na(ili), ili := 0]
 
-write.table(contacts, "contacts.csv", quote = F, row.names = F, sep = ",")
 write.table(dt, "contacts_vacc_ili.csv", quote = F, row.names = F, sep = ",")
