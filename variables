@@ -1,0 +1,72 @@
+[country]
+db=I
+
+[agegroup]
+ranges=0,20,45,65
+select=extract(year from age(to_timestamp(I."Q2",'YYYY-MM')))
+
+[agegroup2]
+ranges=0,10,20,30,40,50,60,70
+select=extract(year from age(to_timestamp(I."Q2",'YYYY-MM')))
+
+[risk]
+'t',0,'not in a risk group'
+'f',1,'in a risk group'
+select=Q11_0
+db=I
+
+[children]
+'t'|'t',1,'having children'
+else,0,'not having children'
+select=Q6_0,Q6_1
+db=I
+
+[vaccinated]
+0,1,'vaccinated'
+1,0,'unvaccinated'
+select=Q10
+db=I
+
+[week]
+select=extract(week FROM W.timestamp)
+
+[year]
+select=extract(year FROM date_trunc('week', W.timestamp))
+
+[transport]
+0,1,'using public transport'
+else,0,'not using public transport'
+select=Q7b
+db=I
+
+[employment]
+0|1|2,0,'employed'
+3,1,'education'
+else,2,'not employed'
+select=Q4
+db=I
+
+[occupation]
+0|1,0,'office'
+2,1,'service'
+3|4,2,'manual'
+select=Q4c
+db=I
+
+[mass_contact]
+'t',0,'no'
+else,1,'yes'
+select=Q5_4
+db=I
+
+[kids_daycare]
+0,0,'no'
+else,1,'yes'
+select=Q6b
+db=I
+
+[smoking]
+0,0,'no'
+1|2|3,1,'yes'
+select=Q13
+db=I
