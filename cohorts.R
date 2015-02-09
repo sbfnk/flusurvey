@@ -2,6 +2,99 @@ library(data.table)
 library(ggplot2)
 library(ISOweek)
 library(scales)
+library(binom)
+
+dt <- readRDS("flusurvey_200914.rds")
+dt$agegroup <- cut(dt$age, breaks=c(0,18,45,65, max(dt$age, na.rm=T)),
+                   include.lowest=T, right=F)
+dt$vaccine <- as.numeric(dt$vaccine.this.year==0 & (is.na(dt$vaccine.date) |
+                                                        dt$vaccine.date <= dt$date))
+dt[, week := date2ISOweek(date)]
+dt[, week.date := ISOweek2date(sub("-[1-7]", "-1", week))]
+dt[, symptoms.start.week := date2ISOweek(symptoms.start.date)]
+dt[, symptoms.start.week.date := ISOweek2date(sub("-[1-7]", "-1", symptoms.start.week))]
+dt[is.na(symptoms.start.week.date), symptoms.start.week.date := week.date]
+
+levels(dt$agegroup) <- c("<18","18-44","45-64","65+")
+
+temp.data <- dt[!is.na(age) & !is.na(ili.fever) & !is.na(vaccine)]
+
+# write.csv(data, "cohorts_fever_201114.raw", quote=F, row.names=F)
+
+## data <- temp.data[, list(non.ili = sum(ili.fever == 0), ili = sum(ili.fever == 1)), by = list(vaccine, atrisk, children, agegroup, week.date)]
+## setkey(data, week.date, agegroup, vaccine, atrisk, children)
+data <- temp.data[, list(no.vaccine = sum(vaccine == 0), vaccine = sum(vaccine == 1), no.vaccine.ili = sum(vaccine == 0 & ili.fever == 1), vaccine.ili = sum(vaccine == 1 & ili.fever == 1), no.vaccine.no.ili = sum(vaccine == 0 & ili.fever == 0), vaccine.no.ili = sum(vaccine == 1 & ili.fever == 0)), by = list(atrisk, children, agegroup, symptoms.start.week.date)]
+data[, cohort.size := min(vaccine, no.vaccine), by = 1:nrow(data)]
+data <- data[cohort.size > 0]
+
+data[, nvi := no.vaccine.ili / no.vaccine * cohort.size]
+data[, vi := vaccine.ili / vaccine * cohort.size]
+
+setnames(data, "symptoms.start.week.date", "date")
+setkey(data, date, agegroup, vaccine, atrisk, children)
+
+cohorts <- data[, list(cohort.size = sum(cohort.size),
+                       unvaccinated = sum(nvi),
+                       vaccinated = sum(vi)),
+                by = date]
+cohorts <- cohorts[cohort.size > 50]
+setkey(cohorts, date)
+
+mc <- data.table(melt(cohorts, id.vars = c("date", "cohort.size")))
+setnames(mc, "value", "ili")
+setnames(mc, "variable", "status")
+mc[, season := year(date + 182)]
+
+for (this.season in unique(mc[, season]))
+{
+    season.min.date <- mc[season == this.season, min(date)]
+    mc <- mc[!(date == season.min.date)]
+}
+
+confints <- data.table(binom.confint(mc[, ili], mc[, cohort.size],
+                                     methods = "lrt"))
+mc <- cbind(mc, confints[, list(mean, lower, upper)])
+setnames(mc, "mean", "prevalence")
+
+write.csv(data, "cohorts_fever_200915.csv", quote=F, row.names=F)
+
+min.season <- min(mc[, season])
+
+p <- ggplot(mc[season == min.season],
+            aes(x = date, y = prevalence * 100,
+                ymin = lower * 100, ymax = upper * 100,
+                color = status, fill = status))
+p <- p + geom_ribbon(alpha = 0.2)
+p <- p + geom_line(lwd = 1.2)
+for (next.season in setdiff(unique(mc[, season]), min.season))
+{
+    p <- p + geom_ribbon(data = mc[season == next.season], alpha = 0.2)
+    p <- p + geom_line(data = mc[season == next.season], lwd = 1.2)
+}
+p <- p + scale_color_brewer("", palette = "Set1")
+p <- p + scale_fill_brewer("", palette = "Set1")
+p <- p + scale_x_date("")
+p <- p + scale_y_continuous("Prevalence (in %)")
+p <- p + theme(legend.position = "top")
+ggsave("cohort_timeline_2015.pdf", p, width = 10)
+
+mc[, year.date := as.Date(sub("^201[0-9]", 2015 + year(date) - season, date),
+               format = "%Y-%m-%d"), by = 1:nrow(mc)]
+
+p <- ggplot(mc,
+            aes(x = year.date, y = prevalence * 100,
+                ymin = lower * 100, ymax = upper * 100,
+                color = status, fill = status))
+p <- p + geom_ribbon(alpha = 0.2)
+p <- p + geom_line(lwd = 1.2)
+p <- p + facet_grid(season ~ ., scales = "free_y")
+p <- p + scale_color_brewer("", palette = "Set1")
+p <- p + scale_fill_brewer("", palette = "Set1")
+p <- p + scale_x_date("")
+p <- p + scale_y_continuous("Prevalence of ILI + fever (in %)")
+p <- p + theme(legend.position = "top")
+ggsave("cohort_seasons_2015.pdf", p)
+
 
 co.all.12 <- read.csv("cohorts_all_201112.csv", sep=",", header=T)
 co.country.12 <- read.csv("cohorts_country_201112.csv", sep=",", header=T)

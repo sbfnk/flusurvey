@@ -1,20 +1,7 @@
 library(data.table)
 library(ggplot2)
 library(reshape)
-
-# compute the age in years from a birthdate (from) and the current date (to)
-age_years <- function(from, to)
-{
-  if (is.na(from) || is.na(to)) {
-    NA
-  } else {
-     lt <- as.POSIXlt(c(from, to))
-     age <- lt$year[2] - lt$year[1]
-     mons <- lt$mon + lt$mday/50
-     if(mons[2] < mons[1]) age <- age -1
-     age
-   }
-}
+library(lubridate)
 
 # read tables
 sf <- read.csv('epidb_weekly.csv', sep=',', header=T)
@@ -221,8 +208,7 @@ dt$atrisk <- dt$norisk
 levels(dt$atrisk) <- c(1,0)
 dt$atrisk <- as.numeric(paste(dt$atrisk))
 dt$age <-  0
-dt$age <- apply(dt, 1, function(x) { age_years(as.Date(x["birthdate"]),
-                                               as.Date(x["date"]))})
+dt[, age := as.period(date - birthdate)$year]
 dt$agegroup <- cut(dt$age, breaks=c(0,18,45,65, max(dt$age, na.rm=T)),
                    include.lowest=T, right=F)
 dt$vaccine.date <- as.Date(dt$date.vaccine, "%Y/%m/%d")

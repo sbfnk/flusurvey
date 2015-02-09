@@ -18,6 +18,356 @@ age_years <- function(from, to)
 
 uk.ur <- read.csv("urban_rural.csv", header=F, sep=",")
 
+## 2015
+sf15 <- read.csv('weekly_15.csv', sep=',', header=T)
+bf15 <- read.csv('intake_15.csv', sep=',', header=T)
+
+## create translation table so that every participant gets a unique ID number
+## (called global.id.number)
+translation <- data.frame(global_id = unique(bf15$global_id))
+translation$number <- 200000 + seq(1,nrow(translation))
+
+## assign global id numbers
+bf15$global.id.number <- translation$number[match(bf15$global_id,
+                                                  translation$global_id)]
+sf15$global.id.number <- translation$number[match(sf15$global_id,
+                                                  translation$global_id)]
+
+## put data in data tables (for the rolling join to be used later)
+st15 <- data.table(sf15)
+bt15 <- data.table(bf15)
+bt15$bid <- seq(1:nrow(bt15))
+
+rm(sf15)
+rm(bf15)
+
+setnames(bt15, 2, "global_id.bg")
+
+st15$date <- as.Date(st15$timestamp)
+bt15$date <- as.Date(bt15$timestamp)
+
+st15 <- st15[!duplicated(bt15[, list(global.id.number, date)], fromLast=T)]
+bt15 <- bt15[!duplicated(bt15[, list(global.id.number, date)], fromLast=T)]
+setkey(st15, global.id.number, date)
+setkey(bt15, global.id.number, date)
+
+
+## set convenient names
+setnames(bt15, "Q0", "self")
+setnames(bt15, "Q1", "gender")
+setnames(bt15, "Q2", "birthmonth")
+setnames(bt15, "Q3", "postcode")
+setnames(bt15, "Q4", "main.activity")
+setnames(bt15, "Q4b", "work.postcode.option")
+setnames(bt15, "Q4b_0_open", "work.postcode")
+setnames(bt15, "Q4c", "occupation")
+setnames(bt15, "Q4d", "education")
+setnames(bt15, "Q5_0", "frequent.contact.children")
+setnames(bt15, "Q5_1", "frequent.contact.elderly")
+setnames(bt15, "Q5_2", "frequent.contact.patients")
+setnames(bt15, "Q5_3", "frequent.contact.people")
+setnames(bt15, "Q5_4", "frequent.contact.none")
+setnames(bt15, "Q6_0", "household.0.4")
+setnames(bt15, "Q6_0_open", "nb.household.0.4")
+setnames(bt15, "Q6_1", "household.5.18")
+setnames(bt15, "Q6_1_open", "nb.household.5.18")
+setnames(bt15, "Q6_2", "household.19.44")
+setnames(bt15, "Q6_2_open", "nb.household.19.44")
+setnames(bt15, "Q6_3", "household.45.64")
+setnames(bt15, "Q6_3_open", "nb.household.45.64")
+setnames(bt15, "Q6_4", "household.65+")
+setnames(bt15, "Q6_4_open", "nb.household.65+")
+setnames(bt15, "Q6b", "children.school")
+setnames(bt15, "Q7", "transport")
+setnames(bt15, "Q7b", "howlong.transport")
+setnames(bt15, "Q8", "howoften.flulike")
+setnames(bt15, "Q9", "vaccine.last.year")
+setnames(bt15, "Q10", "vaccine.this.year")
+setnames(bt15, "Q10b", "date.vaccine.option")
+setnames(bt15, "Q10b_1_open", "date.vaccine")
+setnames(bt15, "Q10c_0", "why.vaccine.riskgroup")
+setnames(bt15, "Q10c_1", "why.vaccine.protected")
+setnames(bt15, "Q10c_2", "why.vaccine.protect.others")
+setnames(bt15, "Q10c_3", "why.vaccine.given.at.school")
+setnames(bt15, "Q10c_4", "why.vaccine.doctor")
+setnames(bt15, "Q10c_5", "why.vaccine.work.recommended")
+setnames(bt15, "Q10c_6", "why.vaccine.convenient")
+setnames(bt15, "Q10c_7", "why.vaccine.free")
+setnames(bt15, "Q10c_8", "why.vaccine.nomiss.work")
+setnames(bt15, "Q10c_9", "why.vaccine.always")
+setnames(bt15, "Q10c_10", "why.vaccine.other")
+setnames(bt15, "Q10d_0", "why.not.vaccine.notyet")
+setnames(bt15, "Q10d_1", "why.not.vaccine.notoffered")
+setnames(bt15, "Q10d_2", "why.not.vaccine.norisk")
+setnames(bt15, "Q10d_3", "why.not.vaccine.natural")
+setnames(bt15, "Q10d_4", "why.not.vaccine.noteffective")
+setnames(bt15, "Q10d_5", "why.not.vaccine.minor")
+setnames(bt15, "Q10d_6", "why.not.vaccine.unlikely")
+setnames(bt15, "Q10d_7", "why.not.vaccine.cause")
+setnames(bt15, "Q10d_8", "why.not.vaccine.side.effects")
+setnames(bt15, "Q10d_9", "why.not.vaccine.dont.like")
+setnames(bt15, "Q10d_10", "why.not.vaccine.unavailable")
+setnames(bt15, "Q10d_11", "why.not.vaccine.not.free")
+setnames(bt15, "Q10d_12", "why.not.vaccine.no.reason")
+setnames(bt15, "Q10d_13", "why.not.vaccine.doctor")
+setnames(bt15, "Q10d_15", "why.not.vaccine.other")
+setnames(bt15, "Q11_0", "norisk")
+setnames(bt15, "Q11_1", "risk.asthma")
+setnames(bt15, "Q11_2", "risk.diabetes")
+setnames(bt15, "Q11_3", "risk.lung")
+setnames(bt15, "Q11_4", "risk.heart")
+setnames(bt15, "Q11_5", "risk.kidney")
+setnames(bt15, "Q11_6", "risk.immune")
+setnames(bt15, "Q12", "pregnant")
+setnames(bt15, "Q12b", "pregnant.trimester")
+setnames(bt15, "Q13", "smoke")
+setnames(bt15, "Q15_1", "allergy.hayfever")
+setnames(bt15, "Q15_2", "allergy.dust")
+setnames(bt15, "Q15_3", "allergy.animals")
+setnames(bt15, "Q15_4", "allergy.other")
+setnames(bt15, "Q15_5", "allergy.none")
+setnames(bt15, "Q15_0", "diet.none")
+setnames(bt15, "Q15_1", "diet.vegetarian")
+setnames(bt15, "Q15_2", "diet.vegan")
+setnames(bt15, "Q15_3", "diet.other")
+setnames(bt15, "Q16_0", "pets.none")
+setnames(bt15, "Q16_1", "pets.dogs")
+setnames(bt15, "Q16_2", "pets.cats")
+setnames(bt15, "Q16_3", "pets.birds")
+setnames(bt15, "Q16_4", "pets.other")
+setnames(bt15, "Q18_0", "howhear.radio.tv")
+setnames(bt15, "Q18_1", "howhear.paper.magazine")
+setnames(bt15, "Q18_2", "howhear.internet")
+setnames(bt15, "Q18_3", "howhear.poster")
+setnames(bt15, "Q18_4", "howhear.school.work")
+setnames(bt15, "Q18_5", "howhear.bsa")
+setnames(bt15, "Q18_6", "howhear.family.friends")
+setnames(bt15, "Q18", "howhear.who")
+setnames(bt15, "Q19a", "activity.vigorous")
+setnames(bt15, "Q19b", "activity.moderate")
+setnames(bt15, "Q19c", "activity.winter")
+
+setnames(st15, "Q1_0", "no.symptoms")
+setnames(st15, "Q1_1", "fever")
+setnames(st15, "Q1_2", "chills")
+setnames(st15, "Q1_3", "blocked.runny.nose")
+setnames(st15, "Q1_4", "sneezing")
+setnames(st15, "Q1_5", "sore.throat")
+setnames(st15, "Q1_6", "cough")
+setnames(st15, "Q1_7", "shortness.breath")
+setnames(st15, "Q1_8", "headache")
+setnames(st15, "Q1_9", "muscle.and.or.joint.pain")
+setnames(st15, "Q1_10", "chest.pain")
+setnames(st15, "Q1_11", "tired")
+setnames(st15, "Q1_12", "loss.appetite")
+setnames(st15, "Q1_13", "phlegm")
+setnames(st15, "Q1_15", "watery.eyes")
+setnames(st15, "Q1_15", "nausea")
+setnames(st15, "Q1_16", "vomiting")
+setnames(st15, "Q1_17", "diarrhoea")
+setnames(st15, "Q1_18", "stomach.ache")
+setnames(st15, "Q1_19", "other.symptoms")
+setnames(st15, "Q2", "same")
+setnames(st15, "Q3", "symptoms.start.option")
+setnames(st15, "Q3_0_open", "symptoms.start.date")
+setnames(st15, "Q4", "symptoms.end.option")
+setnames(st15, "Q4_0_open", "symptoms.end.date")
+setnames(st15, "Q5", "symptoms.suddenly")
+setnames(st15, "Q6", "fever.start.option")
+setnames(st15, "Q6_1_open", "fever.start")
+setnames(st15, "Q6b", "fever.suddenly")
+setnames(st15, "Q6c", "fever.temperature")
+setnames(st15, "Q6d", "fever.temperature.value")
+setnames(st15, "Q7_0", "visit.medical.service.no")
+setnames(st15, "Q7_1", "visit.medical.service.gp")
+setnames(st15, "Q7_2", "visit.medical.service.ae")
+setnames(st15, "Q7_3", "visit.medical.service.hospital")
+setnames(st15, "Q7_4", "visit.medical.service.other")
+setnames(st15, "Q7_5", "visit.medical.service.appointment")
+setnames(st15, "Q7b_multi_row1_col1", "visit.medical.service.howsoon.gp.receptionist")
+setnames(st15, "Q7b_multi_row2_col1", "visit.medical.service.howsoon.gp.doctor.nurse")
+setnames(st15, "Q7b_multi_row3_col1", "visit.medical.service.howsoon.nhs")
+setnames(st15, "Q7b_multi_row4_col1", "visit.medical.service.howsoon.other")
+setnames(st15, "Q8_0", "contact.medical.service.no")
+setnames(st15, "Q8_1", "contact.medical.service.gp.receptionist")
+setnames(st15, "Q8_2", "contact.medical.service.gp.doctor")
+setnames(st15, "Q8_3", "contact.medical.service.nhs")
+setnames(st15, "Q8_4", "contact.medical.service.npfs")
+setnames(st15, "Q8_5", "contact.medical.service.other")
+setnames(st15, "Q8b_multi_row1_col1", "contact.medical.service.howsoon.gp.receptionist")
+setnames(st15, "Q8b_multi_row2_col1", "contact.medical.service.howsoon.gp.doctor.nurse")
+setnames(st15, "Q8b_multi_row3_col1", "contact.medical.service.howsoon.nhs")
+setnames(st15, "Q8b_multi_row4_col1", "contact.medical.service.howsoon.other")
+setnames(st15, "Q9_0", "no.medication")
+setnames(st15, "Q9_1", "medication.painkillers")
+setnames(st15, "Q9_2", "medication.cough")
+setnames(st15, "Q9_3", "medication.antiviral")
+setnames(st15, "Q9_4", "medication.antibiotic")
+setnames(st15, "Q9_5", "medication.other")
+setnames(st15, "Q9_6", "medication.dontknow")
+setnames(st15, "Q9b", "medication.howsoon")
+setnames(st15, "Q10", "alter.routine")
+setnames(st15, "Q10b", "still.altered")
+setnames(st15, "Q10c", "howlong.altered")
+setnames(st15, "Q11", "what.do.you.think")
+setnames(st15, "Q12", "health.score")
+
+## assign some useful variables: ili yes/no, number of reports, symptoms start
+## (as date), week of report, weight (for histograms later,
+## i.e. 1/(number of reports that week), and birthdate
+symptoms.15 <- c("fever","chills","blocked.runny.nose","sneezing","sore.throat","cough","shortness.breath","headache","muscle.and.or.joint.pain","chest.pain","tired","loss.appetite","phlegm","watery.eyes","nausea","vomiting","diarrhoea","stomach.ache","other.symptoms")
+
+for (symptom in symptoms.15) {
+    st15 <- st15[get(symptom) == "f", paste("symptom.", symptom, sep = "") := as.integer(0), with = F]
+    st15 <- st15[get(symptom) == "t", paste("symptom.", symptom, sep = "") := as.integer(1), with = F]
+    st15 <- st15[, !symptom, with = F]
+    setnames(st15, paste("symptom.", symptom, sep = ""), symptom)
+}
+
+st15$ili <- ((st15$symptoms.suddenly == 0) &
+             (st15$fever == 1 | st15$tired == 1 |
+              st15$headache == 1 |
+              st15$muscle.and.or.joint.pain ==1) &
+             (st15$sore.throat == 1 | st15$cough ==1 |
+              st15$shortness.breath == 1))
+st15$ili <- as.numeric(st15$ili)
+
+st15$ili.notired <- ((st15$symptoms.suddenly == 0) &
+                     (st15$fever == 1 | st15$headache == 1 |
+                      st15$muscle.and.or.joint.pain ==1) &
+                     (st15$sore.throat == 1 | st15$cough ==1 |
+                      st15$shortness.breath == 1))
+st15$ili.notired <- as.numeric(st15$ili.notired)
+
+st15$ili.fever <- ((st15$symptoms.suddenly == 0) &
+                   (st15$fever == 1) &
+                   (st15$sore.throat == 1 | st15$cough ==1 |
+                    st15$shortness.breath == 1))
+st15$ili.fever <- as.numeric(st15$ili.fever)
+
+
+freq <-
+    data.table(aggregate(st15$global.id.number,
+                         by=list(st15$global.id.number),
+                         length))
+setkey(freq, Group.1)
+st15 <- st15[freq]
+setnames(st15, "x", "nReports")
+
+mindate <-
+    data.table(aggregate(st15$date,
+                         by=list(st15$global.id.number),
+                         min))
+setkey(mindate, Group.1)
+st15 <- st15[mindate]
+setnames(st15, "x", "mindate")
+maxdate <-
+    data.table(aggregate(st15$date,
+                         by=list(st15$global.id.number),
+                         max))
+setkey(maxdate, Group.1)
+st15 <- st15[maxdate]
+setnames(st15, "x", "maxdate")
+
+st15$week <- format(st15$date, format="%G-%W")
+st15[st15$week=="2015-00"]$week <- "2015-53"
+
+st15$symptoms.start.date <- as.Date(st15$symptoms.start.date, "%Y-%m-%d")
+st15$symptoms.end.date <- as.Date(st15$symptoms.end.date, "%Y-%m-%d")
+st15$symptoms.start.week <- format(st15$symptoms.start.date, format="%G-%W")
+st15[st15$symptoms.start.week=="2015-00"]$symptoms.start.week <- "2013-53"
+st15[st15$symptoms.start.week=="2015-52"]$symptoms.start.week <- "2013-52"
+
+## more variables to be used later
+bt15 <- bt15[, country := "uk"]
+
+bt15$birthdate <- as.Date(paste(bt15$birthmonth, "-01",sep=""))
+
+
+bt15$norisk <- factor(bt15$norisk)
+bt15$atrisk <- bt15$norisk
+levels(bt15$atrisk) <- c(NA, 1,0)
+bt15$atrisk <- as.numeric(paste(bt15$atrisk))
+bt15$age <-  0
+bt15$age <- apply(bt15, 1, function(x) { age_years(as.Date(x["birthdate"]),
+                                                   as.Date(x["date"]))})
+bt15$agegroup <- cut(bt15$age, breaks=c(0,18,45,65, max(bt15$age, na.rm=T)),
+                     include.lowest=T, right=F)
+bt15$vaccine.date <- as.Date(bt15$date.vaccine, "%Y-%m-%d")
+## bt15$vaccine <- as.numeric(bt15$vaccine.this.year==0 & (is.na(bt15$vaccine.date) |
+##                            bt15$vaccine.date <= bt15$date))
+bt15$children <- as.numeric((bt15$household.0.4 == "t" | bt15
+                             $household.5.18 == "t"))
+
+st15$ili.self <- (st15$what.do.you.think == 0)
+st15[is.na(ili.self)]$ili.self <- FALSE
+
+bt15$using.transport <- (bt15$transport > 0)
+
+bt15$postcode <- sub("[[:blank:]]+$", "", bt15$postcode)
+bt15$postcode <- toupper(bt15$postcode)
+
+bt15$work.postcode <- sub("[[:blank:]]+$", "", bt15$work.postcode)
+bt15$work.postcode <- toupper(bt15$work.postcode)
+
+bt15 <- bt15[country == "uk", "ur" := uk.ur$V3[match(bt15[country == "uk",]$postcode,
+                                   uk.ur$V1)], with=F]
+bt15 <- bt15[country == "uk", "uk.country" := uk.ur$V2[match(bt15[country ==
+                                           "uk"]$postcode, uk.ur$V1)], with=F]
+bt15 <- bt15[country == "uk", "urban" := rep(0, length(bt15[country ==
+                                      "uk"]$postcode)), with=F]
+bt15 <- bt15[country == "uk", "ur" := uk.ur$V3[match(bt15[country == "uk",]$postcode,
+                                   uk.ur$V1)], with=F]
+bt15 <- bt15[country == "uk", "uk.country" := uk.ur$V2[match(bt15[country ==
+                                           "uk"]$postcode, uk.ur$V1)], with=F]
+bt15 <- bt15[country == "uk", "urban" := rep(0, length(bt15[country ==
+                                      "uk"]$postcode)), with=F]
+
+bt15[country == "uk" & is.na(bt15$ur),]$urban <- 2
+
+bt15[bt15$uk.country %in% c("E","W") & !(bt15$ur %in% c(2,3,4,6,7,8)),]$urban <- 0
+bt15[bt15$uk.country %in% c("E","W") & bt15$ur %in% c(1,5),]$urban <- 1
+
+bt15[bt15$uk.country == "S" & bt15$ur %in% c(1,2),]$urban <- 1
+bt15[bt15$uk.country == "S" & bt15$ur %in% c(3,4,5,6,7),]$urban <- 0
+
+bt15[bt15$uk.country == "N" & bt15$ur %in% c(1,2,3,4),]$urban <- 1
+bt15[bt15$uk.country == "N" & !(bt15$ur %in% c(5,6,7)),]$urban <- 0
+
+bt15$urban <- as.factor(bt15$urban)
+
+bt15 <- bt15[country == "uk", "work.ur" := uk.ur$V3[match(bt15[country ==
+                                        "uk",]$work.postcode, uk.ur$V1)], with=F]
+bt15 <- bt15[country == "uk", "work.uk.country" := uk.ur$V2[match(bt15[country ==
+                                                "uk"]$work.postcode, uk.ur$V1)], with=F]
+bt15 <- bt15[country == "uk", "work.urban" := rep(0, length(bt15[country ==
+                                           "uk"]$work.postcode)), with=F]
+
+bt15[country == "uk" & is.na(bt15$work.ur),]$work.urban <- 2
+
+bt15[bt15$work.uk.country %in% c("E","W") & !(bt15$work.ur %in% c(2,3,4,6,7,8)),]$work.urban <- 0
+bt15[bt15$work.uk.country %in% c("E","W") & bt15$work.ur %in% c(1,5),]$work.urban <- 1
+
+bt15[bt15$work.uk.country == "S" & bt15$work.ur %in% c(1,2),]$work.urban <- 1
+bt15[bt15$work.uk.country == "S" & bt15$work.ur %in% c(3,4,5,6,7),]$work.urban <- 0
+
+bt15[bt15$work.uk.country == "N" & bt15$work.ur %in% c(1,2,3,4),]$work.urban <- 1
+bt15[bt15$work.uk.country == "N" & !(bt15$work.ur %in% c(5,6,7)),]$work.urban <- 0
+
+bt15$work.urban <- as.factor(bt15$work.urban)
+
+data.15 <- list(symptoms = st15, background = bt15)
+saveRDS(data.15, "flusurvey_201315_raw.rds")
+
+## rolling join of symptoms and background, by id number (first) and date
+## (second)
+dt15 <- bt15[st15, roll=TRUE]
+
+##cleanup (some participants have only a weekly survey, no background one)
+dt15 <- dt15[!is.na(global.id.number)]
+
+saveRDS(dt15, "flusurvey_201315.rds")
+
 ## 2014
 sf14 <- read.csv('weekly_14.csv', sep=',', header=T)
 bf14 <- read.csv('intake_14.csv', sep=',', header=T)
@@ -1753,16 +2103,16 @@ setnames(bt10, "q2060_7", "how.find.out.survey.team")
 setnames(bt10, "q2060_8", "how.find.out.other")
 setnames(vt10, "q9001", "offered.swineflu.vaccine")
 setnames(vt10, "q9002", "why.offered.swineflu.vaccine")
-setnames(vt10, "q9003", "had.swineflu.vaccine")
+setnames(vt10, "q9003", "swineflu.vaccine.this.year")
 setnames(vt10, "q9004", "intend.swineflue.vaccine")
 setnames(vt10, "q9005", "date.swineflu.vaccine")
 setnames(vt10, "q9006", "why.not.swineflu.vaccine")
 setnames(vt10, "q9007", "why.swineflu.vaccine")
 setnames(vt10, "q9008", "offered.seasonal.vaccine")
 setnames(vt10, "q9009", "why.offered.seasonal.vaccine")
-setnames(vt10, "q9010", "had.seasonal.vaccine")
+setnames(vt10, "q9010", "vaccine.this.year")
 setnames(vt10, "q9011", "intend.seasonal.vaccine")
-setnames(vt10, "q9012", "date.seasonal.vaccine")
+setnames(vt10, "q9012", "date.vaccine")
 setnames(vt10, "q9013", "why.not.seasonal.vaccine")
 setnames(vt10, "q9014", "why.seasonal.vaccine")
 setnames(st10, "q3000", "symptoms")
@@ -1895,6 +2245,8 @@ ct10 <- ct10[,"physical" := get("physical.home") +
 ct10$week <- format(ct10$date, format="%G-%W")
 ct10[ct10$week=="2009-00"]$week <- "2009-53"
 
+vt10 <- vt10[, vaccine.date := as.Date(vt10$date.vaccine, "%Y-%m-%d")]
+
 ## assign some useful variables: ili yes/no, number of reports, symptoms start
 ## (as date), week of report, weight (for histograms later,
 ## i.e. 1/(number of reports that week), and birthdate
@@ -2023,7 +2375,7 @@ saveRDS(data.10, "flusurvey_200910_raw.rds")
 
 ## rolling join of symptoms and background, by id number (first) and date
 ## (second)
-dt10 <- bt10[ct10[st10, roll=TRUE], roll = TRUE]
+dt10 <- bt10[vt10[ct10[st10, roll=TRUE], roll = TRUE], roll = TRUE]
 dt10 <- dt10[!is.na(global.id.number)]
 
 saveRDS(dt10, "flusurvey_200910.rds")
@@ -2046,11 +2398,11 @@ join.vertical <- function (...) {
     res <- do.call("rbind", c(x, list(use.names = T)))
 }
 
-st <- join.vertical(st14, st13, st12, st11, st10)
-bt <- join.vertical(bt14, bt13, bt12, bt11, bt10)
+st <- join.vertical(st15, st14, st13, st12, st11, st10)
+bt <- join.vertical(bt15, bt14, bt13, bt12, bt11, bt10)
 ct <- join.vertical(ct13, ct12, ct11, ct10)
-dt <- join.vertical(dt14, dt13, dt12, dt11, dt10)
+dt <- join.vertical(dt15, dt14, dt13, dt12, dt11, dt10)
 
 data <- list(symptoms = st, background = bt, contact = ct)
-saveRDS(data, "flusurvey_200914_raw.rds")
-saveRDS(dt, "flusurvey_200914.rds")
+saveRDS(data, "flusurvey_200915_raw.rds")
+saveRDS(dt, "flusurvey_200915.rds")
