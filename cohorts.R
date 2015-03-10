@@ -4,6 +4,9 @@ library(ISOweek)
 library(scales)
 library(binom)
 library(reshape2)
+library(ggthemr)
+
+ggthemr('fresh')
 
 dt <- readRDS("flusurvey_200915.rds")
 dt$agegroup <- cut(dt$age, breaks=c(0,18,45,65, max(dt$age, na.rm=T)),
@@ -22,7 +25,7 @@ temp.data <- dt[!is.na(age) & !is.na(ili.fever) & !is.na(vaccine)]
 
 ## data <- temp.data[, list(non.ili = sum(ili.fever == 0), ili = sum(ili.fever == 1)), by = list(vaccine, atrisk, children, agegroup, week.date)]
 ## setkey(data, week.date, agegroup, vaccine, atrisk, children)
-data <- temp.data[, list(no.vaccine = sum(vaccine == 0), vaccine = sum(vaccine == 1), no.vaccine.ili = sum(vaccine == 0 & ili.fever == 1), vaccine.ili = sum(vaccine == 1 & ili.fever == 1), no.vaccine.no.ili = sum(vaccine == 0 & ili.fever == 0), vaccine.no.ili = sum(vaccine == 1 & ili.fever == 0)), by = list(atrisk, children, agegroup, symptoms.start.week.date)]
+data <- temp.data[, list(no.vaccine = sum(vaccine == 0), vaccine = sum(vaccine == 1), no.vaccine.ili = sum(vaccine == 0 & ili.fever == 1), vaccine.ili = sum(vaccine == 1 & ili.fever == 1), no.vaccine.no.ili = sum(vaccine == 0 & ili.fever == 0), vaccine.no.ili = sum(vaccine == 1 & ili.fever == 0)), by = list(gender, atrisk, children, agegroup, symptoms.start.week.date)]
 data[, cohort.size := min(vaccine, no.vaccine), by = 1:nrow(data)]
 data <- data[cohort.size > 0]
 data <- data[symptoms.start.week.date <= as.Date(Sys.time())]
@@ -101,6 +104,18 @@ p <- p + scale_y_continuous("Prevalence of ILI + fever (in %)")
 p <- p + theme(legend.position = "top")
 ggsave("cohort_seasons_2015.pdf", p)
 
+p <- ggplot(mc[season == 2015], 
+            aes(x = year.date, y = prevalence * 100,
+                ymin = lower * 100, ymax = upper * 100,
+                color = status, fill = status))
+p <- p + geom_ribbon(alpha = 0.2)
+p <- p + geom_line(lwd = 1.2)
+p <- p + scale_color_brewer("", palette = "Set1")
+p <- p + scale_fill_brewer("", palette = "Set1")
+p <- p + scale_x_date("")
+p <- p + scale_y_continuous("Prevalence of ILI + fever (in %)")
+p <- p + theme(legend.position = "top")
+ggsave("cohorts_2015.pdf", p)
 
 co.all.12 <- read.csv("cohorts_all_201112.csv", sep=",", header=T)
 co.country.12 <- read.csv("cohorts_country_201112.csv", sep=",", header=T)
