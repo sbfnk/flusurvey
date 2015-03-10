@@ -3,16 +3,15 @@ library(ggplot2)
 library(ISOweek)
 library(scales)
 library(binom)
+library(reshape2)
 
-dt <- readRDS("flusurvey_200914.rds")
+dt <- readRDS("flusurvey_200915.rds")
 dt$agegroup <- cut(dt$age, breaks=c(0,18,45,65, max(dt$age, na.rm=T)),
                    include.lowest=T, right=F)
 dt$vaccine <- as.numeric(dt$vaccine.this.year==0 & (is.na(dt$vaccine.date) |
                                                         dt$vaccine.date <= dt$date))
-dt[, week := date2ISOweek(date)]
-dt[, week.date := ISOweek2date(sub("-[1-7]", "-1", week))]
-dt[, symptoms.start.week := date2ISOweek(symptoms.start.date)]
-dt[, symptoms.start.week.date := ISOweek2date(sub("-[1-7]", "-1", symptoms.start.week))]
+dt[, week.date := date - wday(date) + 1]
+dt[, symptoms.start.week.date := symptoms.start.date - wday(symptoms.start.date) + 1]
 dt[is.na(symptoms.start.week.date), symptoms.start.week.date := week.date]
 
 levels(dt$agegroup) <- c("<18","18-44","45-64","65+")
@@ -26,12 +25,18 @@ temp.data <- dt[!is.na(age) & !is.na(ili.fever) & !is.na(vaccine)]
 data <- temp.data[, list(no.vaccine = sum(vaccine == 0), vaccine = sum(vaccine == 1), no.vaccine.ili = sum(vaccine == 0 & ili.fever == 1), vaccine.ili = sum(vaccine == 1 & ili.fever == 1), no.vaccine.no.ili = sum(vaccine == 0 & ili.fever == 0), vaccine.no.ili = sum(vaccine == 1 & ili.fever == 0)), by = list(atrisk, children, agegroup, symptoms.start.week.date)]
 data[, cohort.size := min(vaccine, no.vaccine), by = 1:nrow(data)]
 data <- data[cohort.size > 0]
+data <- data[symptoms.start.week.date <= as.Date(Sys.time())]
 
 data[, nvi := no.vaccine.ili / no.vaccine * cohort.size]
 data[, vi := vaccine.ili / vaccine * cohort.size]
 
 setnames(data, "symptoms.start.week.date", "date")
 setkey(data, date, agegroup, vaccine, atrisk, children)
+
+data[, season := year(date + 182)]
+
+## vi
+ve <- data[, (sum(no.vaccine.ili) / sum(no.vaccine) - sum(vaccine.ili) / sum(vaccine)) / (sum(no.vaccine.ili) / sum(no.vaccine))] * 100
 
 cohorts <- data[, list(cohort.size = sum(cohort.size),
                        unvaccinated = sum(nvi),
@@ -43,6 +48,7 @@ setkey(cohorts, date)
 mc <- data.table(melt(cohorts, id.vars = c("date", "cohort.size")))
 setnames(mc, "value", "ili")
 setnames(mc, "variable", "status")
+mc[, season := year(date + 182)]
 mc[, season := year(date + 182)]
 
 for (this.season in unique(mc[, season]))
