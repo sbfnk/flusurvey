@@ -46,6 +46,9 @@ setnames(bt15, 2, "global_id.bg")
 st15$date <- as.Date(st15$timestamp)
 bt15$date <- as.Date(bt15$timestamp)
 
+st15 <- st15[date > "2014-07-01"]
+bt15 <- bt15[date > "2014-07-01"]
+
 st15 <- st15[!duplicated(bt15[, list(global.id.number, date)], fromLast=T)]
 bt15 <- bt15[!duplicated(bt15[, list(global.id.number, date)], fromLast=T)]
 setkey(st15, global.id.number, date)
@@ -110,7 +113,7 @@ setnames(bt15, "Q10d_10", "why.not.vaccine.unavailable")
 setnames(bt15, "Q10d_11", "why.not.vaccine.not.free")
 setnames(bt15, "Q10d_12", "why.not.vaccine.no.reason")
 setnames(bt15, "Q10d_13", "why.not.vaccine.doctor")
-setnames(bt15, "Q10d_15", "why.not.vaccine.other")
+setnames(bt15, "Q10d_14", "why.not.vaccine.other")
 setnames(bt15, "Q11_0", "norisk")
 setnames(bt15, "Q11_1", "risk.asthma")
 setnames(bt15, "Q11_2", "risk.diabetes")
@@ -121,11 +124,11 @@ setnames(bt15, "Q11_6", "risk.immune")
 setnames(bt15, "Q12", "pregnant")
 setnames(bt15, "Q12b", "pregnant.trimester")
 setnames(bt15, "Q13", "smoke")
-setnames(bt15, "Q15_1", "allergy.hayfever")
-setnames(bt15, "Q15_2", "allergy.dust")
-setnames(bt15, "Q15_3", "allergy.animals")
-setnames(bt15, "Q15_4", "allergy.other")
-setnames(bt15, "Q15_5", "allergy.none")
+setnames(bt15, "Q14_1", "allergy.hayfever")
+setnames(bt15, "Q14_2", "allergy.dust")
+setnames(bt15, "Q14_3", "allergy.animals")
+setnames(bt15, "Q14_4", "allergy.other")
+setnames(bt15, "Q14_5", "allergy.none")
 setnames(bt15, "Q15_0", "diet.none")
 setnames(bt15, "Q15_1", "diet.vegetarian")
 setnames(bt15, "Q15_2", "diet.vegan")
@@ -161,7 +164,7 @@ setnames(st15, "Q1_10", "chest.pain")
 setnames(st15, "Q1_11", "tired")
 setnames(st15, "Q1_12", "loss.appetite")
 setnames(st15, "Q1_13", "phlegm")
-setnames(st15, "Q1_15", "watery.eyes")
+setnames(st15, "Q1_14", "watery.eyes")
 setnames(st15, "Q1_15", "nausea")
 setnames(st15, "Q1_16", "vomiting")
 setnames(st15, "Q1_17", "diarrhoea")
@@ -359,6 +362,10 @@ bt15$work.urban <- as.factor(bt15$work.urban)
 data.15 <- list(symptoms = st15, background = bt15)
 saveRDS(data.15, "flusurvey_201315_raw.rds")
 
+data.15 <- readRDS("flusurvey_201315_raw.rds")
+st15 <- data.15$symptoms
+bt15 <- data.15$background
+
 ## rolling join of symptoms and background, by id number (first) and date
 ## (second)
 dt15 <- bt15[st15, roll=TRUE]
@@ -366,7 +373,11 @@ dt15 <- bt15[st15, roll=TRUE]
 ##cleanup (some participants have only a weekly survey, no background one)
 dt15 <- dt15[!is.na(global.id.number)]
 
+dt15 <- dt15[date > "2014-07-01"]
+
 saveRDS(dt15, "flusurvey_201315.rds")
+
+dt15 <- readRDS("flusurvey_201315.rds")
 
 ## 2014
 sf14 <- read.csv('weekly_14.csv', sep=',', header=T)
@@ -709,6 +720,10 @@ bt14$work.urban <- as.factor(bt14$work.urban)
 data.14 <- list(symptoms = st14, background = bt14)
 saveRDS(data.14, "flusurvey_201314_raw.rds")
 
+data.14 <- readRDS("flusurvey_201314_raw.rds")
+st14 <- data.14$symptoms
+bt14 <- data.14$background
+
 ## rolling join of symptoms and background, by id number (first) and date
 ## (second)
 dt14 <- bt14[st14, roll=TRUE]
@@ -717,6 +732,7 @@ dt14 <- bt14[st14, roll=TRUE]
 dt14 <- dt14[!is.na(global.id.number)]
 
 saveRDS(dt14, "flusurvey_201314.rds")
+dt14 <- readRDS("flusurvey_201314.rds")
 
 ## 2013
 sf13 <- read.csv('weekly_13.csv', sep=',', header=T)
@@ -1151,6 +1167,10 @@ bt13$work.urban <- as.factor(bt13$work.urban)
 data.13 <- list(symptoms = st13, background = bt13, contact = ct13)
 saveRDS(data.13, "flusurvey_201213_raw.rds")
 
+data.13 <- readRDS("flusurvey_201213_raw.rds")
+st13 <- data.13$symptoms
+bt13 <- data.13$background
+ct13 <- data.13$contact
 
 ## rolling join of symptoms and background, by id number (first) and date
 ## (second)
@@ -1160,6 +1180,7 @@ dt13 <- bt13[ct13[st13, roll=TRUE], roll = TRUE]
 dt13 <- dt13[!is.na(global.id.number)]
 
 saveRDS(dt13, "flusurvey_201213.rds")
+dt13 <- readRDS("flusurvey_201213.rds")
 
 ## 2012
 sf12 <- read.csv('weekly_12.csv', sep=',', header=T)
@@ -1585,6 +1606,11 @@ bt12$work.urban <- as.factor(bt12$work.urban)
 data.12 <- list(symptoms = st12, background = bt12, contact = ct12)
 saveRDS(data.12, "flusurvey_201112_raw.rds")
 
+data.12 <- readRDS("flusurvey_201112_raw.rds")
+st12 <- data.12$symptoms
+bt12 <- data.12$background
+ct12 <- data.12$contact
+
 ## rolling join of symptoms and background, by id number (first) and date
 ## (second)
 dt12 <- bt12[ct12[st12, roll=TRUE], roll = TRUE]
@@ -1593,6 +1619,7 @@ dt12 <- dt12[!is.na(global.id.number)]
 
 saveRDS(dt12, "flusurvey_201112.rds")
 
+dt12 <- readRDS("flusurvey_201112.rds")
 ## 2011
 
 sf11 <- read.csv('201011/weekly_201011.csv', header=T, sep=',');
@@ -1978,6 +2005,12 @@ bt11$work.urban <- as.factor(bt11$work.urban)
 data.11 <- list(symptoms = st11, background = bt11, contact = ct11)
 saveRDS(data.11, "flusurvey_201011_raw.rds")
 
+data.11 <- readRDS("flusurvey_201011_raw.rds")
+st11 <- data.11$symptoms
+bt11 <- data.11$background
+ct11 <- data.11$contact
+
+
 ## rolling join of symptoms and background, by id number (first) and date
 ## (second)
 dt11 <- bt11[ct11[st11, roll=TRUE], roll = TRUE]
@@ -1985,6 +2018,8 @@ dt11 <- bt11[ct11[st11, roll=TRUE], roll = TRUE]
 dt11 <- dt11[!is.na(global.id.number)]
 
 saveRDS(dt11, "flusurvey_201011.rds")
+
+dt11 <- readRDS("flusurvey_201011.rds")
 
 ## 2010
 
@@ -2373,12 +2408,20 @@ bt10$work.urban <- as.factor(bt10$work.urban)
 data.10 <- list(symptoms = st10, background = bt10, contact = ct10, vaccination = vt10)
 saveRDS(data.10, "flusurvey_200910_raw.rds")
 
+data.10 <- readRDS("flusurvey_200910_raw.rds")
+st10 <- data.10$symptoms
+bt10 <- data.10$background
+ct10 <- data.10$contact
+vt10 <- data.10$vaccination
+
 ## rolling join of symptoms and background, by id number (first) and date
 ## (second)
 dt10 <- bt10[vt10[ct10[st10, roll=TRUE], roll = TRUE], roll = TRUE]
 dt10 <- dt10[!is.na(global.id.number)]
 
 saveRDS(dt10, "flusurvey_200910.rds")
+
+dt10 <- readRDS("flusurvey_200910.rds")
 
 ## merge what we can merge
 join.vertical <- function (...) {
