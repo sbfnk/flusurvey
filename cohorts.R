@@ -53,9 +53,6 @@ cohorts <- data[, list(cohort.size = sum(cohort.size),
 cohorts <- cohorts[cohort.size > 50]
 setkey(cohorts, date)
 
-## ve
-ve <- data[, (sum(no.vaccine.ili) / sum(no.vaccine) - sum(vaccine.ili) / sum(vaccine)) / (sum(no.vaccine.ili) / sum(no.vaccine))] * 100
-
 mc <- data.table(melt(cohorts, id.vars = c("date", "cohort.size")))
 setnames(mc, "value", "ili")
 setnames(mc, "variable", "status")
@@ -72,6 +69,28 @@ confints <- data.table(binom.confint(mc[, ili], mc[, cohort.size],
                                      methods = "lrt"))
 mc <- cbind(mc, confints[, list(mean, lower, upper)])
 setnames(mc, "mean", "prevalence")
+
+lmc <- copy(mc)
+lmc[status == "vaccinated", ili := upper * cohort.size]
+lmc[status == "unvaccinated", ili := lower * cohort.size]
+
+umc <- copy(mc)
+umc[status == "vaccinated", ili := lower * cohort.size]
+umc[status == "unvaccinated", ili := upper * cohort.size]
+
+wmc <-
+    dcast(rbind(mc[, list(date, cohort.size, status, ili, season, limit = "mean")],
+                lmc[, list(date, cohort.size, status, ili, season, limit = "lower")],
+                umc[, list(date, cohort.size, status, ili, season, limit = "upper")]),
+          date + cohort.size + season + limit ~ status, value.var = "ili")
+wmc <- data.table(wmc)
+
+## ve
+ve <- data[, list(mean = (sum(no.vaccine.ili) / sum(no.vaccine) - sum(vaccine.ili) / sum(vaccine)) / (sum(no.vaccine.ili) / sum(no.vaccine)))] * 100
+
+ve <- wmc[, list(value = (sum(unvaccinated) / sum(cohort.size) - sum(vaccinated) / sum(cohort.size)) / (sum(unvaccinated) / sum(cohort.size)) * 100), by = list(limit, season)]
+
+
 
 write.csv(data, "cohorts_fever_200915.csv", quote=F, row.names=F)
 
