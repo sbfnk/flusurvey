@@ -3,7 +3,7 @@ library(rgdal)
 library(RSAGA)
 library(R.utils)
 
-UKregions <- readOGR("uk_regions.shp", "uk_regions")
+UKregions <- readOGR(path.expand("~/Research/FluSurvey/Shapefiles/uk_regions.shp"), "uk_regions")
 mzoom <- MaxZoom(latrange=UKregions@bbox[2,], lonrange=UKregions@bbox[1,], size=c(640, 640))[[1]]
 mzoom
 # Center of the study area:
