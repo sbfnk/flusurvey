@@ -26,13 +26,22 @@ join.vertical <- function (...) {
 setkey(dt10$background, global.id.number)
 setkey(dt10$vaccination, global.id.number)
 dt10$background <- merge(dt10$background, dt10$vaccination)
-dt10$background[, vaccine.this.year := as.numeric(had.seasonal.vaccine == 1)]
-dt10$background[, vaccine.this.year.swineflu := as.numeric(had.swineflu.vaccine == 1)]
+## in the other seasons,  vaccine.this.year == 0 means vaccinated,  here its' vaccine.this.year == 1
+dt10$background[, vaccine.this.year := as.integer(as.character(vaccine.this.year)) - 1]
+dt10$background[, vaccine.this.year.swineflu := as.integer(as.character(swineflu.vaccine.this.year)) - 1]
 setnames(dt10$background, "date.y", "date")
 
 dt11$background <- dt11$background[, vaccine.this.year.swineflu := NA_real_]
 dt12$background <- dt12$background[, vaccine.this.year.swineflu := NA_real_]
 dt13$background <- dt13$background[, vaccine.this.year.swineflu := NA_real_]
+
+dt11[["contact"]][, "physical.19-64" := get("physical.19-44") + get("physical.45-64")]
+dt12[["contact"]][, "physical.19-64" := get("physical.19-44") + get("physical.45-64")]
+dt13[["contact"]][, "physical.19-64" := get("physical.19-44") + get("physical.45-64")]
+
+dt11[["contact"]][, "conversational.19-64" := get("conversational.19-44") + get("conversational.45-64")]
+dt12[["contact"]][, "conversational.19-64" := get("conversational.19-44") + get("conversational.45-64")]
+dt13[["contact"]][, "conversational.19-64" := get("conversational.19-44") + get("conversational.45-64")]
 
 st <- join.vertical(dt13$symptoms, dt12$symptoms, dt11$symptoms, dt10$symptoms)
 bt <- join.vertical(dt13$background, dt12$background, dt11$background, dt10$background)
@@ -54,9 +63,19 @@ ct <- ct[season %in% as.numeric(names(which(table(ct$season) > 100)))]
 
 st <- st[, list(ili = as.numeric(any(ili.fever ==1))), by = list(global.id.number, season)]
 bt <- bt[, list(vaccinated = as.numeric(any(vaccine.this.year == 0)), vaccinated.swineflu = as.numeric(any(vaccine.this.year.swineflu == 0))), by = list(global.id.number, season)]
-ct <- ct[, list(physical = mean(physical),
-                conversational = mean(conversational),
-                reports = length(physical)),
+## ct <- ct[, list(physical = mean(physical),
+##                 conversational = mean(conversational),
+##                 reports = length(physical)),
+##          by = list(global.id.number, season)]
+
+ct <- ct[, list("physical.0-4" = mean(get("physical.0-4")),
+                "physical.5-18" = mean(get("physical.5-18")),
+                "physical.19-64" = mean(get("physical.19-64")),
+                "physical.65+" = mean(get("physical.65+")),
+                "conversational.0-4" = mean(get("conversational.0-4")),
+                "conversational.5-18" = mean(get("conversational.5-18")),
+                "conversational.19-64" = mean(get("conversational.19-64")),
+                "conversational.65+" = mean(get("conversational.65+"))), 
          by = list(global.id.number, season)]
 
 setkey(st, global.id.number, season)
@@ -65,5 +84,9 @@ setkey(ct, global.id.number, season)
 
 dt <- merge(merge(st, bt), ct)
 dt[is.na(ili), ili := 0]
+
+dt[, id := sample(1:4260, 4260)]
+
+dt <- dt[, c("id", setdiff(colnames(dt), c("global.id.number", "id"))), with = FALSE]
 
 write.table(dt, "contacts_vacc_ili.csv", quote = F, row.names = F, sep = ",")
