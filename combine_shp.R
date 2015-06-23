@@ -33,8 +33,3 @@ for (i in 2:length(files)) {
 }
 
 plot(poly.data)
-
-# save new shapefile
-
-combined.shp <- 'uk_pcd_1998.shp'
-writeOGR(poly.data, dsn=combined.shp, layer='combined1', driver='ESRI Shapefile')
