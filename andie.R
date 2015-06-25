@@ -61,8 +61,11 @@ ct <- ct[, shos := ifelse(month < 7, -1, 0)]
 ct <- ct[, season := as.numeric(format(date, "%Y")) + shos]
 ct <- ct[season %in% as.numeric(names(which(table(ct$season) > 100)))]
 
-st <- st[, list(ili = as.numeric(any(ili.fever ==1))), by = list(global.id.number, season)]
-bt <- bt[, list(vaccinated = as.numeric(any(vaccine.this.year == 0)), vaccinated.swineflu = as.numeric(any(vaccine.this.year.swineflu == 0))), by = list(global.id.number, season)]
+bt[, agegroup := cut(age, c(0, 5, 19, 65, 100), right = FALSE, labels = c("0-4", "5-18", "19-64", "65+"))]
+bt <- bt[!is.na(agegroup)]
+
+st <- st[, list(ili = as.numeric(any(ili.fever ==1, na.rm = TRUE))), by = list(global.id.number, season)]
+bt <- bt[, list(vaccinated = as.numeric(any(vaccine.this.year == 0)), vaccinated.swineflu = as.numeric(any(vaccine.this.year.swineflu == 0))), by = list(global.id.number, agegroup, season)]
 ## ct <- ct[, list(physical = mean(physical),
 ##                 conversational = mean(conversational),
 ##                 reports = length(physical)),
@@ -83,9 +86,11 @@ setkey(bt, global.id.number, season)
 setkey(ct, global.id.number, season)
 
 dt <- merge(merge(st, bt), ct)
-dt[is.na(ili), ili := 0]
 
-dt[, id := sample(1:4260, 4260)]
+sample.ids <- data.table(global.id.number = unique(dt[, global.id.number]))
+sample.ids[, id := seq_len(nrow(sample.ids))]
+
+dt <- merge(dt, sample.ids, by = "global.id.number")
 
 dt <- dt[, c("id", setdiff(colnames(dt), c("global.id.number", "id"))), with = FALSE]
 
