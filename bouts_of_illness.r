@@ -13,6 +13,14 @@ for (file in c("flusurvey_201315.csv", "flusurvey_201213.csv", "flusurvey_201112
     dt <- dt[no.symptoms.reports > 0]
     dt[, no.symptoms.reports := NULL]
 
+    if ("health.score" %in% colnames(dt))
+    {
+        baselines <- dt[no.symptoms == 1,
+                        list(baseline.health.score = mean(health.score)),
+                        by = id]
+        dt <- merge(dt, baselines, by = "id", all.x = TRUE)
+    }
+
     setkey(dt, id, date)
 
     ids <- unique(dt[, id])
@@ -82,6 +90,13 @@ for (file in c("flusurvey_201315.csv", "flusurvey_201213.csv", "flusurvey_201112
                 bout.symptoms <- as.list(apply(df_bout[, columns, with = FALSE], 2,
                                                function(x) (as.integer(sum(x) > 0))))
                 df_bout[nrow(df_bout), colnames(df_bout)[columns] := bout.symptoms]
+
+                if ("health.score" %in% colnames(df_bout))
+                {
+                    df_bout[nrow(df_bout), health.score :=
+                                               min(df_bout[, health.score])]
+                }
+                
                 df_bout[, new.bout := NULL]
                 df_bout[, previous.no.symptoms := NULL]
                 df_bout[, bout := NULL]
@@ -94,6 +109,7 @@ for (file in c("flusurvey_201315.csv", "flusurvey_201213.csv", "flusurvey_201112
     bouts[, week := NULL]
     bouts[, postcode := NULL]
     bouts[, work.postcode := NULL]
+    bouts[, work.postcode.option := NULL]
 
     bouts <- bouts[symptoms.start.date <= symptoms.end.date]
     bouts[, bout.id := 1:nrow(bouts)]
