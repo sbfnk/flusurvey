@@ -16,7 +16,7 @@ for (file in c("flusurvey_201315.csv", "flusurvey_201213.csv", "flusurvey_201112
     if ("health.score" %in% colnames(dt))
     {
         baselines <- dt[no.symptoms == 1,
-                        list(baseline.health.score = mean(health.score)),
+                        list(baseline.health.score = as.numeric(median(health.score, na.rm = TRUE))),
                         by = id]
         dt <- merge(dt, baselines, by = "id", all.x = TRUE)
     }
@@ -110,6 +110,7 @@ for (file in c("flusurvey_201315.csv", "flusurvey_201213.csv", "flusurvey_201112
     bouts[, postcode := NULL]
     bouts[, work.postcode := NULL]
     bouts[, work.postcode.option := NULL]
+    bouts[, date := NULL]
 
     bouts <- bouts[symptoms.start.date <= symptoms.end.date]
     bouts[, bout.id := 1:nrow(bouts)]
