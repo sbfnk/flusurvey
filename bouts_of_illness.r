@@ -27,7 +27,7 @@ for (file in c("flusurvey_201315.csv", "flusurvey_201213.csv", "flusurvey_201112
     ids <- ids[!is.na(ids)]
 
     bouts <- copy(dt)[0]
-    symptoms <- c("fever","chills","blocked.runny.nose","sneezing","sore.throat","cough","shortness.breath","headache","muscle.and.or.joint.pain ","chest.pain","tired","loss.appetite","phlegm","watery.eyes","nausea","vomiting","diarrhoea","stomach.ache","other.symptoms", "ili", "ili.fever")
+    symptoms <- c("fever","chills","blocked.runny.nose","sneezing","sore.throat","cough","shortness.breath","headache","muscle.and.or.joint.pain ","chest.pain","tired","loss.appetite","phlegm","watery.eyes","nausea","vomiting","diarrhoea","stomach.ache","other.symptoms")
 
     for (this.id in ids)
     {
@@ -111,6 +111,29 @@ for (file in c("flusurvey_201315.csv", "flusurvey_201213.csv", "flusurvey_201112
     bouts[, work.postcode := NULL]
     bouts[, work.postcode.option := NULL]
     bouts[, date := NULL]
+    bouts[, howhear.who := NULL]
+    bouts[, using.transport := NULL]
+    bouts[, atrisk := 1 - norisk]
+    bouts[, norisk := NULL]
+    
+    bouts[, suddenly := 1]
+    bouts[is.na(symptoms.suddenly) & is.na(fever.suddenly), suddenly := NA]
+    bouts[is.na(symptoms.suddenly) & fever.suddenly > 0, suddenly := 0]
+    bouts[is.na(fever.suddenly) & symptoms.suddenly > 0, suddenly := 0]
+    bouts[fever.suddenly > 0 & symptoms.suddenly > 0, suddenly := 0]
+
+    bouts[, ili := ((suddenly == 0) &
+                   (fever == 1 | tired == 1 |
+                        headache == 1 | muscle.and.or.joint.pain == 1) &
+                   (sore.throat == 1 | cough ==1 |
+                        shortness.breath == 1))]
+    bouts[, ili := as.integer(ili)]
+
+    bouts[, ili.fever := ((suddenly == 0) &
+                          (fever == 1) &
+                          (sore.throat == 1 | cough ==1 |
+                               shortness.breath == 1))]
+    bouts[, ili.fever := as.integer(ili.fever)]
 
     bouts <- bouts[symptoms.start.date <= symptoms.end.date]
     bouts[, bout.id := 1:nrow(bouts)]
