@@ -5,6 +5,8 @@ dt11 <- readRDS("flusurvey_201011_raw.rds")
 dt12 <- readRDS("flusurvey_201112_raw.rds")
 dt13 <- readRDS("flusurvey_201213_raw.rds")
 
+setnames(dt10$symptoms, "medical.service.visit.gp", "visit.medical.service.gp")
+
 ## merge what we can merge
 join.vertical <- function (...) {
     x <- list(...)
@@ -47,6 +49,11 @@ st <- join.vertical(dt13$symptoms, dt12$symptoms, dt11$symptoms, dt10$symptoms)
 bt <- join.vertical(dt13$background, dt12$background, dt11$background, dt10$background)
 ct <- join.vertical(dt13$contact, dt12$contact, dt11$contact, dt10$contact)
 
+st[is.na(visit.medical.service.gp), visit.medical.service.gp := "0"]
+st[visit.medical.service.gp == "t", visit.medical.service.gp := "1"]
+st[visit.medical.service.gp == "f", visit.medical.service.gp := "0"]
+st[, visit.medical.service.gp := as.integer(as.character(visit.medical.service.gp))]
+
 # second half of season
 st <- st[, month := as.numeric(format(date, "%m"))]
 st <- st[, shos := ifelse(month < 7, -1, 0)]
@@ -61,10 +68,29 @@ ct <- ct[, shos := ifelse(month < 7, -1, 0)]
 ct <- ct[, season := as.numeric(format(date, "%Y")) + shos]
 ct <- ct[season %in% as.numeric(names(which(table(ct$season) > 100)))]
 
-bt[, agegroup := cut(age, c(0, 5, 19, 65, 100), right = FALSE, labels = c("0-4", "5-18", "19-64", "65+"))]
-bt <- bt[!is.na(agegroup)]
+total <- max(nrow(unique(st[, list(global.id.number, season)])),
+             nrow(unique(bt[, list(global.id.number, season)])),
+             nrow(unique(ct[, list(global.id.number, season)])))
+## [1] 14533
 
-st <- st[, list(ili = as.numeric(any(ili.fever ==1, na.rm = TRUE))), by = list(global.id.number, season)]
+no.ili.info <- st[, list(entries = sum(!is.na(ili.fever))), by = global.id.number][entries == 0, global.id.number]
+excluded.ili <- length(no.ili.info)
+## [1] 896
+
+st <- st[!(global.id.number %in% no.ili.info)]
+
+bt[, agegroup := cut(age, c(0, 5, 19, 65, 100), right = FALSE, labels = c("0-4", "5-18", "19-64", "65+"))]
+no.age.info <- bt[is.na(agegroup), global.id.number]
+excluded.agegroup <- length(no.age.info)
+# [1] 94
+
+st <- st[!(global.id.number %in% no.age.info)]
+bt <- bt[!(global.id.number %in% no.age.info)]
+ct <- ct[!(global.id.number %in% no.age.info)]
+
+st <- st[, list(ili = as.numeric(any(ili.fever ==1, na.rm = TRUE)),
+                gp.visited = as.numeric(any(visit.medical.service.gp == 1))),
+         by = list(global.id.number, season)]
 bt <- bt[, list(vaccinated = as.numeric(any(vaccine.this.year == 0)), vaccinated.swineflu = as.numeric(any(vaccine.this.year.swineflu == 0))), by = list(global.id.number, agegroup, season)]
 ## ct <- ct[, list(physical = mean(physical),
 ##                 conversational = mean(conversational),
@@ -85,7 +111,15 @@ setkey(st, global.id.number, season)
 setkey(bt, global.id.number, season)
 setkey(ct, global.id.number, season)
 
+total.pre.merge <- max(nrow(unique(st[, list(global.id.number, season)])),
+                       nrow(unique(bt[, list(global.id.number, season)])),
+                       nrow(unique(ct[, list(global.id.number, season)])))
+
 dt <- merge(merge(st, bt), ct)
+
+total.post.merge <- nrow(unique(dt[, list(global.id.number, season)]))
+with.contacts <- total.post.merge
+## [1] 4228
 
 sample.ids <- data.table(global.id.number = unique(dt[, global.id.number]))
 sample.ids[, id := seq_len(nrow(sample.ids))]
@@ -95,3 +129,5 @@ dt <- merge(dt, sample.ids, by = "global.id.number")
 dt <- dt[, c("id", setdiff(colnames(dt), c("global.id.number", "id"))), with = FALSE]
 
 write.table(dt, "contacts_vacc_ili.csv", quote = F, row.names = F, sep = ",")
+
+
