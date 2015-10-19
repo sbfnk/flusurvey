@@ -375,9 +375,9 @@ dt15 <- dt15[!is.na(global.id.number)]
 
 dt15 <- dt15[date > "2014-07-01"]
 
-saveRDS(dt15, "flusurvey_201315.rds")
+saveRDS(dt15, "flusurvey_201415.rds")
 
-dt15 <- readRDS("flusurvey_201315.rds")
+dt15 <- readRDS("flusurvey_201415.rds")
 
 ## 2014
 sf14 <- read.csv('weekly_14.csv', sep=',', header=T)
