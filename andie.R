@@ -64,7 +64,7 @@ ct <- ct[season %in% as.numeric(names(which(table(ct$season) > 100)))]
 bt[, agegroup := cut(age, c(0, 5, 19, 65, 100), right = FALSE, labels = c("0-4", "5-18", "19-64", "65+"))]
 bt <- bt[!is.na(agegroup)]
 
-st <- st[, list(ili = as.numeric(any(ili.fever ==1, na.rm = TRUE))), by = list(global.id.number, season)]
+st <- st[, list(ili = as.numeric(any(ili.fever ==1, na.rm = TRUE)), N = .N), by = list(global.id.number, season)]
 bt <- bt[, list(vaccinated = as.numeric(any(vaccine.this.year == 0)), vaccinated.swineflu = as.numeric(any(vaccine.this.year.swineflu == 0))), by = list(global.id.number, agegroup, season)]
 ## ct <- ct[, list(physical = mean(physical),
 ##                 conversational = mean(conversational),
