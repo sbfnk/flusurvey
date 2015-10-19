@@ -2,7 +2,7 @@ library(data.table)
 library(plyr)
 dt <- list()
 
-for (file in c("flusurvey_201315.rds", "flusurvey_201213.rds", "flusurvey_201112.rds"))
+for (file in c("flusurvey_201415.rds", "flusurvey_201314.rds",  "flusurvey_201213.rds", "flusurvey_201112.rds"))
 {
     dt[[file]] <- readRDS(file)
     dt[[file]] <- dt[[file]][!is.na(id)]
@@ -11,6 +11,12 @@ for (file in c("flusurvey_201315.rds", "flusurvey_201213.rds", "flusurvey_201112
     dt[[file]][, global_id := NULL]
     dt[[file]][, channel := NULL]
     dt[[file]][, timestamp := NULL]
+    global.id.numbers <-
+        data.table(global.id.number = unique(dt[[file]][, global.id.number]),
+                   user_id = as.integer(0))
+    global.id.numbers[, user_id := 1:nrow(global.id.numbers)]
+    dt[[file]] <- merge(dt[[file]], global.id.numbers, by = "global.id.number",
+                        all.x = TRUE)
     dt[[file]][, global.id.number := NULL]
     dt[[file]][, bid := NULL]
     dt[[file]][, cid := NULL]
@@ -41,7 +47,6 @@ for (file in c("flusurvey_201315.rds", "flusurvey_201213.rds", "flusurvey_201112
             dt[[file]][, c(name) := as.integer(as.character(revalue(get(name), c(f = 0, t = 1))))]
         }
     }
-
-    setkey(dt[[file]], id, date)
+    setkey(dt[[file]], user_id, date)
     write.table(dt[[file]], sub("rds", "csv", file), quote = TRUE, sep = ",", row.names = FALSE)
 }
