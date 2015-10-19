@@ -1,6 +1,4 @@
 library(data.table)
-library(ggplot2)
-library(reshape)
 
 ## compute the age in years from a birthdate (from) and the current date (to)
 age_years <- function(from, to)
@@ -18,13 +16,13 @@ age_years <- function(from, to)
 
 uk.ur <- read.csv("urban_rural.csv", header=F, sep=",")
 
-## 2015
+## 2015 data
 sf15 <- read.csv('weekly_15.csv', sep=',', header=T)
 bf15 <- read.csv('intake_15.csv', sep=',', header=T)
 
 ## create translation table so that every participant gets a unique ID number
 ## (called global.id.number)
-translation <- data.frame(global_id = unique(bf15$global_id))
+translation <- data.table(global_id = unique(bf15$global_id))
 translation$number <- 200000 + seq(1,nrow(translation))
 
 ## assign global id numbers
@@ -2178,18 +2176,18 @@ setnames(st10, "q3000_11", "weakness")
 setnames(st10, "q3000_12", "eye.irritation")
 setnames(st10, "q3000_13", "fever.symptom")
 setnames(st10, "q3000_14", "no.symptoms")
-setnames(st10, "q3005_1", "medical.service.phone.gp")
-setnames(st10, "q3005_2", "medical.service.phone.hospital")
-setnames(st10, "q3005_3", "medical.service.phone.other")
-setnames(st10, "q3005_4", "medical.service.phone.no")
-setnames(st10, "q3005_5", "medical.service.phone.ae")
-setnames(st10, "q30051_1", "medical.service.visit.gp")
-setnames(st10, "q30051_2", "medical.service.visit.hospital")
-setnames(st10, "q30051_3", "medical.service.visit.other")
-setnames(st10, "q30051_4", "medical.service.visit.no")
-setnames(st10, "q30051_5", "medical.service.visit.ae")
-setnames(st10, "q300501", "medical.service.phone.howlong")
-setnames(st10, "q300502", "medical.service.visit.howlong")
+setnames(st10, "q3005_1", "phone.medical.service.gp")
+setnames(st10, "q3005_2", "phone.medical.service.hospital")
+setnames(st10, "q3005_3", "phone.medical.service.other")
+setnames(st10, "q3005_4", "phone.medical.service.no")
+setnames(st10, "q3005_5", "phone.medical.service.ae")
+setnames(st10, "q30051_1", "visit.medical.service.gp")
+setnames(st10, "q30051_2", "visit.medical.service.hospital")
+setnames(st10, "q30051_3", "visit.medical.service.other")
+setnames(st10, "q30051_4", "visit.medical.service.no")
+setnames(st10, "q30051_5", "visit.medical.service.ae")
+setnames(st10, "q300501", "howsoon.phone.medical.service")
+setnames(st10, "q300502", "howsoon.visit.medical.service")
 setnames(st10, "q30081", "still.altered")
 setnames(st10, "q3009_2", "medication.painkillers")
 setnames(st10, "q3009_3", "medication.cough")
