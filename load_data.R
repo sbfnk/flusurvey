@@ -155,7 +155,7 @@ bt15$vaccine.date <- as.Date(bt15$date.vaccine, "%Y-%m-%d")
 ## bt15$vaccine <- as.numeric(bt15$vaccine.this.year==0 & (is.na(bt15$vaccine.date) |
 ##                            bt15$vaccine.date <= bt15$date))
 bt15$children <- as.numeric((bt15$household.0.4 == "t" | bt15
-                             $household.5.18 == "t"))
+    $household.5.18 == "t"))
 
 st15$ili.self <- (st15$what.do.you.think == 0)
 st15[is.na(ili.self)]$ili.self <- FALSE
@@ -169,17 +169,17 @@ bt15$work.postcode <- sub("[[:blank:]]+$", "", bt15$work.postcode)
 bt15$work.postcode <- toupper(bt15$work.postcode)
 
 bt15 <- bt15[country == "uk", "ur" := uk.ur$V3[match(bt15[country == "uk",]$postcode,
-                                   uk.ur$V1)], with=F]
+                                                     uk.ur$V1)], with=F]
 bt15 <- bt15[country == "uk", "uk.country" := uk.ur$V2[match(bt15[country ==
-                                           "uk"]$postcode, uk.ur$V1)], with=F]
+                                                                  "uk"]$postcode, uk.ur$V1)], with=F]
 bt15 <- bt15[country == "uk", "urban" := rep(0, length(bt15[country ==
-                                      "uk"]$postcode)), with=F]
+                                                            "uk"]$postcode)), with=F]
 bt15 <- bt15[country == "uk", "ur" := uk.ur$V3[match(bt15[country == "uk",]$postcode,
-                                   uk.ur$V1)], with=F]
+                                                     uk.ur$V1)], with=F]
 bt15 <- bt15[country == "uk", "uk.country" := uk.ur$V2[match(bt15[country ==
-                                           "uk"]$postcode, uk.ur$V1)], with=F]
+                                                                  "uk"]$postcode, uk.ur$V1)], with=F]
 bt15 <- bt15[country == "uk", "urban" := rep(0, length(bt15[country ==
-                                      "uk"]$postcode)), with=F]
+                                                            "uk"]$postcode)), with=F]
 
 bt15[country == "uk" & is.na(bt15$ur),]$urban <- 2
 
@@ -195,11 +195,11 @@ bt15[bt15$uk.country == "N" & !(bt15$ur %in% c(5,6,7)),]$urban <- 0
 bt15$urban <- as.factor(bt15$urban)
 
 bt15 <- bt15[country == "uk", "work.ur" := uk.ur$V3[match(bt15[country ==
-                                        "uk",]$work.postcode, uk.ur$V1)], with=F]
+                                                               "uk",]$work.postcode, uk.ur$V1)], with=F]
 bt15 <- bt15[country == "uk", "work.uk.country" := uk.ur$V2[match(bt15[country ==
-                                                "uk"]$work.postcode, uk.ur$V1)], with=F]
+                                                                       "uk"]$work.postcode, uk.ur$V1)], with=F]
 bt15 <- bt15[country == "uk", "work.urban" := rep(0, length(bt15[country ==
-                                           "uk"]$work.postcode)), with=F]
+                                                                 "uk"]$work.postcode)), with=F]
 
 bt15[country == "uk" & is.na(bt15$work.ur),]$work.urban <- 2
 
@@ -230,9 +230,9 @@ dt15 <- dt15[!is.na(global.id.number)]
 
 dt15 <- dt15[date > "2014-07-01"]
 
-saveRDS(dt15, "flusurvey_201315.rds")
+saveRDS(dt15, "flusurvey_201415.rds")
 
-dt15 <- readRDS("flusurvey_201315.rds")
+dt15 <- readRDS("flusurvey_201415.rds")
 
 ## 2014
 sf14 <- read.csv('weekly_14.csv', sep=',', header=T)
@@ -282,27 +282,31 @@ for (symptom in symptoms.14) {
     setnames(st14, paste("symptom.", symptom, sep = ""), symptom)
 }
 
-st14$ili <- ((st14$symptoms.suddenly == 0) &
-             (st14$fever == 1 | st14$tired == 1 |
-              st14$headache == 1 |
-              st14$muscle.and.or.joint.pain ==1) &
-             (st14$sore.throat == 1 | st14$cough ==1 |
-              st14$shortness.breath == 1))
-st14$ili <- as.numeric(st14$ili)
+st14[, suddenly := 1]
+st14[is.na(symptoms.suddenly) & is.na(fever.suddenly), suddenly := NA]
+st14[is.na(symptoms.suddenly) & fever.suddenly > 0, suddenly := 0]
+st14[is.na(fever.suddenly) & symptoms.suddenly > 0, suddenly := 0]
+st14[fever.suddenly > 0 & symptoms.suddenly > 0, suddenly := 0]
 
-st14$ili.notired <- ((st14$symptoms.suddenly == 0) &
-                     (st14$fever == 1 | st14$headache == 1 |
-                      st14$muscle.and.or.joint.pain ==1) &
-                     (st14$sore.throat == 1 | st14$cough ==1 |
-                      st14$shortness.breath == 1))
-st14$ili.notired <- as.numeric(st14$ili.notired)
+st14[, ili := ((suddenly == 1) &
+               (fever == 1 | tired == 1 |
+                headache == 1 | muscle.and.or.joint.pain == 1) &
+               (sore.throat == 1 | cough ==1 |
+                shortness.breath == 1))]
+st14[, ili := as.integer(ili)]
 
-st14$ili.fever <- ((st14$symptoms.suddenly == 0) &
-                   (st14$fever == 1) &
-                   (st14$sore.throat == 1 | st14$cough ==1 |
-                    st14$shortness.breath == 1))
-st14$ili.fever <- as.numeric(st14$ili.fever)
+st14[, ili.notired := ((suddenly == 1) &
+                       (fever == 1 |
+                        headache == 1 | muscle.and.or.joint.pain == 1) &
+                       (sore.throat == 1 | cough ==1 |
+                        shortness.breath == 1))]
+st14[, ili.notired := as.integer(ili.notired)]
 
+st14[, ili.fever := ((suddenly == 1) &
+                     (fever == 1) &
+                     (sore.throat == 1 | cough ==1 |
+                      shortness.breath == 1))]
+st14[, ili.fever := as.integer(ili.fever)]
 
 freq <-
     data.table(aggregate(st14$global.id.number,
@@ -355,7 +359,7 @@ bt14$vaccine.date <- as.Date(bt14$date.vaccine, "%Y-%m-%d")
 ## bt14$vaccine <- as.numeric(bt14$vaccine.this.year==0 & (is.na(bt14$vaccine.date) |
 ##                            bt14$vaccine.date <= bt14$date))
 bt14$children <- as.numeric((bt14$household.0.4 == "t" | bt14
-                             $household.5.18 == "t"))
+    $household.5.18 == "t"))
 
 st14$ili.self <- (st14$what.do.you.think == 0)
 st14[is.na(ili.self)]$ili.self <- FALSE
@@ -369,17 +373,17 @@ bt14$work.postcode <- sub("[[:blank:]]+$", "", bt14$work.postcode)
 bt14$work.postcode <- toupper(bt14$work.postcode)
 
 bt14 <- bt14[country == "uk", "ur" := uk.ur$V3[match(bt14[country == "uk",]$postcode,
-                                   uk.ur$V1)], with=F]
+                                                     uk.ur$V1)], with=F]
 bt14 <- bt14[country == "uk", "uk.country" := uk.ur$V2[match(bt14[country ==
-                                           "uk"]$postcode, uk.ur$V1)], with=F]
+                                                                  "uk"]$postcode, uk.ur$V1)], with=F]
 bt14 <- bt14[country == "uk", "urban" := rep(0, length(bt14[country ==
-                                      "uk"]$postcode)), with=F]
+                                                            "uk"]$postcode)), with=F]
 bt14 <- bt14[country == "uk", "ur" := uk.ur$V3[match(bt14[country == "uk",]$postcode,
-                                   uk.ur$V1)], with=F]
+                                                     uk.ur$V1)], with=F]
 bt14 <- bt14[country == "uk", "uk.country" := uk.ur$V2[match(bt14[country ==
-                                           "uk"]$postcode, uk.ur$V1)], with=F]
+                                                                  "uk"]$postcode, uk.ur$V1)], with=F]
 bt14 <- bt14[country == "uk", "urban" := rep(0, length(bt14[country ==
-                                      "uk"]$postcode)), with=F]
+                                                            "uk"]$postcode)), with=F]
 
 bt14[country == "uk" & is.na(bt14$ur),]$urban <- 2
 
@@ -395,11 +399,11 @@ bt14[bt14$uk.country == "N" & !(bt14$ur %in% c(5,6,7)),]$urban <- 0
 bt14$urban <- as.factor(bt14$urban)
 
 bt14 <- bt14[country == "uk", "work.ur" := uk.ur$V3[match(bt14[country ==
-                                        "uk",]$work.postcode, uk.ur$V1)], with=F]
+                                                               "uk",]$work.postcode, uk.ur$V1)], with=F]
 bt14 <- bt14[country == "uk", "work.uk.country" := uk.ur$V2[match(bt14[country ==
-                                                "uk"]$work.postcode, uk.ur$V1)], with=F]
+                                                                       "uk"]$work.postcode, uk.ur$V1)], with=F]
 bt14 <- bt14[country == "uk", "work.urban" := rep(0, length(bt14[country ==
-                                           "uk"]$work.postcode)), with=F]
+                                                                 "uk"]$work.postcode)), with=F]
 
 bt14[country == "uk" & is.na(bt14$work.ur),]$work.urban <- 2
 
@@ -477,47 +481,47 @@ setkey(ct13, global.id.number, date)
 
 ## set convenient names
 ct13 <- ct13[,"conversational.home" := get("conversational.home.0-4") +
-     get("conversational.home.5-18") + get("conversational.home.19-44") +
-     get("conversational.home.45-64") + get("conversational.home.65+"), with=F]
+                  get("conversational.home.5-18") + get("conversational.home.19-44") +
+                  get("conversational.home.45-64") + get("conversational.home.65+"), with=F]
 ct13 <- ct13[,"conversational.work" := get("conversational.work.0-4") +
-     get("conversational.work.5-18") + get("conversational.work.19-44") +
-     get("conversational.work.45-64") + get("conversational.work.65+"), with=F]
+                  get("conversational.work.5-18") + get("conversational.work.19-44") +
+                  get("conversational.work.45-64") + get("conversational.work.65+"), with=F]
 ct13 <- ct13[,"conversational.other" := get("conversational.other.0-4") +
-     get("conversational.other.5-18") + get("conversational.other.19-44") +
-     get("conversational.other.45-64") + get("conversational.other.65+"), with=F]
+                  get("conversational.other.5-18") + get("conversational.other.19-44") +
+                  get("conversational.other.45-64") + get("conversational.other.65+"), with=F]
 ct13 <- ct13[,"conversational.0-4" := get("conversational.home.0-4") +
-     get("conversational.work.0-4") + get("conversational.other.0-4"), with=F]
+                  get("conversational.work.0-4") + get("conversational.other.0-4"), with=F]
 ct13 <- ct13[,"conversational.5-18" := get("conversational.home.5-18") +
-     get("conversational.work.5-18") + get("conversational.other.5-18"), with=F]
+                  get("conversational.work.5-18") + get("conversational.other.5-18"), with=F]
 ct13 <- ct13[,"conversational.19-44" := get("conversational.home.19-44") +
-     get("conversational.work.19-44") + get("conversational.other.19-44"), with=F]
+                  get("conversational.work.19-44") + get("conversational.other.19-44"), with=F]
 ct13 <- ct13[,"conversational.45-64" := get("conversational.home.45-64") +
-     get("conversational.work.45-64") + get("conversational.other.45-64"), with=F]
+                  get("conversational.work.45-64") + get("conversational.other.45-64"), with=F]
 ct13 <- ct13[,"conversational.65+" := get("conversational.home.65+") +
-     get("conversational.work.65+") + get("conversational.other.65+"), with=F]
+                  get("conversational.work.65+") + get("conversational.other.65+"), with=F]
 ct13 <- ct13[,"conversational" := get("conversational.home") +
-     get("conversational.work") + get("conversational.other"), with=F]
+                  get("conversational.work") + get("conversational.other"), with=F]
 ct13 <- ct13[,"physical.home" := get("physical.home.0-4") +
-     get("physical.home.5-18") + get("physical.home.19-44") +
-     get("physical.home.45-64") + get("physical.home.65+"), with=F]
+                  get("physical.home.5-18") + get("physical.home.19-44") +
+                  get("physical.home.45-64") + get("physical.home.65+"), with=F]
 ct13 <- ct13[,"physical.work" := get("physical.work.0-4") +
-     get("physical.work.5-18") + get("physical.work.19-44") +
-     get("physical.work.45-64") + get("physical.work.65+"), with=F]
+                  get("physical.work.5-18") + get("physical.work.19-44") +
+                  get("physical.work.45-64") + get("physical.work.65+"), with=F]
 ct13 <- ct13[,"physical.other" := get("physical.other.0-4") +
-     get("physical.other.5-18") + get("physical.other.19-44") +
-     get("physical.other.45-64") + get("physical.other.65+"), with=F]
+                  get("physical.other.5-18") + get("physical.other.19-44") +
+                  get("physical.other.45-64") + get("physical.other.65+"), with=F]
 ct13 <- ct13[,"physical.0-4" := get("physical.home.0-4") +
-     get("physical.work.0-4") + get("physical.other.0-4"), with=F]
+                  get("physical.work.0-4") + get("physical.other.0-4"), with=F]
 ct13 <- ct13[,"physical.5-18" := get("physical.home.5-18") +
-     get("physical.work.5-18") + get("physical.other.5-18"), with=F]
+                  get("physical.work.5-18") + get("physical.other.5-18"), with=F]
 ct13 <- ct13[,"physical.19-44" := get("physical.home.19-44") +
-     get("physical.work.19-44") + get("physical.other.19-44"), with=F]
+                  get("physical.work.19-44") + get("physical.other.19-44"), with=F]
 ct13 <- ct13[,"physical.45-64" := get("physical.home.45-64") +
-     get("physical.work.45-64") + get("physical.other.45-64"), with=F]
+                  get("physical.work.45-64") + get("physical.other.45-64"), with=F]
 ct13 <- ct13[,"physical.65+" := get("physical.home.65+") +
-     get("physical.work.65+") + get("physical.other.65+"), with=F]
+                  get("physical.work.65+") + get("physical.other.65+"), with=F]
 ct13 <- ct13[,"physical" := get("physical.home") +
-     get("physical.work") + get("physical.other"), with=F]
+                  get("physical.work") + get("physical.other"), with=F]
 
 ct13$week <- format(ct13$date, format="%G-%W")
 ct13[ct13$week=="2013-53"]$week <- "2012-53"
@@ -535,26 +539,31 @@ for (symptom in symptoms.13) {
     setnames(st13, paste("symptom.", symptom, sep = ""), symptom)
 }
 
-st13$ili <- ((st13$symptoms.suddenly == 0) &
-             (st13$fever == 1 | st13$tired == 1 | st13$headache == 1 |
-              st13$muscle.and.or.joint.pain ==1) &
-             (st13$sore.throat == 1 | st13$cough ==1 |
-              st13$shortness.breath == 1))
-st13$ili <- as.numeric(st13$ili)
+st13[, suddenly := 1]
+st13[is.na(symptoms.suddenly) & is.na(fever.suddenly), suddenly := NA]
+st13[is.na(symptoms.suddenly) & fever.suddenly > 0, suddenly := 0]
+st13[is.na(fever.suddenly) & symptoms.suddenly > 0, suddenly := 0]
+st13[fever.suddenly > 0 & symptoms.suddenly > 0, suddenly := 0]
 
-st13$ili.notired <- ((st13$symptoms.suddenly == 0) &
-                     (st13$fever == 1 | st13$headache == 1 |
-                      st13$muscle.and.or.joint.pain ==1) &
-                     (st13$sore.throat == 1 | st13$cough ==1 |
-                      st13$shortness.breath == 1))
-st13$ili.notired <- as.numeric(st13$ili.notired)
+st13[, ili := ((suddenly == 1) &
+               (fever == 1 | tired == 1 |
+                headache == 1 | muscle.and.or.joint.pain == 1) &
+               (sore.throat == 1 | cough ==1 |
+                shortness.breath == 1))]
+st13[, ili := as.integer(ili)]
 
-st13$ili.fever <- ((st13$symptoms.suddenly == 0) &
-                   (st13$fever == 1) &
-                   (st13$sore.throat == 1 | st13$cough ==1 |
-                    st13$shortness.breath == 1))
-st13$ili.fever <- as.numeric(st13$ili.fever)
+st13[, ili.notired := ((suddenly == 1) &
+                       (fever == 1 |
+                        headache == 1 | muscle.and.or.joint.pain == 1) &
+                       (sore.throat == 1 | cough ==1 |
+                        shortness.breath == 1))]
+st13[, ili.notired := as.integer(ili.notired)]
 
+st13[, ili.fever := ((suddenly == 1) &
+                     (fever == 1) &
+                     (sore.throat == 1 | cough ==1 |
+                      shortness.breath == 1))]
+st13[, ili.fever := as.integer(ili.fever)]
 
 freq <-
     data.table(aggregate(st13$global.id.number,
@@ -607,7 +616,7 @@ bt13$vaccine.date <- as.Date(bt13$date.vaccine, "%Y-%m-%d")
 ## bt13$vaccine <- as.numeric(bt13$vaccine.this.year==0 & (is.na(bt13$vaccine.date) |
 ##                            bt13$vaccine.date <= bt13$date))
 bt13$children <- as.numeric((bt13$household.0.4 == "t" | bt13
-                             $household.5.18 == "t"))
+    $household.5.18 == "t"))
 
 st13$ili.self <- (st13$what.do.you.think == 0)
 st13[is.na(ili.self)]$ili.self <- FALSE
@@ -621,17 +630,17 @@ bt13$work.postcode <- sub("[[:blank:]]+$", "", bt13$work.postcode)
 bt13$work.postcode <- toupper(bt13$work.postcode)
 
 bt13 <- bt13[country == "uk", "ur" := uk.ur$V3[match(bt13[country == "uk",]$postcode,
-                                   uk.ur$V1)], with=F]
+                                                     uk.ur$V1)], with=F]
 bt13 <- bt13[country == "uk", "uk.country" := uk.ur$V2[match(bt13[country ==
-                                           "uk"]$postcode, uk.ur$V1)], with=F]
+                                                                  "uk"]$postcode, uk.ur$V1)], with=F]
 bt13 <- bt13[country == "uk", "urban" := rep(0, length(bt13[country ==
-                                      "uk"]$postcode)), with=F]
+                                                            "uk"]$postcode)), with=F]
 bt13 <- bt13[country == "uk", "ur" := uk.ur$V3[match(bt13[country == "uk",]$postcode,
-                                   uk.ur$V1)], with=F]
+                                                     uk.ur$V1)], with=F]
 bt13 <- bt13[country == "uk", "uk.country" := uk.ur$V2[match(bt13[country ==
-                                           "uk"]$postcode, uk.ur$V1)], with=F]
+                                                                  "uk"]$postcode, uk.ur$V1)], with=F]
 bt13 <- bt13[country == "uk", "urban" := rep(0, length(bt13[country ==
-                                      "uk"]$postcode)), with=F]
+                                                            "uk"]$postcode)), with=F]
 
 bt13[country == "uk" & is.na(bt13$ur),]$urban <- 2
 
@@ -647,11 +656,11 @@ bt13[bt13$uk.country == "N" & !(bt13$ur %in% c(5,6,7)),]$urban <- 0
 bt13$urban <- as.factor(bt13$urban)
 
 bt13 <- bt13[country == "uk", "work.ur" := uk.ur$V3[match(bt13[country ==
-                                        "uk",]$work.postcode, uk.ur$V1)], with=F]
+                                                               "uk",]$work.postcode, uk.ur$V1)], with=F]
 bt13 <- bt13[country == "uk", "work.uk.country" := uk.ur$V2[match(bt13[country ==
-                                                "uk"]$work.postcode, uk.ur$V1)], with=F]
+                                                                       "uk"]$work.postcode, uk.ur$V1)], with=F]
 bt13 <- bt13[country == "uk", "work.urban" := rep(0, length(bt13[country ==
-                                           "uk"]$work.postcode)), with=F]
+                                                                 "uk"]$work.postcode)), with=F]
 
 bt13[country == "uk" & is.na(bt13$work.ur),]$work.urban <- 2
 
@@ -730,47 +739,47 @@ setkey(ct12, global.id.number, date)
 
 
 ct12 <- ct12[,"conversational.home" := get("conversational.home.0-4") +
-     get("conversational.home.5-18") + get("conversational.home.19-44") +
-     get("conversational.home.45-64") + get("conversational.home.65+"), with=F]
+                  get("conversational.home.5-18") + get("conversational.home.19-44") +
+                  get("conversational.home.45-64") + get("conversational.home.65+"), with=F]
 ct12 <- ct12[,"conversational.work" := get("conversational.work.0-4") +
-     get("conversational.work.5-18") + get("conversational.work.19-44") +
-     get("conversational.work.45-64") + get("conversational.work.65+"), with=F]
+                  get("conversational.work.5-18") + get("conversational.work.19-44") +
+                  get("conversational.work.45-64") + get("conversational.work.65+"), with=F]
 ct12 <- ct12[,"conversational.other" := get("conversational.other.0-4") +
-     get("conversational.other.5-18") + get("conversational.other.19-44") +
-     get("conversational.other.45-64") + get("conversational.other.65+"), with=F]
+                  get("conversational.other.5-18") + get("conversational.other.19-44") +
+                  get("conversational.other.45-64") + get("conversational.other.65+"), with=F]
 ct12 <- ct12[,"conversational.0-4" := get("conversational.home.0-4") +
-     get("conversational.work.0-4") + get("conversational.other.0-4"), with=F]
+                  get("conversational.work.0-4") + get("conversational.other.0-4"), with=F]
 ct12 <- ct12[,"conversational.5-18" := get("conversational.home.5-18") +
-     get("conversational.work.5-18") + get("conversational.other.5-18"), with=F]
+                  get("conversational.work.5-18") + get("conversational.other.5-18"), with=F]
 ct12 <- ct12[,"conversational.19-44" := get("conversational.home.19-44") +
-     get("conversational.work.19-44") + get("conversational.other.19-44"), with=F]
+                  get("conversational.work.19-44") + get("conversational.other.19-44"), with=F]
 ct12 <- ct12[,"conversational.45-64" := get("conversational.home.45-64") +
-     get("conversational.work.45-64") + get("conversational.other.45-64"), with=F]
+                  get("conversational.work.45-64") + get("conversational.other.45-64"), with=F]
 ct12 <- ct12[,"conversational.65+" := get("conversational.home.65+") +
-     get("conversational.work.65+") + get("conversational.other.65+"), with=F]
+                  get("conversational.work.65+") + get("conversational.other.65+"), with=F]
 ct12 <- ct12[,"conversational" := get("conversational.home") +
-     get("conversational.work") + get("conversational.other"), with=F]
+                  get("conversational.work") + get("conversational.other"), with=F]
 ct12 <- ct12[,"physical.home" := get("physical.home.0-4") +
-     get("physical.home.5-18") + get("physical.home.19-44") +
-     get("physical.home.45-64") + get("physical.home.65+"), with=F]
+                  get("physical.home.5-18") + get("physical.home.19-44") +
+                  get("physical.home.45-64") + get("physical.home.65+"), with=F]
 ct12 <- ct12[,"physical.work" := get("physical.work.0-4") +
-     get("physical.work.5-18") + get("physical.work.19-44") +
-     get("physical.work.45-64") + get("physical.work.65+"), with=F]
+                  get("physical.work.5-18") + get("physical.work.19-44") +
+                  get("physical.work.45-64") + get("physical.work.65+"), with=F]
 ct12 <- ct12[,"physical.other" := get("physical.other.0-4") +
-     get("physical.other.5-18") + get("physical.other.19-44") +
-     get("physical.other.45-64") + get("physical.other.65+"), with=F]
+                  get("physical.other.5-18") + get("physical.other.19-44") +
+                  get("physical.other.45-64") + get("physical.other.65+"), with=F]
 ct12 <- ct12[,"physical.0-4" := get("physical.home.0-4") +
-     get("physical.work.0-4") + get("physical.other.0-4"), with=F]
+                  get("physical.work.0-4") + get("physical.other.0-4"), with=F]
 ct12 <- ct12[,"physical.5-18" := get("physical.home.5-18") +
-     get("physical.work.5-18") + get("physical.other.5-18"), with=F]
+                  get("physical.work.5-18") + get("physical.other.5-18"), with=F]
 ct12 <- ct12[,"physical.19-44" := get("physical.home.19-44") +
-     get("physical.work.19-44") + get("physical.other.19-44"), with=F]
+                  get("physical.work.19-44") + get("physical.other.19-44"), with=F]
 ct12 <- ct12[,"physical.45-64" := get("physical.home.45-64") +
-     get("physical.work.45-64") + get("physical.other.45-64"), with=F]
+                  get("physical.work.45-64") + get("physical.other.45-64"), with=F]
 ct12 <- ct12[,"physical.65+" := get("physical.home.65+") +
-     get("physical.work.65+") + get("physical.other.65+"), with=F]
+                  get("physical.work.65+") + get("physical.other.65+"), with=F]
 ct12 <- ct12[,"physical" := get("physical.home") +
-     get("physical.work") + get("physical.other"), with=F]
+                  get("physical.work") + get("physical.other"), with=F]
 
 ct12$week <- format(ct12$date, format="%G-%W")
 ct12[ct12$week=="2011-00"]$week <- "2011-53"
@@ -787,26 +796,31 @@ for (symptom in symptoms.12) {
     setnames(st12, paste("symptom.", symptom, sep = ""), symptom)
 }
 
-st12$ili <- ((st12$symptoms.suddenly == 0) &
-             (st12$fever == 1 | st12$tired == 1 | st12$headache == 1 |
-              st12$muscle.and.or.joint.pain == 1) &
-             (st12$sore.throat == 1 | st12$cough == 1 |
-              st12$shortness.breath ==1))
-st12$ili <- as.numeric(st12$ili)
+st12[, suddenly := 1]
+st12[is.na(symptoms.suddenly) & is.na(fever.suddenly), suddenly := NA]
+st12[is.na(symptoms.suddenly) & fever.suddenly > 0, suddenly := 0]
+st12[is.na(fever.suddenly) & symptoms.suddenly > 0, suddenly := 0]
+st12[fever.suddenly > 0 & symptoms.suddenly > 0, suddenly := 0]
 
-st12$ili.notired <- ((st12$symptoms.suddenly == 0) &
-                     (st12$fever == 1 | st12$headache == 1 |
-                      st12$muscle.and.or.joint.pain == 1) &
-                     (st12$sore.throat == 1 | st12$cough == 1 |
-                      st12$shortness.breath ==1))
-st12$ili.notired <- as.numeric(st12$ili.notired)
+st12[, ili := ((suddenly == 1) &
+               (fever == 1 | tired == 1 |
+                headache == 1 | muscle.and.or.joint.pain == 1) &
+               (sore.throat == 1 | cough ==1 |
+                shortness.breath == 1))]
+st12[, ili := as.integer(ili)]
 
-st12$ili.fever <- ((st12$symptoms.suddenly == 0) &
-                   (st12$fever == 1) &
-                   (st12$sore.throat == 1 | st12$cough == 1 |
-                    st12$shortness.breath == 1))
-st12$ili.fever <- as.numeric(st12$ili.fever)
+st12[, ili.notired := ((suddenly == 1) &
+                       (fever == 1 |
+                        headache == 1 | muscle.and.or.joint.pain == 1) &
+                       (sore.throat == 1 | cough ==1 |
+                        shortness.breath == 1))]
+st12[, ili.notired := as.integer(ili.notired)]
 
+st12[, ili.fever := ((suddenly == 1) &
+                     (fever == 1) &
+                     (sore.throat == 1 | cough ==1 |
+                      shortness.breath == 1))]
+st12[, ili.fever := as.integer(ili.fever)]
 
 freq <-
     data.table(aggregate(st12$global.id.number,
@@ -861,7 +875,7 @@ bt12$vaccine.date <- as.Date(bt12$date.vaccine, "%Y/%m/%d")
 ## bt12$vaccine <- as.numeric(bt12$vaccine.this.year==0 & (is.na(bt12$vaccine.date) |
 ##                            bt12$vaccine.date <= bt12$date))
 bt12$children <- as.numeric((bt12$household.0.4 == "t" | bt12
-                             $household.5.18 == "t"))
+    $household.5.18 == "t"))
 
 bt12$using.transport <- (bt12$transport > 0)
 
@@ -872,17 +886,17 @@ bt12$work.postcode <- sub("[[:blank:]]+$", "", bt12$work.postcode)
 bt12$work.postcode <- toupper(bt12$work.postcode)
 
 bt12 <- bt12[country == "uk", "ur" := uk.ur$V3[match(bt12[country == "uk",]$postcode,
-                                   uk.ur$V1)], with=F]
+                                                     uk.ur$V1)], with=F]
 bt12 <- bt12[country == "uk", "uk.country" := uk.ur$V2[match(bt12[country ==
-                                           "uk"]$postcode, uk.ur$V1)], with=F]
+                                                                  "uk"]$postcode, uk.ur$V1)], with=F]
 bt12 <- bt12[country == "uk", "urban" := rep(0, length(bt12[country ==
-                                      "uk"]$postcode)), with=F]
+                                                            "uk"]$postcode)), with=F]
 bt12 <- bt12[country == "uk", "ur" := uk.ur$V3[match(bt12[country == "uk",]$postcode,
-                                   uk.ur$V1)], with=F]
+                                                     uk.ur$V1)], with=F]
 bt12 <- bt12[country == "uk", "uk.country" := uk.ur$V2[match(bt12[country ==
-                                           "uk"]$postcode, uk.ur$V1)], with=F]
+                                                                  "uk"]$postcode, uk.ur$V1)], with=F]
 bt12 <- bt12[country == "uk", "urban" := rep(0, length(bt12[country ==
-                                      "uk"]$postcode)), with=F]
+                                                            "uk"]$postcode)), with=F]
 
 bt12[country == "uk" & is.na(bt12$ur),]$urban <- 2
 
@@ -898,11 +912,11 @@ bt12[bt12$uk.country == "N" & !(bt12$ur %in% c(5,6,7)),]$urban <- 0
 bt12$urban <- as.factor(bt12$urban)
 
 bt12 <- bt12[country == "uk", "work.ur" := uk.ur$V3[match(bt12[country ==
-                                        "uk",]$work.postcode, uk.ur$V1)], with=F]
+                                                               "uk",]$work.postcode, uk.ur$V1)], with=F]
 bt12 <- bt12[country == "uk", "work.uk.country" := uk.ur$V2[match(bt12[country ==
-                                                "uk"]$work.postcode, uk.ur$V1)], with=F]
+                                                                       "uk"]$work.postcode, uk.ur$V1)], with=F]
 bt12 <- bt12[country == "uk", "work.urban" := rep(0, length(bt12[country ==
-                                           "uk"]$work.postcode)), with=F]
+                                                                 "uk"]$work.postcode)), with=F]
 
 bt12[country == "uk" & is.na(bt12$work.ur),]$work.urban <- 2
 
@@ -991,47 +1005,47 @@ for (category in conversation.categories.11) {
 }
 
 ct11 <- ct11[,"conversational.home" := get("conversational.home.0-4") +
-     get("conversational.home.5-18") + get("conversational.home.19-44") +
-     get("conversational.home.45-64") + get("conversational.home.65+"), with=F]
+                  get("conversational.home.5-18") + get("conversational.home.19-44") +
+                  get("conversational.home.45-64") + get("conversational.home.65+"), with=F]
 ct11 <- ct11[,"conversational.work" := get("conversational.work.0-4") +
-     get("conversational.work.5-18") + get("conversational.work.19-44") +
-     get("conversational.work.45-64") + get("conversational.work.65+"), with=F]
+                  get("conversational.work.5-18") + get("conversational.work.19-44") +
+                  get("conversational.work.45-64") + get("conversational.work.65+"), with=F]
 ct11 <- ct11[,"conversational.other" := get("conversational.other.0-4") +
-     get("conversational.other.5-18") + get("conversational.other.19-44") +
-     get("conversational.other.45-64") + get("conversational.other.65+"), with=F]
+                  get("conversational.other.5-18") + get("conversational.other.19-44") +
+                  get("conversational.other.45-64") + get("conversational.other.65+"), with=F]
 ct11 <- ct11[,"conversational.0-4" := get("conversational.home.0-4") +
-     get("conversational.work.0-4") + get("conversational.other.0-4"), with=F]
+                  get("conversational.work.0-4") + get("conversational.other.0-4"), with=F]
 ct11 <- ct11[,"conversational.5-18" := get("conversational.home.5-18") +
-     get("conversational.work.5-18") + get("conversational.other.5-18"), with=F]
+                  get("conversational.work.5-18") + get("conversational.other.5-18"), with=F]
 ct11 <- ct11[,"conversational.19-44" := get("conversational.home.19-44") +
-     get("conversational.work.19-44") + get("conversational.other.19-44"), with=F]
+                  get("conversational.work.19-44") + get("conversational.other.19-44"), with=F]
 ct11 <- ct11[,"conversational.45-64" := get("conversational.home.45-64") +
-     get("conversational.work.45-64") + get("conversational.other.45-64"), with=F]
+                  get("conversational.work.45-64") + get("conversational.other.45-64"), with=F]
 ct11 <- ct11[,"conversational.65+" := get("conversational.home.65+") +
-     get("conversational.work.65+") + get("conversational.other.65+"), with=F]
+                  get("conversational.work.65+") + get("conversational.other.65+"), with=F]
 ct11 <- ct11[,"conversational" := get("conversational.home") +
-     get("conversational.work") + get("conversational.other"), with=F]
+                  get("conversational.work") + get("conversational.other"), with=F]
 ct11 <- ct11[,"physical.home" := get("physical.home.0-4") +
-     get("physical.home.5-18") + get("physical.home.19-44") +
-     get("physical.home.45-64") + get("physical.home.65+"), with=F]
+                  get("physical.home.5-18") + get("physical.home.19-44") +
+                  get("physical.home.45-64") + get("physical.home.65+"), with=F]
 ct11 <- ct11[,"physical.work" := get("physical.work.0-4") +
-     get("physical.work.5-18") + get("physical.work.19-44") +
-     get("physical.work.45-64") + get("physical.work.65+"), with=F]
+                  get("physical.work.5-18") + get("physical.work.19-44") +
+                  get("physical.work.45-64") + get("physical.work.65+"), with=F]
 ct11 <- ct11[,"physical.other" := get("physical.other.0-4") +
-     get("physical.other.5-18") + get("physical.other.19-44") +
-     get("physical.other.45-64") + get("physical.other.65+"), with=F]
+                  get("physical.other.5-18") + get("physical.other.19-44") +
+                  get("physical.other.45-64") + get("physical.other.65+"), with=F]
 ct11 <- ct11[,"physical.0-4" := get("physical.home.0-4") +
-     get("physical.work.0-4") + get("physical.other.0-4"), with=F]
+                  get("physical.work.0-4") + get("physical.other.0-4"), with=F]
 ct11 <- ct11[,"physical.5-18" := get("physical.home.5-18") +
-     get("physical.work.5-18") + get("physical.other.5-18"), with=F]
+                  get("physical.work.5-18") + get("physical.other.5-18"), with=F]
 ct11 <- ct11[,"physical.19-44" := get("physical.home.19-44") +
-     get("physical.work.19-44") + get("physical.other.19-44"), with=F]
+                  get("physical.work.19-44") + get("physical.other.19-44"), with=F]
 ct11 <- ct11[,"physical.45-64" := get("physical.home.45-64") +
-     get("physical.work.45-64") + get("physical.other.45-64"), with=F]
+                  get("physical.work.45-64") + get("physical.other.45-64"), with=F]
 ct11 <- ct11[,"physical.65+" := get("physical.home.65+") +
-     get("physical.work.65+") + get("physical.other.65+"), with=F]
+                  get("physical.work.65+") + get("physical.other.65+"), with=F]
 ct11 <- ct11[,"physical" := get("physical.home") +
-     get("physical.work") + get("physical.other"), with=F]
+                  get("physical.work") + get("physical.other"), with=F]
 
 ct11$week <- format(ct11$date, format="%G-%W")
 ct11[ct11$week=="2010-00"]$week <- "2010-53"
@@ -1117,17 +1131,17 @@ bt11$work.postcode <- sub("[[:blank:]]+$", "", bt11$work.postcode)
 bt11$work.postcode <- toupper(bt11$work.postcode)
 
 bt11 <- bt11[country == "uk", "ur" := uk.ur$V3[match(bt11[country == "uk",]$postcode,
-                                   uk.ur$V1)], with=F]
+                                                     uk.ur$V1)], with=F]
 bt11 <- bt11[country == "uk", "uk.country" := uk.ur$V2[match(bt11[country ==
-                                           "uk"]$postcode, uk.ur$V1)], with=F]
+                                                                  "uk"]$postcode, uk.ur$V1)], with=F]
 bt11 <- bt11[country == "uk", "urban" := rep(0, length(bt11[country ==
-                                      "uk"]$postcode)), with=F]
+                                                            "uk"]$postcode)), with=F]
 bt11 <- bt11[country == "uk", "ur" := uk.ur$V3[match(bt11[country == "uk",]$postcode,
-                                   uk.ur$V1)], with=F]
+                                                     uk.ur$V1)], with=F]
 bt11 <- bt11[country == "uk", "uk.country" := uk.ur$V2[match(bt11[country ==
-                                           "uk"]$postcode, uk.ur$V1)], with=F]
+                                                                  "uk"]$postcode, uk.ur$V1)], with=F]
 bt11 <- bt11[country == "uk", "urban" := rep(0, length(bt11[country ==
-                                      "uk"]$postcode)), with=F]
+                                                            "uk"]$postcode)), with=F]
 
 bt11[country == "uk" & is.na(bt11$ur),]$urban <- 2
 
@@ -1143,11 +1157,11 @@ bt11[bt11$uk.country == "N" & !(bt11$ur %in% c(5,6,7)),]$urban <- 0
 bt11$urban <- as.factor(bt11$urban)
 
 bt11 <- bt11[country == "uk", "work.ur" := uk.ur$V3[match(bt11[country ==
-                                        "uk",]$work.postcode, uk.ur$V1)], with=F]
+                                                               "uk",]$work.postcode, uk.ur$V1)], with=F]
 bt11 <- bt11[country == "uk", "work.uk.country" := uk.ur$V2[match(bt11[country ==
-                                                "uk"]$work.postcode, uk.ur$V1)], with=F]
+                                                                       "uk"]$work.postcode, uk.ur$V1)], with=F]
 bt11 <- bt11[country == "uk", "work.urban" := rep(0, length(bt11[country ==
-                                           "uk"]$work.postcode)), with=F]
+                                                                 "uk"]$work.postcode)), with=F]
 
 bt11[country == "uk" & is.na(bt11$work.ur),]$work.urban <- 2
 
@@ -1251,43 +1265,43 @@ for (category in conversation.categories.10) {
 }
 
 ct10 <- ct10[,"conversational.home" := get("conversational.home.0-4") +
-     get("conversational.home.5-18") + get("conversational.home.19-64") +
-     get("conversational.home.65+"), with=F]
+                  get("conversational.home.5-18") + get("conversational.home.19-64") +
+                  get("conversational.home.65+"), with=F]
 ct10 <- ct10[,"conversational.work" := get("conversational.work.0-4") +
-     get("conversational.work.5-18") + get("conversational.work.19-64") +
-     get("conversational.work.65+"), with=F]
+                  get("conversational.work.5-18") + get("conversational.work.19-64") +
+                  get("conversational.work.65+"), with=F]
 ct10 <- ct10[,"conversational.other" := get("conversational.other.0-4") +
-     get("conversational.other.5-18") + get("conversational.other.19-64") +
-     get("conversational.other.65+"), with=F]
+                  get("conversational.other.5-18") + get("conversational.other.19-64") +
+                  get("conversational.other.65+"), with=F]
 ct10 <- ct10[,"conversational.0-4" := get("conversational.home.0-4") +
-     get("conversational.work.0-4") + get("conversational.other.0-4"), with=F]
+                  get("conversational.work.0-4") + get("conversational.other.0-4"), with=F]
 ct10 <- ct10[,"conversational.5-18" := get("conversational.home.5-18") +
-     get("conversational.work.5-18") + get("conversational.other.5-18"), with=F]
+                  get("conversational.work.5-18") + get("conversational.other.5-18"), with=F]
 ct10 <- ct10[,"conversational.19-64" := get("conversational.home.19-64") +
-     get("conversational.work.19-64") + get("conversational.other.19-64"), with=F]
+                  get("conversational.work.19-64") + get("conversational.other.19-64"), with=F]
 ct10 <- ct10[,"conversational.65+" := get("conversational.home.65+") +
-     get("conversational.work.65+") + get("conversational.other.65+"), with=F]
+                  get("conversational.work.65+") + get("conversational.other.65+"), with=F]
 ct10 <- ct10[,"conversational" := get("conversational.home") +
-     get("conversational.work") + get("conversational.other"), with=F]
+                  get("conversational.work") + get("conversational.other"), with=F]
 ct10 <- ct10[,"physical.home" := get("physical.home.0-4") +
-     get("physical.home.5-18") + get("physical.home.19-64") +
-     get("physical.home.65+"), with=F]
+                  get("physical.home.5-18") + get("physical.home.19-64") +
+                  get("physical.home.65+"), with=F]
 ct10 <- ct10[,"physical.work" := get("physical.work.0-4") +
-     get("physical.work.5-18") + get("physical.work.19-64") +
-     get("physical.work.65+"), with=F]
+                  get("physical.work.5-18") + get("physical.work.19-64") +
+                  get("physical.work.65+"), with=F]
 ct10 <- ct10[,"physical.other" := get("physical.other.0-4") +
-     get("physical.other.5-18") + get("physical.other.19-64") +
-     get("physical.other.65+"), with=F]
+                  get("physical.other.5-18") + get("physical.other.19-64") +
+                  get("physical.other.65+"), with=F]
 ct10 <- ct10[,"physical.0-4" := get("physical.home.0-4") +
-     get("physical.work.0-4") + get("physical.other.0-4"), with=F]
+                  get("physical.work.0-4") + get("physical.other.0-4"), with=F]
 ct10 <- ct10[,"physical.5-18" := get("physical.home.5-18") +
-     get("physical.work.5-18") + get("physical.other.5-18"), with=F]
+                  get("physical.work.5-18") + get("physical.other.5-18"), with=F]
 ct10 <- ct10[,"physical.19-64" := get("physical.home.19-64") +
-     get("physical.work.19-64") + get("physical.other.19-64"), with=F]
+                  get("physical.work.19-64") + get("physical.other.19-64"), with=F]
 ct10 <- ct10[,"physical.65+" := get("physical.home.65+") +
-     get("physical.work.65+") + get("physical.other.65+"), with=F]
+                  get("physical.work.65+") + get("physical.other.65+"), with=F]
 ct10 <- ct10[,"physical" := get("physical.home") +
-     get("physical.work") + get("physical.other"), with=F]
+                  get("physical.work") + get("physical.other"), with=F]
 
 
 ct10$week <- format(ct10$date, format="%G-%W")
@@ -1373,17 +1387,17 @@ bt10$work.postcode <- sub("[[:blank:]]+$", "", bt10$work.postcode)
 bt10$work.postcode <- toupper(bt10$work.postcode)
 
 bt10 <- bt10[country == "uk", "ur" := uk.ur$V3[match(bt10[country == "uk",]$postcode,
-                                   uk.ur$V1)], with=F]
+                                                     uk.ur$V1)], with=F]
 bt10 <- bt10[country == "uk", "uk.country" := uk.ur$V2[match(bt10[country ==
-                                           "uk"]$postcode, uk.ur$V1)], with=F]
+                                                                  "uk"]$postcode, uk.ur$V1)], with=F]
 bt10 <- bt10[country == "uk", "urban" := rep(0, length(bt10[country ==
-                                      "uk"]$postcode)), with=F]
+                                                            "uk"]$postcode)), with=F]
 bt10 <- bt10[country == "uk", "ur" := uk.ur$V3[match(bt10[country == "uk",]$postcode,
-                                   uk.ur$V1)], with=F]
+                                                     uk.ur$V1)], with=F]
 bt10 <- bt10[country == "uk", "uk.country" := uk.ur$V2[match(bt10[country ==
-                                           "uk"]$postcode, uk.ur$V1)], with=F]
+                                                                  "uk"]$postcode, uk.ur$V1)], with=F]
 bt10 <- bt10[country == "uk", "urban" := rep(0, length(bt10[country ==
-                                      "uk"]$postcode)), with=F]
+                                                            "uk"]$postcode)), with=F]
 
 bt10[country == "uk" & is.na(bt10$ur),]$urban <- 2
 
@@ -1399,11 +1413,11 @@ bt10[bt10$uk.country == "N" & !(bt10$ur %in% c(5,6,7)),]$urban <- 0
 bt10$urban <- as.factor(bt10$urban)
 
 bt10 <- bt10[country == "uk", "work.ur" := uk.ur$V3[match(bt10[country ==
-                                        "uk",]$work.postcode, uk.ur$V1)], with=F]
+                                                               "uk",]$work.postcode, uk.ur$V1)], with=F]
 bt10 <- bt10[country == "uk", "work.uk.country" := uk.ur$V2[match(bt10[country ==
-                                                "uk"]$work.postcode, uk.ur$V1)], with=F]
+                                                                       "uk"]$work.postcode, uk.ur$V1)], with=F]
 bt10 <- bt10[country == "uk", "work.urban" := rep(0, length(bt10[country ==
-                                           "uk"]$work.postcode)), with=F]
+                                                                 "uk"]$work.postcode)), with=F]
 
 bt10[country == "uk" & is.na(bt10$work.ur),]$work.urban <- 2
 

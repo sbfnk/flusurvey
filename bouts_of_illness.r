@@ -1,6 +1,6 @@
 library('data.table')
 
-for (file in c("flusurvey_201415.csv",  "flusurvey_201314.csv", "flusurvey_201213.csv", "flusurvey_201112.csv"))
+for (file in c("flusurvey_201415.csv", "flusurvey_201314.csv", "flusurvey_201213.csv", "flusurvey_201112.csv"))
 {
     dt <- data.table(read.csv(file))
     dt[, date := as.Date(as.character(date))]
@@ -122,14 +122,14 @@ for (file in c("flusurvey_201415.csv",  "flusurvey_201314.csv", "flusurvey_20121
     bouts[is.na(fever.suddenly) & symptoms.suddenly > 0, suddenly := 0]
     bouts[fever.suddenly > 0 & symptoms.suddenly > 0, suddenly := 0]
 
-    bouts[, ili := ((suddenly == 0) &
+    bouts[, ili := ((suddenly == 1) &
                    (fever == 1 | tired == 1 |
                         headache == 1 | muscle.and.or.joint.pain == 1) &
                    (sore.throat == 1 | cough ==1 |
                         shortness.breath == 1))]
     bouts[, ili := as.integer(ili)]
 
-    bouts[, ili.fever := ((suddenly == 0) &
+    bouts[, ili.fever := ((suddenly == 1) &
                           (fever == 1) &
                           (sore.throat == 1 | cough ==1 |
                                shortness.breath == 1))]
