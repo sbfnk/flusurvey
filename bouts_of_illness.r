@@ -1,6 +1,6 @@
 library('data.table')
 
-for (file in c("flusurvey_201315.csv", "flusurvey_201213.csv", "flusurvey_201112.csv"))
+for (file in c("flusurvey_201415.csv",  "flusurvey_201314.csv", "flusurvey_201213.csv", "flusurvey_201112.csv"))
 {
     dt <- data.table(read.csv(file))
     dt[, date := as.Date(as.character(date))]
