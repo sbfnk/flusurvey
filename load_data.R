@@ -17,6 +17,13 @@ age_years <- function(from, to)
 
 uk.ur <- read.csv("urban_rural.csv", header=F, sep=",")
 
+convert_data <- function(files)
+{
+
+}
+
+clean_data
+
 ## 2015 data
 st15 <- data.table(read.csv('weekly_15.csv', sep=',', header=T))
 bt15 <- data.table(read.csv('intake_15.csv', sep=',', header=T))

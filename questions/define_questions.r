@@ -7,11 +7,11 @@ header_replace <- function(x, old_questions, new_questions)
 }
 
 
-headers <- list()
+questions <- list()
 
-headers[["2010"]] <- list()
+questions[["2010"]] <- list()
 
-headers[["2010"]][["background"]] <-
+questions[["2010"]][["background"]] <-
     list(q1000 = "postcode",
          q1001 = "gender",
          q1002 = "birthyear",
@@ -72,7 +72,7 @@ headers[["2010"]][["background"]] <-
          q2060_8 = "how.find.out.other")
 
 
-headers[["2010"]][["vaccine"]] <-
+questions[["2010"]][["vaccine"]] <-
     list(q9001 = "offered.swineflu.vaccine",
          q9002 = "why.offered.swineflu.vaccine",
          q9003 = "swineflu.vaccine.this.year",
@@ -88,7 +88,7 @@ headers[["2010"]][["vaccine"]] <-
          q9013 = "why.not.seasonal.vaccine",
          q9014 = "why.seasonal.vaccine")
 
-headers[["2010"]][["symptoms"]] <-
+questions[["2010"]][["symptoms"]] <-
     list(q3000 = "symptoms",
          q3001 = "symptoms.start",
          q3002 = "fever",
@@ -139,7 +139,7 @@ headers[["2010"]][["symptoms"]] <-
          q3011_2 = "encountered.flu.no",
          q3011_3 = "encountered.flu.dontknow")
 
-headers[["2010"]][["contact"]] <-
+questions[["2010"]][["contact"]] <-
     list(q4000 = "conversational.home.0-4",
          q4001 = "conversational.home.5-18",
          q4002 = "conversational.home.19-64",
@@ -167,9 +167,9 @@ headers[["2010"]][["contact"]] <-
          q4024 = "public.transport",
          q4025 = "enclosed.indoor.space")
 
-headers[["2011"]] <- list()
+questions[["2011"]] <- list()
 
-headers[["2011"]][["background"]] <-
+questions[["2011"]][["background"]] <-
     list(IntakeQ1 = "gender",
          IntakeQ2 = "birthmonth",
          IntakeQ3 = "postcode",
@@ -235,7 +235,7 @@ headers[["2011"]][["background"]] <-
          IntakeQ15.2 = "allergy.animals",
          IntakeQ15.3 = "allergy.other")
 
-headers[["2011"]][["symptoms"]] <-
+questions[["2011"]][["symptoms"]] <-
     list(WeeklyQ1.0 = "no.symptoms",
          WeeklyQ1.1 = "fever",
          WeeklyQ1.2 = "watery.eyes",
@@ -292,7 +292,7 @@ headers[["2011"]][["symptoms"]] <-
          WeeklyQ10 = "vaccine.this.year.since.registration",
          WeeklyQ11 = "what.do.you.think")
 
-headers[["2011"]][["contact"]] <-
+questions[["2011"]][["contact"]] <-
     list(ContactQ1 = "symptom.conversational",
          ContactQ2 = "symptom.physical",
          ContactQ3 = "symptom.public.transport",
@@ -328,7 +328,7 @@ headers[["2011"]][["contact"]] <-
          ContactQ2.13 = "physical.other.45-64",
          ContactQ2.14 = "physical.other.65+")
 
-headers[["2012"]][["background"]] <-
+questions[["2012"]][["background"]] <-
     list(Q0 = "self",
          Q1 = "gender",
          Q2 = "birthmonth",
@@ -423,7 +423,7 @@ headers[["2012"]][["background"]] <-
          Q17_4 = "howhear.family.friends",
          Q17_5 = "howhear.other")
 
-headers[["2012"]][["symptoms"]] <-
+questions[["2012"]][["symptoms"]] <-
     list(Q1_0 = "no.symptoms",
          Q1_1 = "fever",
          Q1_2 = "chills",
@@ -484,7 +484,7 @@ headers[["2012"]][["symptoms"]] <-
          Q12_multi_row1_col1 = "howmany.household.ili",
          Q13_multi_row1_col1 = "howmany.other.ili")
 
-headers[["2012"]][["contact"]] <-
+questions[["2012"]][["contact"]] <-
     list(Q1_multi_row1_col1 = "conversational.home.0-4",
          Q1_multi_row1_col2 = "conversational.home.5-18",
          Q1_multi_row1_col3 = "conversational.home.19-44",
@@ -519,39 +519,39 @@ headers[["2012"]][["contact"]] <-
          Q4 = "enclosed.indoor.space",
          Q5 = "furthest.travelled")
 
-headers[["2013"]] <- headers[["2012"]]
+questions[["2013"]] <- questions[["2012"]]
 
 ## changes 2012->2013
-headers[["2013"]][["symptoms"]] <-
-    header_replace(headers[["2013"]][["symptoms"]], "Q7b",
+questions[["2013"]][["symptoms"]] <-
+    header_replace(questions[["2013"]][["symptoms"]], "Q7b",
                    c(Q7b_multi_row1_col1 = "visit.medical.service.howsoon.gp.receptionist",
                      Q7b_multi_row2_col1 = "visit.medical.service.howsoon.gp.doctor.nurse",
                      Q7b_multi_row3_col1 = "visit.medical.service.howsoon.nhs",
                      Q7b_multi_row4_col1 = "visit.medical.service.howsoon.other"))
 
-headers[["2013"]][["symptoms"]] <-
-    header_replace(headers[["2013"]][["symptoms"]], "Q8b",
+questions[["2013"]][["symptoms"]] <-
+    header_replace(questions[["2013"]][["symptoms"]], "Q8b",
                    c(Q8b_multi_row1_col1 = "contact.medical.service.howsoon.gp.receptionist",
                      Q8b_multi_row2_col1 = "contact.medical.service.howsoon.gp.doctor.nurse",
                      Q8b_multi_row3_col1 = "contact.medical.service.howsoon.nhs",
                      Q8b_multi_row4_col1 = "contact.medical.service.howsoon.other"))
 
-headers[["2013"]][["symptoms"]] <-
-    header_replace(headers[["2013"]][["symptoms"]],
+questions[["2013"]][["symptoms"]] <-
+    header_replace(questions[["2013"]][["symptoms"]],
                    c("Q12_multi_row1_col1", "Q13_multi_row1_col1"),
                    c(Q12 = "health.score"))
 
-headers[["2014"]] <- headers[["2013"]]
+questions[["2014"]] <- questions[["2013"]]
 
 ## changes 2013->2014
-headers[["2014"]][["background"]] <-
-    header_replace(headers[["2014"]][["background"]],
+questions[["2014"]][["background"]] <-
+    header_replace(questions[["2014"]][["background"]],
                    c("Q4d_0", "Q4d_1", "Q4d_2", "Q4d_3", "Q4d_4", "Q4d_5"),
                    c(Q4d = "education"))
 
 
-headers[["2014"]][["background"]] <-
-    header_replace(headers[["2014"]][["background"]],
+questions[["2014"]][["background"]] <-
+    header_replace(questions[["2014"]][["background"]],
                    c("Q10c_1,", "Q10c_2", "Q10c_3", "Q10c_4", "Q10c_5", "Q10c_6", "Q10c_7", "Q10c_8", "Q10c_9"),
                    c(Q10c_0 = "why.vaccine.riskgroup",
                      Q10c_1 = "why.vaccine.protected",
@@ -565,8 +565,8 @@ headers[["2014"]][["background"]] <-
                      Q10c_9 = "why.vaccine.always",
                      Q10c_10 = "why.vaccine.other"))
 
-headers[["2014"]][["background"]] <-
-    header_replace(headers[["2014"]][["background"]],
+questions[["2014"]][["background"]] <-
+    header_replace(questions[["2014"]][["background"]],
                    c("Q17_0", "Q17_1", "Q17_2", "Q17_3", "Q17_4", "Q17_5"),
                    c(Q18_0 = "howhear.radio.tv",
                      Q18_1 = "howhear.paper.magazine",
@@ -581,4 +581,6 @@ headers[["2014"]][["background"]] <-
                      Q19c = "activity.winter"))
 
 
-headers[["2015"]] <- headers[["2014"]]
+questions[["2015"]] <- questions[["2014"]]
+
+save(file = "questions.rdata", questions)
