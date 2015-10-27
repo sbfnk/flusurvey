@@ -38,30 +38,7 @@ read_data <- function(files, year, ...)
             }
         }
 
-        if (missing(year))
-        {
-            ## try to guess
-            i <- 1
-            found <- FALSE
-            while (i <= length(questions) && !found)
-        {
-            if (name %in% names(flusurvey::questions[[i]]) &&
-                setequal(names(flusurvey::questions[[i]][[name]]),
-                         setdiff(colnames(dt), c("id", "user", "global_id", "timestamp"))))
-            {
-                found <- TRUE
-                year <- names(flusurvey::questions)[i]
-            } else {
-                i <- i + 1
-            }
-        }
-            if (!found)
-            {
-                stop("Did not find the right questions for the data -- please provide 'year'")
-            }
-        } else {
-            year <- as.character(year)
-        }
+        year <- as.character(year)
 
         ## convert question name
         setnames(dt, names(flusurvey::questions[[year]][[name]]),
