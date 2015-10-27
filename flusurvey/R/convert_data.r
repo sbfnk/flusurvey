@@ -69,3 +69,10 @@ read_data <- function(files, year, ...)
     return(res)
 }
 
+clean_data <- function(data)
+{
+    for (name in names(data))
+    {
+        
+    }
+}
