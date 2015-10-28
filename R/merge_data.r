@@ -121,6 +121,7 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
 
             dt[, agegroup := cut(age, breaks=c(0,18,45,65, max(age, na.rm = TRUE)),
                                  include.lowest = TRUE, right = TRUE)]
+            dt[grep("^\\(65,", agegroup), agegroup := "(65,)"]
 
             ## calculate auxiliary variables: living with children,
             ## using public transport
