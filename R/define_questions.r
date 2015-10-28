@@ -599,8 +599,6 @@ questions[["2015"]][["background"]] <-
                    c(Q19 = "smart.phone",
                      Q20 = "self.swabbing"))
 
-save(file = "questions.rda", questions)
-
 options <-
     list(self = c("0" = "self", "1" = "household_member", "2" = "someone_else"),
          gender = c("0" = "male", "1" = "female"),
@@ -642,6 +640,4 @@ options <-
          public.transport = c("0" = "none", "1" = "(0,30]_minutes", "2" = "(30,90]_minutes", "3" = "(90,240]_minutes", "4" = "(240,)_minutes"),
          enclosed.indoor.space = c("0" = "none", "1" = "(0,30]_minutes", "2" = "(30,90]_minutes", "3" = "(90,240]_minutes", "4" = "(240,)_minutes"),
          furthest.travelled =  c("0" = "[0,1)_miles", "1" = "[1,5)_miles", "2" = "[5,10)_miles", "3" = "[10,30)_miles", "4" = "[30,100]_miles", "5" = "(100,)_miles"))
-
-save(file = "options.rda", options)
 
