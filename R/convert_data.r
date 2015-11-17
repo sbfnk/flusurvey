@@ -14,13 +14,12 @@
 ##'
 ##' and similarly for weekly surveys
 ##'
-##' @param files a (named!) list of files. The names stand for the surveys (e.g., "symptoms", "background", "contacts", etc.)
+##' @param files a (named!) list of files. The names stand for the surveys (e.g., "symptom", "background", "contact", etc.)
 ##' @param year the year from which the data come. If not given, will try to guess it from the headers in the .csv files
 ##' @param ... options to be passed to \code{read.csv}
 ##' @return a list of data tables with the data
 ##' @author seb
 ##' @import data.table
-##' @export
 read_data <- function(files, year, ...)
 {
     res <- list()

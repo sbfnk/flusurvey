@@ -7,7 +7,7 @@
 read_data(files, year, ...)
 }
 \arguments{
-\item{files}{a (named!) list of files. The names stand for the surveys (e.g., "symptoms", "background", "contacts", etc.)}
+\item{files}{a (named!) list of files. The names stand for the surveys (e.g., "symptom", "background", "contact", etc.)}
 
 \item{year}{the year from which the data come. If not given, will try to guess it from the headers in the .csv files}
 

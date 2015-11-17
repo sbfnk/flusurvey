@@ -2,7 +2,9 @@ header_replace <- function(x, old_questions, new_questions)
 {
     old_pos <- which(names(x) %in% old_questions)
     x <- x[-old_pos]
-    return(append(x, new_questions, after = min(old_pos) - 1))
+    if (!missing(new_questions))
+        x <- append(x, new_questions, after = min(old_pos) - 1)
+    return(x)
 }
 
 
@@ -87,7 +89,7 @@ questions[["2010"]][["vaccine"]] <-
       q9013 = "why.not.seasonal.vaccine",
       q9014 = "why.seasonal.vaccine")
 
-questions[["2010"]][["symptoms"]] <-
+questions[["2010"]][["symptom"]] <-
     c(q3000 = "symptoms",
       q3001 = "symptoms.start",
       q3002 = "fever",
@@ -234,7 +236,7 @@ questions[["2011"]][["background"]] <-
       IntakeQ15.2 = "allergy.animals",
       IntakeQ15.3 = "allergy.other")
 
-questions[["2011"]][["symptoms"]] <-
+questions[["2011"]][["symptom"]] <-
     c(WeeklyQ1.0 = "no.symptoms",
       WeeklyQ1.1 = "fever",
       WeeklyQ1.2 = "watery.eyes",
@@ -424,7 +426,7 @@ questions[["2012"]][["background"]] <-
       Q17_4 = "howhear.family.friends",
       Q17_5 = "howhear.other")
 
-questions[["2012"]][["symptoms"]] <-
+questions[["2012"]][["symptom"]] <-
     c(Q1_0 = "no.symptoms",
       Q1_1 = "fever",
       Q1_2 = "chills",
@@ -523,22 +525,22 @@ questions[["2012"]][["contact"]] <-
 questions[["2013"]] <- questions[["2012"]]
 
 ## changes 2012->2013
-questions[["2013"]][["symptoms"]] <-
-    header_replace(questions[["2013"]][["symptoms"]], "Q7b",
+questions[["2013"]][["symptom"]] <-
+    header_replace(questions[["2013"]][["symptom"]], "Q7b",
                    c(Q7b_multi_row1_col1 = "visit.medical.service.howsoon.gp.receptionist",
                      Q7b_multi_row2_col1 = "visit.medical.service.howsoon.gp.doctor.nurse",
                      Q7b_multi_row3_col1 = "visit.medical.service.howsoon.nhs",
                      Q7b_multi_row4_col1 = "visit.medical.service.howsoon.other"))
 
-questions[["2013"]][["symptoms"]] <-
-    header_replace(questions[["2013"]][["symptoms"]], "Q8b",
+questions[["2013"]][["symptom"]] <-
+    header_replace(questions[["2013"]][["symptom"]], "Q8b",
                    c(Q8b_multi_row1_col1 = "contact.medical.service.howsoon.gp.receptionist",
                      Q8b_multi_row2_col1 = "contact.medical.service.howsoon.gp.doctor.nurse",
                      Q8b_multi_row3_col1 = "contact.medical.service.howsoon.nhs",
                      Q8b_multi_row4_col1 = "contact.medical.service.howsoon.other"))
 
-questions[["2013"]][["symptoms"]] <-
-    header_replace(questions[["2013"]][["symptoms"]],
+questions[["2013"]][["symptom"]] <-
+    header_replace(questions[["2013"]][["symptom"]],
                    c("Q12_multi_row1_col1", "Q13_multi_row1_col1"),
                    c(Q12 = "health.score"))
 
@@ -553,7 +555,7 @@ questions[["2014"]][["background"]] <-
 
 questions[["2014"]][["background"]] <-
     header_replace(questions[["2014"]][["background"]],
-                   c("Q10c_1,", "Q10c_2", "Q10c_3", "Q10c_4", "Q10c_5", "Q10c_6", "Q10c_7", "Q10c_8", "Q10c_9"),
+                   c("Q10c_0", "Q10c_1", "Q10c_2", "Q10c_3", "Q10c_4", "Q10c_5", "Q10c_6", "Q10c_7", "Q10c_8", "Q10c_9"),
                    c(Q10c_0 = "why.vaccine.riskgroup",
                      Q10c_1 = "why.vaccine.protected",
                      Q10c_2 = "why.vaccine.protect.others",
@@ -581,26 +583,39 @@ questions[["2014"]][["background"]] <-
                      Q19b = "activity.moderate",
                      Q19c = "activity.winter"))
 
+questions[["2014"]][["background"]] <-
+    header_replace(questions[["2014"]][["background"]],
+                   c("Q15_4"))
 
 questions[["2015"]] <- questions[["2014"]]
 
-save(file = "questions.rda", questions)
+questions[["2015"]][["background"]] <-
+    header_replace(questions[["2015"]][["background"]],
+                   c("Q8", "Q9"))
+
+questions[["2015"]][["background"]] <-
+    header_replace(questions[["2015"]][["background"]],
+                   c("Q19a", "Q19b", "Q19c"),
+                   c(Q19 = "smart.phone",
+                     Q20 = "self.swabbing"))
 
 options <-
-    list(self = c("0" = "self", "1" = "household.member", "2" = "someone.else"),
+    list(self = c("0" = "self", "1" = "household_member", "2" = "someone_else"),
          gender = c("0" = "male", "1" = "female"),
-         main.activity = c("0" = "paid.employment.full.time", "1" = "paid.employment.part.time", "2" = "self.employed", "3" = "school", "4" = "home.maker", "5" = "unemployed", "6" = "long.term.leave", "7" = "retired", "8" = "other"),
+         main.activity = c("0" = "paid_employment_full_time", "1" = "paid_employment_part_time", "2" = "self_employed", "3" = "school", "4" = "home_maker", "5" = "unemployed", "6" = "long_term_leave", "7" = "retired", "8" = "other"),
          work.postcode.option = c("0" = "yes", "1" = "dont_know", "2" = NA),
-         occupation = c("0" = "professional", "1" = "office.worker", "2" = "retail", "3" = "skilled.manual", "4" = "other.manual", "5" = "other"),
+         occupation = c("0" = "professional", "1" = "office_worker", "2" = "retail", "3" = "skilled_manual", "4" = "other_manual", "5" = "other"),
          children.school = c("0" = "none", "1" = "1", "2" = "2", "3" = "3", "4" = "4", "5" = "5", "6" = "(5,)"), 
-         transport = c("0" = "walking", "1" = "bike", "2" = "motorbike", "3" = "car", "4" = "public.transport", "5" = "other"),
-         howlong.transport = c("0" = "none", "1" = "(0,30).minutes", "2" = "[30,90).minutes", "3" = "[90,360).minutes", "4" = "(360,).minutes"),
-         howoften.flulike = c("0" = "almost.never", "1" = "(0,2].annually", "2" = "(2,5].annually", "3" = "(5-10].annually", "4" = "(10,).annually", "5" = "dont_know"),
+         transport = c("0" = "walking", "1" = "bike", "2" = "motorbike", "3" = "car", "4" = "public_transport", "5" = "other"),
+         howlong.transport = c("0" = "none", "1" = "(0,30)_minutes", "2" = "[30,90)_minutes", "3" = "[90,360)_minutes", "4" = "(360,)_minutes"),
+         howoften.flulike = c("0" = "almost_never", "1" = "(0,2]_annually", "2" = "(2,5]_annually", "3" = "(5-10]_annually", "4" = "(10,)_annually", "5" = "dont_know"),
          vaccine.last.year = c("0" = "yes", "1" = "no", "2" = "dont_know"),
          vaccine.this.year = c("0" = "yes", "1" = "no", "2" = "dont_know"),
          date.vaccine.option = c("0" = "dont_know", "1" = "yes"),
          pregnant = c("0" = "yes", "1" = "no", "2" = "dont_know"),
-         smoke = c("0" = "no", "1" = "occasionally", "2" = "(,10].daily", "3" = "(10,).daily", "4" = "dont_know"),
+         smoke = c("0" = "no", "1" = "occasionally", "2" = "(,10]_daily", "3" = "(10,)_daily", "4" = "dont_know"),
+         smart.phone = c("0" = "yes", "1" = "no"),
+         self.swabbing = c("0" = "yes", "1" = "no"), 
          same = c("0" = "yes", "1" = "no", "2" = "dont_know", "3" = NA),
          symptoms.start.option = c("0" = "date", "1" = "dont_know"),
          symptoms.end.option = c("0" = "date", "1" = "dont_know", "2" = "still_ill"),
@@ -609,19 +624,20 @@ options <-
          fever.suddenly = c("0" = "yes", "1" = "no", "2" = "dont_know"),
          fever.temperature = c("0" = "yes", "1" = "no", "2" = "dont_know"),
          fever.temperature.value = c("0" = "[,37)", "1" = "[37,37.5)", "2" = "[37.5,38)", "3" = "[38,39)", "4" = "[39,40)", "5" = "[40,)", "6" = "dont_know"),
-         visit.medical.service.howsoon.gp.receptionist = c("100" = NA, "0" = "same.day", "1" = "1.day", "2" = "2.days", "3" = "3.days", "4" = "4.days", "5" = "[5,7].days", "6" = "(7,) days", "7" = "dont_know"),
-         visit.medical.service.howsoon.gp.doctor.nurse = c("100" = NA, "0" = "same.day", "1" = "1.day", "2" = "2.days", "3" = "3.days", "4" = "4.days", "5" = "[5,7].days", "6" = "(7,) days", "7" = "dont_know"),
-         visit.medical.service.howsoon.nhs = c("100" = NA, "0" = "same.day", "1" = "1.day", "2" = "2.days", "3" = "3.days", "4" = "4.days", "5" = "[5,7].days", "6" = "(7,) days", "7" = "dont_know"),
-         visit.medical.service.howsoon.other = c("100" = NA, "0" = "same.day", "1" = "1.day", "2" = "2.days", "3" = "3.days", "4" = "4.days", "5" = "[5,7].days", "6" = "(7,) days", "7" = "dont_know"),
-         contact.medical.service.howsoon.gp.receptionist = c("100" = NA, "0" = "same.day", "1" = "1.day", "2" = "2.days", "3" = "3.days", "4" = "4.days", "5" = "[5,7].days", "6" = "(7,) days", "7" = "dont_know"),
-         contact.medical.service.howsoon.gp.doctor.nurse = c("100" = NA, "0" = "same.day", "1" = "1.day", "2" = "2.days", "3" = "3.days", "4" = "4.days", "5" = "[5,7].days", "6" = "(7,) days", "7" = "dont_know"),
-         contact.medical.service.howsoon.nhs = c("100" = NA, "0" = "same.day", "1" = "1.day", "2" = "2.days", "3" = "3.days", "4" = "4.days", "5" = "[5,7].days", "6" = "(7,) days", "7" = "dont_know"),
-         contact.medical.service.howsoon.other = c("100" = NA, "0" = "same.day", "1" = "1.day", "2" = "2.days", "3" = "3.days", "4" = "4.days", "5" = "[5,7].days", "6" = "(7,) days", "7" = "dont_know"),
-         howsoon.medication = c("0" = "same.day", "1" = "1.day", "2" = "2.days", "3" = "3.days", "4" = "4.days", "5" = "[5,7].days", "6" = "(7,) days", "7" = "dont_know"),
+         visit.medical.service.howsoon.gp.receptionist = c("100" = NA, "0" = "same_day", "1" = "1_day", "2" = "2_days", "3" = "3_days", "4" = "4_days", "5" = "[5,7]_days", "6" = "(7,)_days", "7" = "dont_know"),
+         visit.medical.service.howsoon.gp.doctor.nurse = c("100" = NA, "0" = "same_day", "1" = "1_day", "2" = "2_days", "3" = "3_days", "4" = "4_days", "5" = "[5,7]_days", "6" = "(7,)_days", "7" = "dont_know"),
+         visit.medical.service.howsoon.nhs = c("100" = NA, "0" = "same_day", "1" = "1_day", "2" = "2_days", "3" = "3_days", "4" = "4_days", "5" = "[5,7]_days", "6" = "(7,)_days", "7" = "dont_know"),
+         visit.medical.service.howsoon.other = c("100" = NA, "0" = "same_day", "1" = "1_day", "2" = "2_days", "3" = "3_days", "4" = "4_days", "5" = "[5,7]_days", "6" = "(7,)_days", "7" = "dont_know"),
+         contact.medical.service.howsoon.gp.receptionist = c("100" = NA, "0" = "same_day", "1" = "1_day", "2" = "2_days", "3" = "3_days", "4" = "4_days", "5" = "[5,7]_days", "6" = "(7,)_days", "7" = "dont_know"),
+         contact.medical.service.howsoon.gp.doctor.nurse = c("100" = NA, "0" = "same_day", "1" = "1_day", "2" = "2_days", "3" = "3_days", "4" = "4_days", "5" = "[5,7]_days", "6" = "(7,)_days", "7" = "dont_know"),
+         contact.medical.service.howsoon.nhs = c("100" = NA, "0" = "same.day", "1" = "1_day", "2" = "2_days", "3" = "3_days", "4" = "4_days", "5" = "[5,7]_days", "6" = "(7,)_days", "7" = "dont_know"),
+         contact.medical.service.howsoon.other = c("100" = NA, "0" = "same_day", "1" = "1_day", "2" = "2_days", "3" = "3_days", "4" = "4_days", "5" = "[5,7]_days", "6" = "(7,)_days", "7" = "dont_know"),
+         howsoon.medication = c("0" = "same_day", "1" = "1_day", "2" = "2_days", "3" = "3_days", "4" = "4_days", "5" = "[5,7]_days", "6" = "(7,)_days", "7" = "dont_know"),
          alter.routine = c("0" = "no", "1" = "yes_but_no_time_off", "2" = "yes_time_off"),
          still.altered = c("0" = "yes", "1" = "no", "3" = "other"),
-         howlong.altered = c("0" = "1.day", "1" = "2.days", "2" = "3.days", "3" = "4.days", "4" = "5.days", "5" = "(5,10].days", "6" = "(10,15].days", "7" = "(15,) days"),
-         what.do.you.think = c("0" = "ili", "1" = "common_cold", "2" = "allergy_hay_fever", "3" = "gastro", "4" = "other", "5" = "dont_know", "6" = "asthma"))
-
-save(file = "options.rda", options)
+         howlong.altered = c("0" = "1_day", "1" = "2_days", "2" = "3_days", "3" = "4_days", "4" = "5_days", "5" = "(5,10]_days", "6" = "(10,15]_days", "7" = "(15,) days"),
+         what.do.you.think = c("0" = "ili", "1" = "common_cold", "2" = "allergy_hay_fever", "3" = "gastro", "4" = "other", "5" = "dont_know", "6" = "asthma"),
+         public.transport = c("0" = "none", "1" = "(0,30]_minutes", "2" = "(30,90]_minutes", "3" = "(90,240]_minutes", "4" = "(240,)_minutes"),
+         enclosed.indoor.space = c("0" = "none", "1" = "(0,30]_minutes", "2" = "(30,90]_minutes", "3" = "(90,240]_minutes", "4" = "(240,)_minutes"),
+         furthest.travelled =  c("0" = "[0,1)_miles", "1" = "[1,5)_miles", "2" = "[5,10)_miles", "3" = "[10,30)_miles", "4" = "[30,100]_miles", "5" = "(100,)_miles"))
 
