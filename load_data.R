@@ -19,7 +19,10 @@ uk.ur <- read.csv("urban_rural.csv", header=F, sep=",")
 
 convert_data <- function(files)
 {
-
+    for (name in names(files))
+    {
+        dt <- data.table(read.csv(files[name], sep=',', header=T))
+    }
 }
 
 clean_data
