@@ -114,7 +114,7 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
         {
             ## calculate birthdates, age and agegroup
             dt[, birthdate := as.Date(paste(birthmonth, "-01",sep=""))]
-            dt[, age := lubridate::new_interval(birthdate, date) %/% lubridate::years(1)]
+            dt[, age := lubridate::interval(birthdate, date) %/% lubridate::years(1)]
             ## remove negative ages
             dt[age < 0, birthdate := NA]
             dt[age < 0, age := NA]
