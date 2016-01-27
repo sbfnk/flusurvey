@@ -245,8 +245,8 @@ saveRDS(dt15, "flusurvey_201415.rds")
 dt15 <- readRDS("flusurvey_201415.rds")
 
 ## 2014
-sf14 <- read.csv('weekly_14.csv', sep=',', header=T)
-bf14 <- read.csv('intake_14.csv', sep=',', header=T)
+sf14 <- read.csv('symptom_14.csv', sep=',', header=T)
+bf14 <- read.csv('background_14.csv', sep=',', header=T)
 
 ## create translation table so that every participant gets a unique ID number
 ## (called global.id.number)
