@@ -5,7 +5,11 @@ Version: 1.0
 Date: 2015-10-27
 Author: Sebastian Funk
 Maintainer: Sebastian Funk <sebastian.funk@lshtm.ac.uk>
-Description: This contains scripts for extracting, cleaning and maniulating flusurvey data. For more details, see http://flusurvey.org.uk
+Description: This contains scripts for extracting, cleaning and maniulating
+    flusurvey data. For more details, see http://flusurvey.org.uk
 License: GPL-2
-Imports: data.table, plyr
+Imports:
+    data.table,
+    plyr
 LazyData: true
+RoxygenNote: 5.0.1

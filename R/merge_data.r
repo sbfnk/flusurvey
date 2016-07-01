@@ -6,6 +6,7 @@
 ##' - 'remove.bad.symptom.dates', whether to remove rows with the symptom end date before the symptom start date, or with symptom dates outside the reporting dates
 ##' - 'guess.start.dates', whether to guess the symptom start dates when the person couldn't remember (as a day of the report)
 ##' - 'limit.season', whether to limit a flu season to November -> April
+##' - 'remove.postcodes', whether to limit a flu season to November -> April
 ##' - 'create.numeric.id', whether to create a numeric id for every user,
 ##' - 'n.reports', whether to exclude those with fewer than \code{min.reports} reports
 ##' @param min.reports minimum number of reports per user (ignored if 'min.reports' is not given as a cleaning option)
@@ -13,7 +14,7 @@
 ##' @author seb
 ##' @import data.table
 ##' @export
-merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates", "guess.start.dates", "limit.season", "create.numeric.id", "n.reports"), min.reports = 3)
+merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates", "guess.start.dates", "limit.season", "remove.postcodes", "create.numeric.id", "n.reports"), min.reports = 3)
 {
     dt_list <- list()
     clean <- match.arg(clean, several.ok = TRUE)
@@ -130,8 +131,10 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
                      as.integer((household.0.4 == "t" | household.5.18 == "t"))]
 
             ## clean postcodes and add regional and urban/rural information
-            urban_rural_names <- copy(colnames(urban_rural))
-            regions_names <- copy(colnames(regions))
+            urban_rural_data <- copy(urban_rural)
+            urban_rural_names <- colnames(urban_rural_data)
+            regions_data <- copy(regions)
+            regions_names <- colnames(regions_data)
             for (col in grep("postcode$", colnames(dt), value = TRUE))
             {
                 ## clean postcode
@@ -139,9 +142,9 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
                 dt[get(col) == "", paste(col) := NA]
                 ## set settlement type and country information
                 col_prefix <- sub("postcode$", "", col)
-                setnames(urban_rural, seq_along(urban_rural_names),
+                setnames(urban_rural_data, seq_along(urban_rural_names),
                          paste0(col_prefix, urban_rural_names))
-                dt <- merge(dt, urban_rural, by = col, all.x = TRUE)
+                dt <- merge(dt, urban_rural_data, by = col, all.x = TRUE)
                 dt[, paste0(col_prefix, "country") :=
                          factor(plyr::revalue(x = get(paste0(col_prefix, "country")),
                                               replace =c("W" = "wales",
@@ -150,9 +153,9 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
                                                          "E" = "england"),
                                               warn_missing = FALSE))]
                 ## set regional information
-                setnames(regions, seq_along(regions_names),
+                setnames(regions_data, seq_along(regions_names),
                          paste0(col_prefix, regions_names))
-                dt <- merge(dt, regions, by = col, all.x = TRUE)
+                dt <- merge(dt, regions_data, by = col, all.x = TRUE)
                 dt[, paste0(col_prefix, "region") :=
                          factor(tolower(gsub(" ", "_",
                                              get(paste0(col_prefix, "region")))))]
@@ -185,8 +188,8 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
                          factor(get(paste0(col_prefix, "urban")))]
 
             }
-            setnames(urban_rural, seq_along(urban_rural_names), urban_rural_names)
-            setnames(regions, seq_along(regions), regions_names)
+            ## setnames(urban_rural, seq_along(urban_rural_names), urban_rural_names)
+            ## setnames(regions, seq_along(regions), regions_names)
 
         } else if (name == "contact")
         {
@@ -278,7 +281,7 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
     }
 
     res <- res[nchar(as.character(global_id)) > 0]
-    
+
     setkey(res, date, global_id)
 
     if ("create.numeric.id" %in% clean)
@@ -298,6 +301,11 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
         {
             res <- res[nReports > 0]
         }
+    }
+
+    if ("remove.postcodes" %in% clean)
+    {
+        res <- res[, setdiff(colnames(res), grep("postcode$", colnames(res), value = TRUE)), with = FALSE]
     }
 
     return(res)
