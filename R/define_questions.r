@@ -91,8 +91,8 @@ questions[["2010"]][["vaccine"]] <-
 
 questions[["2010"]][["symptom"]] <-
     c(q3000 = "symptoms",
-      q3001 = "symptoms.start",
-      q3002 = "fever",
+      q3001 = "symptoms.start.date",
+      q3002 = "fever.temperature.range",
       q3003 = "fever.start",
       q3004 = "fever.suddenly",
       q3005 = "medical.service.phone",

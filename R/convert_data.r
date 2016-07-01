@@ -44,12 +44,14 @@ read_data <- function(files, year, ...)
                  flusurvey::questions[[year]][[name]])
 
         ## convert dates
-        dt[, date := as.Date(timestamp)]
+        if ("timestamp" %in% colnames(dt)) dt[, date := as.Date(timestamp)]
 
-        for (col in grep("\\.date$", colnames(dt), value = TRUE))
+        for (col in grep("date$", colnames(dt), value = TRUE))
         {
-            dt[get(col) == "", paste(col) := NA_character_]
-            dt[, paste(col) := as.Date(get(col))]
+            if (is.character(dt[, get(col)]) | is.factor(dt[, get(col)])) {
+                dt[get(col) == "", paste(col) := NA_character_]
+                dt[, paste(col) := as.Date(get(col))]
+            }
         }
 
         ## convert options
@@ -60,6 +62,7 @@ read_data <- function(files, year, ...)
                                                        warn_missing = FALSE))]
         }
 
+        if (!("global_id" %in% colnames(dt)) && "uid" %in% colnames(dt)) setnames(dt, "uid", "global_id")
         setkey(dt, global_id, date)
 
         res[[name]] <- dt

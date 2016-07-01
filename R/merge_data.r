@@ -27,31 +27,49 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
         if (name == "symptom")
         {
             ## calculate ili
-            dt[symptoms.suddenly == "yes", suddenly := 1]
-            dt[symptoms.suddenly == "no", suddenly := 0]
-            dt[(is.na(suddenly) | suddenly == 0) & fever.suddenly == "yes",
-               suddenly := 1]
-            dt[is.na(suddenly) & fever.suddenly == "no", suddenly := 0]
+            if ("symptoms.suddenly" %in% dt)
+            {
+                dt[symptoms.suddenly == "yes", suddenly := 1]
+                dt[symptoms.suddenly == "no", suddenly := 0]
+                dt[(is.na(suddenly) | suddenly == 0) & fever.suddenly == "yes",
+                   suddenly := 1]
+                dt[is.na(suddenly) & fever.suddenly == "no", suddenly := 0]
+            } else
+            {
+                dt[, suddenly := 1]
+            }
+            if (!("fever" %in% colnames(dt)) && "fever.temperature.range" %in% colnames(dt))
+            {
+                dt[, fever := as.integer(fever.temperature.range > 0)]
 
-            dt[, ili := ((suddenly == 1) &
-                         (fever == "t" | tired == "t" |
-                          headache == "t" |
-                          muscle.and.or.joint.pain == "t") &
-                         (sore.throat == "t" | cough == "t" |
-                          shortness.breath == "t"))]
+            }
+            fever.symptoms <- intersect(c("fever", "fever.symptom"), colnames(dt))
+            ili.symptoms <- intersect(c("tired", "weakness", "headache"), colnames(dt))
+            resp.symptoms <- intersect(c("sore.throat", "cough", "shortness.breath"), colnames(dt))
+            gi.symptoms <- intersect(c("vomiting", "diarrhoea"), colnames(dt))
+
+            dt[, ili := suddenly == 1 &
+                     any(get(union(fever.symptoms, ili.symptoms)) %in% c(1, "t")) &
+                     any(get(resp.symptoms) %in% c(1, "t")), by = 1:nrow(dt)]
             dt[, ili := as.integer(ili)]
 
-            dt[, ili.fever := ((suddenly == 1) &
-                               (fever == "t") &
-                               (sore.throat == "t" | cough == "t" |
-                                shortness.breath == "t"))]
+            dt[, ili.fever := suddenly == 1 &
+                     any(get(fever.symptoms) %in% c(1, "t")) &
+                     any(get(ili.symptoms) %in% c(1, "t")) &
+                     any(get(resp.symptoms) %in% c(1, "t")), by = 1:nrow(dt)]
             dt[, ili.fever := as.integer(ili.fever)]
 
-            dt[, ili.self := (what.do.you.think == 0)]
-            dt[is.na(ili.self), ili.self := FALSE]
-            dt[, ili.self := as.integer(ili.self)]
+            if ("what.do.you.think" %in% colnames(dt))
+            {
+                dt[, ili.self := (what.do.you.think == 0)]
+                dt[is.na(ili.self), ili.self := FALSE]
+                dt[, ili.self := as.integer(ili.self)]
+            } else
+            {
+                dt[, ili.self := NA_integer_]
+            }
 
-            dt[, gi := (vomiting == "t" | diarrhoea == "t")]
+            dt[, gi := any(get(gi.symptoms) %in% c(1, "t"))]
             dt[, gi := as.integer(gi)]
 
             ## calculate min.reports, max.reports, nReports
@@ -98,23 +116,38 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
             if ("remove.bad.symptom.dates" %in% clean)
             {
                 ## remove end date before start date
-                dt <- dt[!(!is.na(symptoms.end.date) &
-                            !is.na(symptoms.start.date) &
-                            symptoms.end.date < symptoms.start.date)]
+                if (length(intersect(c("symptoms.start.date", "symptoms.end.date"), colnames(dt))) == 2)
+                {
+                    dt <- dt[!(!is.na(symptoms.end.date) &
+                               !is.na(symptoms.start.date) &
+                               symptoms.end.date < symptoms.start.date)]
+                }
                 ## remove start date before first report or after reporting date
-                dt <- dt[!(!is.na(symptoms.start.date) &
-                            (symptoms.start.date < min.date |
-                             symptoms.start.date > date))]
+                if ("sypmtoms.start.date" %in% colnames(dt))
+                {
+                    dt <- dt[!(!is.na(symptoms.start.date) &
+                               (symptoms.start.date < min.date |
+                                symptoms.start.date > date))]
+                }
                 ## remove end date before first report or after reporting date
-                dt <- dt[!(!is.na(symptoms.end.date) &
-                            (symptoms.end.date < min.date |
-                             symptoms.end.date > date))]
+                if ("sypmtoms.end.date" %in% colnames(dt))
+                {
+                    dt <- dt[!(!is.na(symptoms.end.date) &
+                               (symptoms.end.date < min.date |
+                                symptoms.end.date > date))]
+                }
             }
-
         } else if (name == "background")
         {
             ## calculate birthdates, age and agegroup
-            dt[, birthdate := as.Date(paste(birthmonth, "-01",sep=""))]
+            if ("birthmonth" %in% colnames(dt))
+            {
+                dt[, birthdate := as.Date(paste0(birthmonth, "-01"))]
+            } else
+            {
+                dt[, birthyear := gsub("-.*$", "", birthyear)]
+                dt[, birthdate := as.Date(paste0(birthyear, "-01-01"))]
+            }
             dt[, age := lubridate::interval(birthdate, date) %/% lubridate::years(1)]
             ## remove negative ages
             dt[age < 0, birthdate := NA]
@@ -125,10 +158,29 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
             dt[grep("^\\(65,", agegroup), agegroup := "(65,)"]
             dt[, agegroup := factor(agegroup)]
 
+            for (household.column in grep("^nb\\.household", colnames(dt), value = TRUE))
+            {
+                if (is.factor(dt[, get(household.column)]))
+                {
+                    dt[, paste(household.column) := as.integer(as.character(get(household.column)))]
+                }
+            }
+
             ## calculate auxiliary variables: living with children,
             ## using public transport
-            dt[, living.with.children :=
-                     as.integer((household.0.4 == "t" | household.5.18 == "t"))]
+            if ("household.0.4" %in% colnames(dt))
+            {
+                dt[, living.with.children :=
+                         as.integer((household.0.4 == "t" | household.5.18 == "t"))]
+            } else
+            {
+                for (nb.name in grep("^nb\\.", colnames(dt), value = TRUE))
+                {
+                    dt[is.null(get(nb.name)), paste(nb.name) := 0]
+                }
+                dt[, living.with.children :=
+                         as.integer((nb.household.0.4 > 0 | nb.household.5.18 > 0))]
+            }
 
             ## clean postcodes and add regional and urban/rural information
             urban_rural_data <- copy(urban_rural)
