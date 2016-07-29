@@ -21,57 +21,12 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
     for (name in names(data))
     {
         ## only keep last report per day
-        dt <- copy(data[[name]])
+        dt <- copy(data.table::data.table(data[[name]]))
         dt <- dt[!duplicated(dt[, list(global_id, date)], fromLast = TRUE)]
 
         if (name == "symptom")
         {
-            ## calculate ili
-            if ("symptoms.suddenly" %in% dt)
-            {
-                dt[symptoms.suddenly == "yes", suddenly := 1]
-                dt[symptoms.suddenly == "no", suddenly := 0]
-                dt[(is.na(suddenly) | suddenly == 0) & fever.suddenly == "yes",
-                   suddenly := 1]
-                dt[is.na(suddenly) & fever.suddenly == "no", suddenly := 0]
-            } else
-            {
-                dt[, suddenly := 1]
-            }
-            if (!("fever" %in% colnames(dt)) && "fever.temperature.range" %in% colnames(dt))
-            {
-                dt[, fever := as.integer(fever.temperature.range > 0)]
-
-            }
-            fever.symptoms <- intersect(c("fever", "fever.symptom"), colnames(dt))
-            ili.symptoms <- intersect(c("tired", "weakness", "headache"), colnames(dt))
-            resp.symptoms <- intersect(c("sore.throat", "cough", "shortness.breath"), colnames(dt))
-            gi.symptoms <- intersect(c("vomiting", "diarrhoea"), colnames(dt))
-
-            dt[, ili := suddenly == 1 &
-                     any(get(union(fever.symptoms, ili.symptoms)) %in% c(1, "t")) &
-                     any(get(resp.symptoms) %in% c(1, "t")), by = 1:nrow(dt)]
-            dt[, ili := as.integer(ili)]
-
-            dt[, ili.fever := suddenly == 1 &
-                     any(get(fever.symptoms) %in% c(1, "t")) &
-                     any(get(ili.symptoms) %in% c(1, "t")) &
-                     any(get(resp.symptoms) %in% c(1, "t")), by = 1:nrow(dt)]
-            dt[, ili.fever := as.integer(ili.fever)]
-
-            if ("what.do.you.think" %in% colnames(dt))
-            {
-                dt[, ili.self := (what.do.you.think == 0)]
-                dt[is.na(ili.self), ili.self := FALSE]
-                dt[, ili.self := as.integer(ili.self)]
-            } else
-            {
-                dt[, ili.self := NA_integer_]
-            }
-
-            dt[, gi := any(get(gi.symptoms) %in% c(1, "t"))]
-            dt[, gi := as.integer(gi)]
-
+            dt <- aggregate_symptoms(dt)
             ## calculate min.reports, max.reports, nReports
             if ("limit.season" %in% clean)
             {
@@ -315,9 +270,12 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
 
         }
 
-        dt[, id := NULL]
-        dt[, user := NULL]
-        dt[, timestamp := NULL]
+        if ("id" %in% colnames(dt))
+        {
+            setnames(dt, "id", paste(name, "id", sep = "."))
+        }
+        if ("user" %in% colnames(dt)) dt[, user := NULL]
+        if ("timestamp" %in% colnames(dt)) dt[, timestamp := NULL]
 
         setkey(dt, global_id, date)
         dt_list[[name]] <- dt

@@ -5,8 +5,8 @@
 \title{Clean and merge flusurvey data tables}
 \usage{
 merge_data(data, clean = c("remove.first", "remove.bad.symptom.dates",
-  "guess.start.dates", "limit.season", "create.numeric.id", "n.reports"),
-  min.reports = 3)
+  "guess.start.dates", "limit.season", "remove.postcodes", "create.numeric.id",
+  "n.reports"), min.reports = 3)
 }
 \arguments{
 \item{data}{the data to merge and clean, usually the result of \code{read_data}}
@@ -16,6 +16,7 @@ merge_data(data, clean = c("remove.first", "remove.bad.symptom.dates",
 - 'remove.bad.symptom.dates', whether to remove rows with the symptom end date before the symptom start date, or with symptom dates outside the reporting dates
 - 'guess.start.dates', whether to guess the symptom start dates when the person couldn't remember (as a day of the report)
 - 'limit.season', whether to limit a flu season to November -> April
+- 'remove.postcodes', whether to limit a flu season to November -> April
 - 'create.numeric.id', whether to create a numeric id for every user,
 - 'n.reports', whether to exclude those with fewer than \code{min.reports} reports}
 

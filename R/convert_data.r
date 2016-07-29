@@ -20,6 +20,7 @@
 ##' @return a list of data tables with the data
 ##' @author seb
 ##' @import data.table
+##' @export
 read_data <- function(files, year, ...)
 {
     res <- list()
