@@ -27,7 +27,7 @@ extract_data <- function(data, surveys = "all", years = "all", join = TRUE, ...)
     {
         surveys <- Reduce(union, sapply(data, names))
     }
-    
+
     ## check that all the surveys/years exist
     if (!all(years %in% names(data)))
     {
@@ -57,12 +57,12 @@ extract_data <- function(data, surveys = "all", years = "all", join = TRUE, ...)
     {
         stop("No years to extract data from.")
     }
-    
+
     if (length(surveys) == 0)
     {
         stop("No surveys to extract.")
     }
-    
+
     res <- list()
     for (year in years)
     {
@@ -75,6 +75,11 @@ extract_data <- function(data, surveys = "all", years = "all", join = TRUE, ...)
     {
         for (year in years)
         {
+            id_cols <- grep("\\.id$", colnames(res[[as.character(year)]]),
+                            value=TRUE)
+            for (id_name in id_cols) {
+              res[[as.character(year)]][, paste(id_name) := paste(year, get(id_name), sep=".")]
+            }
             res[[as.character(year)]][, season := year]
         }
         res <- rbindlist(res, use.names = TRUE, fill = TRUE)
