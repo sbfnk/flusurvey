@@ -69,6 +69,8 @@ read_data <- function(files, year, ...)
         res[[name]] <- dt
     }
 
+    ##:ess-bp-start::browser@nil:##
+browser(expr=is.null(.ESSBP.[["@26@"]]));##:ess-bp-end:##
     return(res)
 }
 
