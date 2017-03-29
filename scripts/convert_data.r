@@ -2,7 +2,7 @@
 
 library('flusurvey')
 
-files <- list.files(pattern = "(background|contact|symptom)_[0-9][0-9].csv")
+files <- list.files(pattern = "(background|contact|symptom|vaccine)_[0-9][0-9].csv")
 
 year_files <- list()
 for (file in files)
@@ -19,6 +19,6 @@ years <- names(year_files)
 for (year in years)
 {
     data[[year]] <- read_data(year_files[[year]], year)
-}    
+}
 
 saveRDS(data, file = paste0("flusurvey_raw_", min(years), "_", max(years), ".rds"))

@@ -20,7 +20,7 @@ mdt <- mdt %>%
          N = as.integer(gsub(",", "", gsub("^.*\\(.*/(.*)\\)$", "\\1", proportion)))) %>%
   select(-proportion)
 
-severity_order <- c("ARI", "ILI-No fever", "ILI-Fever, no phlegm", "ILI-Fever & Phlegm")
+severity_order <- c("ARI", "ILI-No fever", "ILI-Fever, no phlegm", "ILI-Fever, with phlegm")
 
 mdt <- mdt %>%
   filter(severity != "ARI or ILI") %>%
