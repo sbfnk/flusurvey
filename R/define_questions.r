@@ -171,7 +171,8 @@ questions[["2010"]][["contact"]] <-
 questions[["2011"]] <- list()
 
 questions[["2011"]][["background"]] <-
-    c(IntakeQ1 = "gender",
+    c(created = "date",
+      IntakeQ1 = "gender",
       IntakeQ2 = "birthmonth",
       IntakeQ3 = "postcode",
       IntakeQ4 = "work.postcode",
