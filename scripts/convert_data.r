@@ -18,7 +18,9 @@ data <- list()
 years <- names(year_files)
 for (year in years)
 {
-    data[[year]] <- read_data(year_files[[year]], year)
+    options <- list(files=year_files[[year]], year=year)
+    if (year == "2010") options[["sep"]] <- ";"
+    data[[year]] <- do.call(read_data, options)
 }
 
 saveRDS(data, file = paste0("flusurvey_raw_", min(years), "_", max(years), ".rds"))
