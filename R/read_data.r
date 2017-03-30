@@ -51,6 +51,7 @@ read_data <- function(files, year, ...)
         {
             if (is.character(dt[, get(col)]) | is.factor(dt[, get(col)])) {
                 dt[get(col) == "", paste(col) := NA_character_]
+                dt[get(col) == "None", paste(col) := NA_character_]
                 dt[, paste(col) := as.Date(get(col))]
             }
         }
@@ -63,14 +64,18 @@ read_data <- function(files, year, ...)
                                                        warn_missing = FALSE))]
         }
 
-        if (!("global_id" %in% colnames(dt)) && "uid" %in% colnames(dt)) setnames(dt, "uid", "global_id")
+        if (!("global_id" %in% colnames(dt))) {
+          if ("uid" %in% colnames(dt)) {
+            setnames(dt, "uid", "global_id")
+          } else if ("user_id" %in% colnames(dt))  {
+            setnames(dt, "user_id", "global_id")
+          }
+        }
         setkey(dt, global_id, date)
 
         res[[name]] <- dt
     }
 
-    ##:ess-bp-start::browser@nil:##
-browser(expr=is.null(.ESSBP.[["@26@"]]));##:ess-bp-end:##
     return(res)
 }
 
