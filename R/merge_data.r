@@ -200,6 +200,7 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
 
         } else if (name == "contact")
         {
+          ## loop over conversational/physical variables, check for dashes,  remove text
             dt <- dt[, "conversational.home" := get("conversational.home.0-4") +
                           get("conversational.home.5-18") +
                           get("conversational.home.19-44") +
