@@ -201,73 +201,51 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
         } else if (name == "contact")
         {
           ## loop over conversational/physical variables, check for dashes,  remove text
-            dt <- dt[, "conversational.home" := get("conversational.home.0-4") +
-                          get("conversational.home.5-18") +
-                          get("conversational.home.19-44") +
-                          get("conversational.home.45-64") +
-                          get("conversational.home.65+"), with = FALSE]
-            dt <- dt[, "conversational.work" := get("conversational.work.0-4") +
-                          get("conversational.work.5-18") +
-                          get("conversational.work.19-44") +
-                          get("conversational.work.45-64") +
-                          get("conversational.work.65+"), with = FALSE]
-            dt <- dt[, "conversational.other" := get("conversational.other.0-4") +
-                           get("conversational.other.5-18") +
-                           get("conversational.other.19-44") +
-                           get("conversational.other.45-64") +
-                           get("conversational.other.65+"), with = FALSE]
-            dt <- dt[, "conversational.0-4" := get("conversational.home.0-4") +
-                           get("conversational.work.0-4") +
-                           get("conversational.other.0-4"), with = FALSE]
-            dt <- dt[, "conversational.5-18" :=
-                           get("conversational.home.5-18") +
-                           get("conversational.work.5-18") +
-                           get("conversational.other.5-18"), with = FALSE]
-            dt <- dt[, "conversational.19-44" := get("conversational.home.19-44") +
-                           get("conversational.work.19-44") +
-                           get("conversational.other.19-44"), with = FALSE]
-            dt <- dt[, "conversational.45-64" := get("conversational.home.45-64") +
-                           get("conversational.work.45-64") +
-                           get("conversational.other.45-64"), with = FALSE]
-            dt <- dt[, "conversational.65+" := get("conversational.home.65+") +
-                           get("conversational.work.65+") +
-                           get("conversational.other.65+"), with = FALSE]
-            dt <- dt[, "conversational" := get("conversational.home") +
-                           get("conversational.work") +
-                           get("conversational.other"), with = FALSE]
-            dt <- dt[, "physical.home" := get("physical.home.0-4") +
-                           get("physical.home.5-18") +
-                           get("physical.home.19-44") +
-                           get("physical.home.45-64") +
-                           get("physical.home.65+"), with = FALSE]
-            dt <- dt[, "physical.work" := get("physical.work.0-4") +
-                           get("physical.work.5-18") +
-                           get("physical.work.19-44") +
-                           get("physical.work.45-64") +
-                           get("physical.work.65+"), with = FALSE]
-            dt <- dt[, "physical.other" := get("physical.other.0-4") +
-                           get("physical.other.5-18") +
-                           get("physical.other.19-44") +
-                           get("physical.other.45-64") +
-                           get("physical.other.65+"), with = FALSE]
-            dt <- dt[, "physical.0-4" := get("physical.home.0-4") +
-                           get("physical.work.0-4") +
-                           get("physical.other.0-4"), with = FALSE]
-            dt <- dt[, "physical.5-18" := get("physical.home.5-18") +
-                           get("physical.work.5-18") +
-                           get("physical.other.5-18"), with = FALSE]
-            dt <- dt[, "physical.19-44" := get("physical.home.19-44") +
-                           get("physical.work.19-44") +
-                           get("physical.other.19-44"), with = FALSE]
-            dt <- dt[, "physical.45-64" := get("physical.home.45-64") +
-                           get("physical.work.45-64") +
-                           get("physical.other.45-64"), with = FALSE]
-            dt <- dt[, "physical.65+" := get("physical.home.65+") +
-                           get("physical.work.65+") +
-                           get("physical.other.65+"), with = FALSE]
-            dt <- dt[, "physical" := get("physical.home") +
-                           get("physical.work") +
-                           get("physical.other"), with = FALSE]
+          types <- c("conversational", "physical")
+          contact_columns <-
+            grep(paste0("^", "(", paste(types, collapse="|"), ")\\."),
+                 value=TRUE, colnames(dt))
+          settings <-
+            unique(sub("^.*\\.([^.]*)\\..*$", "\\1", contact_columns))
+          agegroups <-
+            unique(sub("^.*\\.[^.]*\\.([^.]*)$", "\\1", contact_columns))
+
+          for (column in contact_columns) {
+            dt[, paste(column) := as.character(get(column))]
+            dt[get(column) == "NULL", paste(column) := NA_character_]
+            dt[grepl("-", get(column)),
+               paste(column) :=
+                 as.character((as.integer(sub("-.*$", "", get(column))) +
+                               as.integer(sub("^.*-", "", get(column))) + 1)
+                              / 2)]
+            dt[, paste(column) :=
+                   as.integer(gsub("[^0-9]", "", get(column)))]
+          }
+
+          columns <- list()
+          for (type in types) {
+            type_columns <-
+              grep(paste0("^", type), contact_columns, value=TRUE)
+            columns[[type]] <- type_columns
+            for (setting in settings) {
+              setting_columns <-
+                grep(paste0("^", type, "\\.", setting), contact_columns,
+                     value=TRUE)
+              columns[[paste(type, setting, sep=".")]] <- setting_columns
+            }
+            for (agegroup in agegroups) {
+              agegroup_columns <-
+                grep(paste0("^", type, "\\.[^.]*\\.", agegroup),
+                     contact_columns, value=TRUE)
+              columns[[paste(type, agegroup, sep=".")]] <- setting_columns
+            }
+          }
+
+          for (column_name in names(columns)) {
+            dt[, paste(column_name) := rowSums(.SD, na.rm=TRUE) *
+                   ifelse(rowSums(is.na(.SD)) == ncol(.SD), NA, 1),
+               .SDcols = columns[[column_name]]]
+          }
 
         }
 
