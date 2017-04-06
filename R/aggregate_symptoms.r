@@ -9,13 +9,19 @@ aggregate_symptoms <- function(symptoms, ili.sudden.unknown = 1)
 {
     dt <- copy(data.table::data.table(symptoms))
     ## calculate ili
-    if ("symptoms.suddenly" %in% colnames(dt))
+    if (any(grepl("\\.suddenly$", colnames(dt))))
     {
+      dt[, suddenly := NA_real_]
+      if ("symptoms.suddenly" %in% colnames(dt))
+      {
         dt[symptoms.suddenly == "yes", suddenly := 1]
         dt[symptoms.suddenly == "no", suddenly := 0]
+      }
+      if ("fever.suddenly" %in% colnames(dt)) {
         dt[(is.na(suddenly) | suddenly == 0) & fever.suddenly == "yes",
            suddenly := 1]
         dt[is.na(suddenly) & fever.suddenly == "no", suddenly := 0]
+      }
     } else
     {
         dt[, suddenly := 1]
