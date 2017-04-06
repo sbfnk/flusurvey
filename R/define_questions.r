@@ -600,6 +600,13 @@ questions[["2015"]][["background"]] <-
                    c(Q19 = "smart.phone",
                      Q20 = "self.swabbing"))
 
+questions[["2016"]] <- questions[["2015"]]
+questions[["2016"]][["symptom"]] <-
+  header_replace(questions[["2016"]][["symptom"]],
+                    c("Q2", "Q12"))
+
+questions[["2017"]] <- questions[["2016"]]
+
 options <-
     list(self = c("0" = "self", "1" = "household_member", "2" = "someone_else"),
          gender = c("0" = "male", "1" = "female"),
