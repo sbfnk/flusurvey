@@ -24,7 +24,7 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
         dt <- copy(data.table::data.table(data[[name]]))
         dt <- dt[!duplicated(dt[, list(global_id, date)], fromLast = TRUE)]
 
-        if (name == "symptom")
+        if (name == "symptom") ## clean symptoms data
         {
             dt <- aggregate_symptoms(dt)
             ## calculate min.reports, max.reports, nReports
@@ -197,6 +197,11 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
             }
             ## setnames(urban_rural, seq_along(urban_rural_names), urban_rural_names)
             ## setnames(regions, seq_along(regions), regions_names)
+
+            ## highest education level            ## setnames(urban_rural, seq_along(urban_rural_names), urban_rural_names)
+            ## setnames(regions, seq_along(regions), regions_names)
+
+            edu.columns <- grep("^education\\.", colnames(dt))
 
         } else if (name == "contact")
         {
