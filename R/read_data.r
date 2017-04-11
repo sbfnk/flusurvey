@@ -14,7 +14,6 @@
 ##' @return a list of data tables with the data
 ##' @author seb
 ##' @import data.table
-##' @importFrom plyr revalue
 ##' @export
 read_data <- function(files, year, ...)
 {
@@ -54,9 +53,10 @@ read_data <- function(files, year, ...)
         ## convert options
         for (option in intersect(colnames(dt), names(flusurvey::options)))
         {
-            dt[, paste(option) := factor(plyr::revalue(as.character(get(option)),
-                                                       flusurvey::options[[option]],
-                                                       warn_missing = FALSE))]
+          dt[, paste(option) :=
+                 factor(get(option),
+                        levels=names(flusurvey::options[[option]]),
+                        labels=flusurvey::options[[option]])]
         }
 
         if (!("global_id" %in% colnames(dt))) {
