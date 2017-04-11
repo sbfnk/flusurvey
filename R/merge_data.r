@@ -9,13 +9,14 @@
 ##' - 'remove.postcodes', whether to remove postcodes
 ##' - 'create.numeric.id', whether to create a numeric id for every user,
 ##' - 'n.reports', whether to exclude those with fewer than \code{min.reports} reports
+##' - 'unsuccessful.join', whether to exclude those with unsuccesful joins (e.g. if symptoms are reported without a background survey present; the web site should have prevented this, but doesn't appear to have done so)
 ##' @param min.reports minimum number of reports per user (ignored if 'min.reports' is not given as a cleaning option)
 ##' @return a rolling-joined data table
 ##' @author seb
 ##' @import data.table
 ##' @importFrom lubridate month interval years
 ##' @export
-merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates", "guess.start.dates", "limit.season", "remove.postcodes", "create.numeric.id", "n.reports"), min.reports = 3)
+merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates", "guess.start.dates", "limit.season", "remove.postcodes", "create.numeric.id", "n.reports", "unsuccessful.join"), min.reports = 3)
 {
     dt_list <- list()
     clean <- match.arg(clean, several.ok = TRUE)
@@ -279,6 +280,14 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
     }
 
     res <- res[nchar(as.character(global_id)) > 0]
+
+    if ("unsuccessful.join" %in% clean)
+    {
+        id_cols <- grep("\\.id$", colnames(res), value=TRUE)
+        for (col in id_cols) {
+            res <- res[!is.na(get(col))]
+        }
+    }
 
     setkey(res, date, global_id)
 
