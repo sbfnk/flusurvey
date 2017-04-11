@@ -198,11 +198,14 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
             ## setnames(urban_rural, seq_along(urban_rural_names), urban_rural_names)
             ## setnames(regions, seq_along(regions), regions_names)
 
-            ## highest education level            ## setnames(urban_rural, seq_along(urban_rural_names), urban_rural_names)
-            ## setnames(regions, seq_along(regions), regions_names)
-
-            edu.columns <- grep("^education\\.", colnames(dt))
-
+            ## highest education level
+            edu.columns <-
+                grep("^(no\\.)?education(\\.|$)", colnames(dt), value=TRUE)
+            edu.columns <-
+                grep("stillin$", edu.columns, invert=TRUE, value=TRUE)
+            for (col in edu.columns) {
+                dt[get(col) == "t", highest.education := col]
+            }
         } else if (name == "contact")
         {
           ## loop over conversational/physical variables, check for dashes,  remove text
