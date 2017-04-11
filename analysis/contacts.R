@@ -1,11 +1,14 @@
 library('flusurvey')
+library('magrittr')
+library('dplyr')
 library('cowplot')
+library('stringi')
 
-dt <- extract_data("flusurvey_raw_2010_2015.rds", years=2012:2013)
+dt <- extract_data("flusurvey_raw_2010_2017.rds", years=2012:2013)
 
-dt_back_contacts <- extract_data("flusurvey_raw_2010_2015.rds", years=2012:2013, surveys=c("background", "contact"))
+dt_back_contacts <- extract_data("flusurvey_raw_2010_2017.rds", years=2012:2013, surveys=c("background", "contact"))
 
-dt_contacts <- extract_data("flusurvey_raw_2010_2015.rds", years=2012:2013, surveys="contact")
+dt_contacts <- extract_data("flusurvey_raw_2010_2017.rds", years=2012:2013, surveys="contact")
 
 for (type in c("conversational", "physical"))
 {
@@ -78,9 +81,9 @@ for (type in c("conversational", "physical"))
     mutate_(mean=lazyeval::interp(~mean(type), type=as.name(type)),
             var=lazyeval::interp(~var(type), type=as.name(type))) %>%
     ungroup
+  max_y <- bg_means %>% .$mean %>% quantile(probs=0.99, na.rm=TRUE)
 
   ## age
-  max_y <- bg_means %>% .$age %>% quantile(probs=0.95, na.rm=TRUE)
   p <- ggplot(bg_means %>% dplyr::filter(!is.na(age)),
               aes(x=agegroup, y=mean)) +
     geom_boxplot() +
@@ -90,14 +93,109 @@ for (type in c("conversational", "physical"))
   save_plot(paste0(type, "_age.pdf"), p)
 
   ## education
+  p <- ggplot(bg_means %>% dplyr::filter(!is.na(highest.education)),
+              aes(x=highest.education, y=mean)) +
+    geom_boxplot() +
+    coord_cartesian(ylim=c(0, max_y)) +
+    scale_y_continuous(paste0("Number of ", type, " contacts")) +
+    scale_x_discrete("Highest education level",
+                     labels=c("None", "GCSE", "A-levels", "BSc", "MSc",
+                              "Student"))
+  save_plot(paste0(type, "_education.pdf"), p)
 
   ## rural/urban? postcode?
+  p <- ggplot(bg_means %>% dplyr::filter(!is.na(urban.rural)),
+              aes(x=urban.rural, y=mean)) +
+    geom_boxplot() +
+    coord_cartesian(ylim=c(0, max_y)) +
+    scale_y_continuous(paste0("Number of ", type, " contacts")) +
+    scale_x_discrete("Settlement type")
+  save_plot(paste0(type, "_settlement.pdf"), p)
+
+  p <- ggplot(bg_means %>% dplyr::filter(!is.na(work.urban.rural)),
+              aes(x=work.urban.rural, y=mean)) +
+    geom_boxplot() +
+    coord_cartesian(ylim=c(0, max_y)) +
+    scale_y_continuous(paste0("Number of ", type, " contacts")) +
+    scale_x_discrete("Work settlement type")
+  save_plot(paste0(type, "_work_settlement.pdf"), p)
+
+  ## main activity
+  p <- ggplot(bg_means %>% dplyr::filter(!is.na(main.activity)),
+              aes(x=main.activity, y=mean)) +
+    geom_boxplot() +
+    coord_cartesian(ylim=c(0, max_y)) +
+    scale_y_continuous(paste0("Number of ", type, " contacts")) +
+    scale_x_discrete("Main activity",
+                     labels=c("Full time employed",
+                              "Part-time employed",
+                              "Self-employed",
+                              "School",
+                              "Home-maker",
+                              "Unemployed",
+                              "Long-term leave",
+                              "Retired",
+                              "Other")) +
+    theme(axis.text.x=element_text(angle=45,hjust=1,vjust=1))
+  save_plot(paste0(type, "_main_activity.pdf"), p)
+
+  ## occupation
+  p <- ggplot(bg_means %>% dplyr::filter(!is.na(occupation)),
+              aes(x=occupation, y=mean)) +
+    geom_boxplot() +
+    coord_cartesian(ylim=c(0, max_y)) +
+    scale_y_continuous(paste0("Number of ", type, " contacts")) +
+    scale_x_discrete("Occupation",
+                     labels=c("Professional", "Office worker",
+                              "Retail", "Skilled manual",
+                              "Other manual", "Other")) +
+    theme(axis.text.x=element_text(angle=45,hjust=1,vjust=1))
+  save_plot(paste0(type, "_occupation.pdf"), p)
+
   ## household size?
-  ## profession?
-  ## others?
+  bg_means %<>%
+    mutate(hh_group =
+             factor(ifelse(nb.household<6, as.character(nb.household), "6+"),
+                    levels=c(as.character(seq_len(6)-1), "6+")))
 
+  p <- ggplot(bg_means, aes(x=hh_group, y=mean)) +
+    geom_boxplot() +
+    coord_cartesian(ylim=c(0, max_y)) +
+    scale_y_continuous(paste0("Number of ", type, " contacts")) +
+    scale_x_discrete("Household size")
+  save_plot(paste0(type, "_hh_size.pdf"), p)
 
+  bg_means %<>%
+    mutate(hh_children_group =
+             factor(ifelse(nb.household.children<6,
+                           as.character(nb.household.children), "6+"),
+                    levels=c(as.character(seq_len(6)-1), "6+")))
 
+  p <- ggplot(bg_means, aes(x=hh_children_group, y=mean)) +
+    geom_boxplot() +
+    coord_cartesian(ylim=c(0, max_y)) +
+    scale_y_continuous(paste0("Number of ", type, " contacts")) +
+    scale_x_discrete("Number of children in the household")
+  save_plot(paste0(type, "_hh_size_children.pdf"), p)
 
+  ## regional differences
+  p <- ggplot(bg_means %>% filter(!is.na(country)), aes(x=country, y=mean)) +
+    geom_boxplot() +
+    coord_cartesian(ylim=c(0, max_y)) +
+    scale_y_continuous(paste0("Number of ", type, " contacts")) +
+    scale_x_discrete("Country",
+                     labels=stri_trans_totitle(gsub("_", " ",
+                                                    levels(bg_means$country)))) +
+  save_plot(paste0(type, "_country.pdf"), p)
 
+  p <- ggplot(bg_means %>% filter(!is.na(region)),
+              aes(x=region, y=mean)) +
+    geom_boxplot() +
+    coord_cartesian(ylim=c(0, max_y)) +
+    scale_y_continuous(paste0("Number of ", type, " contacts")) +
+    scale_x_discrete("Region",
+                     labels=stri_trans_totitle(gsub("_", " ",
+                                                    levels(bg_means$region)))) +
+    theme(axis.text.x=element_text(angle=45,hjust=1,vjust=1))
+  save_plot(paste0(type, "_region.pdf"), p)
 }
