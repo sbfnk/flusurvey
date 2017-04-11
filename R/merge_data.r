@@ -13,6 +13,7 @@
 ##' @return a rolling-joined data table
 ##' @author seb
 ##' @import data.table
+##' @importFrom lubridate month interval years
 ##' @export
 merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates", "guess.start.dates", "limit.season", "remove.postcodes", "create.numeric.id", "n.reports"), min.reports = 3)
 {

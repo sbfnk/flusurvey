@@ -9,7 +9,6 @@ Description: This contains scripts for extracting, cleaning and maniulating
     flusurvey data. For more details, see http://flusurvey.org.uk
 License: GPL-2
 Imports:
-    data.table,
-    plyr
+    data.table
 LazyData: true
 RoxygenNote: 5.0.1

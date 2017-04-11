@@ -14,6 +14,7 @@
 ##' @return a list of data tables with the data
 ##' @author seb
 ##' @import data.table
+##' @importFrom plyr revalue
 ##' @export
 read_data <- function(files, year, ...)
 {

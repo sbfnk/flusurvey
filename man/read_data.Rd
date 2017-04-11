@@ -21,13 +21,7 @@ This reads different surveys and returns a list of data tables
 containing the surveys. It does minimal cleaning and conversion
 into R data formats. The csv files that should be provided can be
 obtained via SQL dump,  e.g.
-\\f ','
-\\a
-\\t
-\\o intake_16.csv
-SELECT * FROM pollster_results_intake;
-\\o
-\\q
+\copy pollster_results_intake to 'filename.csv' csv header
 }
 \details{
 and similarly for weekly surveys
