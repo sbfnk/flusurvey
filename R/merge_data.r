@@ -6,7 +6,7 @@
 ##' - 'remove.bad.symptom.dates', whether to remove rows with the symptom end date before the symptom start date, or with symptom dates outside the reporting dates
 ##' - 'guess.start.dates', whether to guess the symptom start dates when the person couldn't remember (as a day of the report)
 ##' - 'limit.season', whether to limit a flu season to November -> April
-##' - 'remove.postcodes', whether to limit a flu season to November -> April
+##' - 'remove.postcodes', whether to remove postcodes
 ##' - 'create.numeric.id', whether to create a numeric id for every user,
 ##' - 'n.reports', whether to exclude those with fewer than \code{min.reports} reports
 ##' @param min.reports minimum number of reports per user (ignored if 'min.reports' is not given as a cleaning option)
