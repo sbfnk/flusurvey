@@ -143,6 +143,7 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
             urban_rural_data <- copy(urban_rural)
             urban_rural_names <- colnames(urban_rural_data)
             regions_data <- copy(regions)
+            regions_data[region == "M99999999", region := "Isle of Man"]
             regions_names <- colnames(regions_data)
             for (col in grep("postcode$", colnames(dt), value = TRUE))
             {
