@@ -173,28 +173,30 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
                 ## England/Wales
                 dt[country %in% c("england", "wales") &
                    get(paste0(col_prefix, "settlement.type")) %in% c(1, 5),
-                   paste0(col_prefix, "urban") := 1]
+                   paste0(col_prefix, "urban.rural") := 1]
                 dt[country %in% c("england", "wales") &
                    get(paste0(col_prefix, "settlement.type")) %in% c(2, 3, 4, 6, 7, 8),
-                   paste0(col_prefix, "urban") := 0]
+                   paste0(col_prefix, "urban.rural") := 0]
                 ## Scotland
                 dt[country == "scotland" &
                    get(paste0(col_prefix, "settlement.type")) %in% c(1, 2),
-                   paste0(col_prefix, "urban") := 1]
+                   paste0(col_prefix, "urban.rural") := 1]
                 dt[country == "scotland" &
                    get(paste0(col_prefix, "settlement.type")) %in% c(3, 4, 5, 6, 7),
-                   paste0(col_prefix, "urban") := 0]
+                   paste0(col_prefix, "urban.rural") := 0]
 
                 ## Northern Ireland
                 dt[country == "northern_ireland" &
                    get(paste0(col_prefix, "settlement.type")) %in% c(1, 2, 3, 4),
-                   paste0(col_prefix, "urban") := 1]
+                   paste0(col_prefix, "urban.rural") := 1]
                 dt[country == "northern_ireland" &
                    get(paste0(col_prefix, "settlement.type")) %in% c(5, 6, 7),
-                   paste0(col_prefix, "urban") := 0]
+                   paste0(col_prefix, "urban.rural") := 0]
 
-                dt[, paste0(col_prefix, "urban") :=
-                         factor(get(paste0(col_prefix, "urban")))]
+                dt[, paste0(col_prefix, "urban.rural") :=
+                         factor(get(paste0(col_prefix, "urban.rural")),
+                                levels=c(0, 1),
+                                labels=c("rural", "urban"))]
 
             }
             ## setnames(urban_rural, seq_along(urban_rural_names), urban_rural_names)
