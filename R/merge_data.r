@@ -203,11 +203,14 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
             ## highest education level
             edu.columns <-
                 grep("^(no\\.)?education(\\.|$)", colnames(dt), value=TRUE)
-            edu.columns <-
-                grep("stillin$", edu.columns, invert=TRUE, value=TRUE)
             for (col in edu.columns) {
                 dt[get(col) == "t", highest.education := col]
             }
+            dt[, highest.education :=
+                     factor(highest.education,
+                            levels=c("no.education", "education.gcse",
+                                     "education.alevels", "education.bsc",
+                                     "education.msc", "education.stillin"))]
         } else if (name == "contact")
         {
           ## loop over conversational/physical variables, check for dashes,  remove text
