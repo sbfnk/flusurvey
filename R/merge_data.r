@@ -211,6 +211,13 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
                             levels=c("no.education", "education.gcse",
                                      "education.alevels", "education.bsc",
                                      "education.msc", "education.stillin"))]
+
+            ## household members
+            hh_columns <- grep("^nb.household\\.", value=TRUE, colnames(dt))
+            dt[, nb.household := rowSums(.SD, na.rm=TRUE),
+               .SDcols = hh_columns]
+            dt[, nb.household.children := rowSums(.SD, na.rm=TRUE),
+               .SDcols = c("nb.household.0.4", "nb.household.5.18")]
         } else if (name == "contact")
         {
           ## loop over conversational/physical variables, check for dashes,  remove text
