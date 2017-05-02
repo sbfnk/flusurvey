@@ -3,6 +3,7 @@ library('magrittr')
 library('dplyr')
 library('cowplot')
 library('stringi')
+library('scales')
 
 dt <- extract_data("flusurvey_raw_2010_2017.rds", years=2012:2013)
 
