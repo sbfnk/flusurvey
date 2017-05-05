@@ -22,7 +22,7 @@ random_model <- map2stan(
     log(mu) <- a,
     a ~ dnorm(2.5, 1),
     k ~ dexp(1)
-  ), data=just_contacts %>% data.frame, constraints=list(b="lower=0"), start=list(a=2.5), iter=5000, chains=4
+  ), data=just_contacts %>% data.frame, constraints=list(b="lower=0"), start=list(a=2.5), iter=5000, chains=4, cores=4
 )
 
 individual_mu_model <- map2stan(
@@ -31,7 +31,7 @@ individual_mu_model <- map2stan(
         log(mu) <- a[participant_id],
         a[participant_id] ~ dnorm(2.5, 1),
         k ~ dexp(1)
-    ), data=just_contacts %>% data.frame, iter=100, constraints=list(b="lower=0"), start=list(a=rep(2.5, nb_participants), b=1), iter=5000, chains=4
+    ), data=just_contacts %>% data.frame, iter=100, constraints=list(b="lower=0"), start=list(a=rep(2.5, nb_participants), b=1), iter=5000, chains=4, cores=4
 )
 
 individual_sigma_model <- map2stan(
@@ -41,7 +41,7 @@ individual_sigma_model <- map2stan(
         k <- b[participant_id],
         a ~ dnorm(2.5, 1),
         b[participant_id] ~ dexp(1)
-    ), data=just_contacts %>% data.frame, iter=100, constraints=list(b="lower=0"), start=list(a=2.5, b=rep(1, nb_participants)), iter=5000, chains=4
+    ), data=just_contacts %>% data.frame, iter=100, constraints=list(b="lower=0"), start=list(a=2.5, b=rep(1, nb_participants)), iter=5000, chains=4, cores=4
 )
 
 individual_model <- map2stan(
@@ -51,7 +51,7 @@ individual_model <- map2stan(
         k <- b[participant_id],
         a[participant_id] ~ dnorm(2.5, 1),
         b[participant_id] ~ dexp(1)
-    ), data=just_contacts %>% data.frame, iter=100, constraints=list(b="lower=0"), start=list(a=rep(2.5, nb_participants), b=rep(1, nb_participants)), iter=5000, chains=4
+    ), data=just_contacts %>% data.frame, iter=100, constraints=list(b="lower=0"), start=list(a=rep(2.5, nb_participants), b=rep(1, nb_participants)), iter=5000, chains=4, cores=4
 )
 
 saveRDS(list(random=random_model,
