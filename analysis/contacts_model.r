@@ -48,9 +48,10 @@ individual_model <- map2stan(
     alist(
         contacts ~ dgampois(mu, k),
         log(mu) <- a[participant_id],
+        k <- b[participant_id],
         a[participant_id] ~ dnorm(2.5, 1),
-        k[participant_id] ~ exponential(1)
-    ), data=just_contacts %>% data.frame, iter=100, constraints=list(b="lower=0"), start=list(a=rep(2.5, nb_participants), b=rep(1, nb_participants)
+        b[participant_id] ~ dexp(1)
+    ), data=just_contacts %>% data.frame, iter=100, constraints=list(b="lower=0"), start=list(a=rep(2.5, nb_participants), b=rep(1, nb_participants))
 )
 
 contacts_data <- list(
