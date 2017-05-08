@@ -100,9 +100,17 @@ for (type in c("conversational", "physical"))
     coord_cartesian(ylim=c(0, max_y)) +
     scale_y_continuous(paste0("Number of ", type, " contacts")) +
     scale_x_discrete("Highest education level",
-                     labels=c("None", "GCSE", "A-levels", "BSc", "MSc",
-                              "Student"))
+                     labels=c("None", "GCSE", "A-levels", "BSc", "MSc"))
   save_plot(paste0(type, "_education.pdf"), p)
+
+  ## students
+  p <- ggplot(bg_means %>% dplyr::filter(!is.na(education.stillin)),
+              aes(x=education.stillin, y=mean)) +
+    geom_boxplot() +
+    coord_cartesian(ylim=c(0, max_y)) +
+    scale_y_continuous(paste0("Number of ", type, " contacts")) +
+    scale_x_discrete("In education", labels="No", "Yes")
+  save_plot(paste0(type, "_students.pdf"), p)
 
   ## rural/urban? postcode?
   p <- ggplot(bg_means %>% dplyr::filter(!is.na(urban.rural)),
