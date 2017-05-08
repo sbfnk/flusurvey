@@ -2,14 +2,39 @@ library('rethinking')
 library('flusurvey')
 library('dplyr')
 
+categorical_to_single <- function(dt, var) {
+    categories <- levels(dt[, get(var)])[-1]
+    for (category in categories) {
+        dt[, paste(var, category, sep=".") :=
+                 as.integer(get(var) == category)]
+    }
+    return(dt)
+}
+
 dt_back_contacts <-
   extract_data("flusurvey_raw_2010_2017.rds",
                years=2012:2013, surveys=c("background", "contact"))
 
-just_contacts <- dt_back_contacts %>%
-  select(participant_id, contacts=conversational) %>%
-  mutate(participant_id=as.integer(participant_id),
-         contacts=as.integer(contacts))
+contacts <- dt_back_contacts %>%
+    categorical_to_single("main.activity") %>%
+    categorical_to_single("occupation") %>%
+    categorical_to_single("region") %>%
+    select(participant_id, contacts=conversational, age,
+           highest.education, education.stillin,
+           urban.rural, work.urban.rural,
+           nb.household, nb.household.children,
+           starts_with("main.activity."),
+           starts_with("occupation."),
+           starts_with("region.")
+           ) %>%
+    mutate(participant_id=as.integer(participant_id),
+           contacts=as.integer(contacts)) %>%
+    dplyr::filter(!is.na(age)) %>%
+    mutate(age=(age-mean(age))/sd(age), ## regularise
+           education=as.integer(highest.education),
+           stduent=as.integer(education.stillin),
+           urban=as.integer(urban.rural),
+           work.urban=as.integer(work.urban.rural))
 
 nb_participants <- just_contacts %>%
     group_by(participant_id) %>%
@@ -19,10 +44,20 @@ nb_participants <- just_contacts %>%
 random_model <- map2stan(
   alist(
     contacts ~ dgampois(mu, k),
-    log(mu) <- a,
+    log(mu) <- a
     a ~ dnorm(2.5, 1),
-    k ~ dexp(1)
-  ), data=just_contacts %>% data.frame, constraints=list(b="lower=0"), start=list(a=2.5), iter=5000, chains=4, cores=4
+    k ~ dexp(1),
+  ), data=contacts %>% data.frame, constraints=list(b="lower=0"), start=list(a=2.5), iter=500
+)
+
+variate_model <- map2stan(
+  alist(
+    contacts ~ dgampois(mu, k),
+    log(mu) <- a + ba * age,
+    a ~ dnorm(2.5, 1),
+    ba ~ dnorm(0, 1),
+    k ~ dexp(1),
+  ), data=contacts %>% data.frame, constraints=list(b="lower=0"), start=list(a=2.5), iter=500
 )
 
 individual_mu_model <- map2stan(
