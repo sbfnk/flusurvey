@@ -19,27 +19,26 @@ contacts <- dt_back_contacts %>%
     categorical_to_single("main.activity") %>%
     categorical_to_single("occupation") %>%
     categorical_to_single("region") %>%
+    categorical_to_single("highest.education") %>%
     select(participant_id, contacts=conversational, age,
-           highest.education, education.stillin,
            urban.rural, work.urban.rural,
            nb.household, nb.household.children,
            starts_with("main.activity."),
            starts_with("occupation."),
-           starts_with("region.")
+           starts_with("region."),
+           starts_with("highest.education.")
            ) %>%
     mutate(participant_id=as.integer(participant_id),
            contacts=as.integer(contacts)) %>%
     dplyr::filter(!is.na(age)) %>%
     mutate(age=(age-mean(age))/sd(age), ## regularise
-           education=as.integer(highest.education),
-           stduent=as.integer(education.stillin),
-           urban=as.integer(urban.rural),
-           work.urban=as.integer(work.urban.rural))
+           urban=as.integer(urban.rural) - 1,
+           work.urban=as.integer(work.urban.rural) - 1)
 
-nb_participants <- just_contacts %>%
-    group_by(participant_id) %>%
-    summarise %>%
-    nrow
+    # nb_participants <- contacts %>%
+    #     group_by(participant_id) %>%
+    #     summarise %>%
+    #     nrow
 
 random_model <- map2stan(
   alist(
@@ -53,11 +52,82 @@ random_model <- map2stan(
 variate_model <- map2stan(
   alist(
     contacts ~ dgampois(mu, k),
-    log(mu) <- a + ba * age,
+    log(mu) <- a + 
+	    ba * age + 
+	    bh * nb.household + 
+	    #             bhc * nb.household.children +
+	    bm1 * main.activity.paid_employment_part_time +
+	    bm2 * main.activity.self_employed +
+	    bm3 * main.activity.school +
+	    bm4 * main.activity.home_maker +
+	    bm5 * main.activity.unemployed +
+	    bm6 * main.activity.long_term_leave +
+	    bm7 * main.activity.retired +
+	    bm8 * main.activity.other +
+	    bo1 * occupation.office_worker +
+	    bo2 * occupation.retail +
+	    bo3 * occupation.skilled_manual +
+	    bo4 * occupation.other_manual +
+	    bo5 * occupation.other +
+	    #             br1 * region.east_midlands +
+	    #             br2 * region.east_of_england +
+	    #             br3 * region.london +
+	    #             br4 * region.north_east_england +
+	    #             br5 * region.north_west_england +
+	    #             br6 * region.northern_ireland +
+	    #             br7 * region.scotland +
+	    #             br8 * region.south_east_england +
+	    #             br9 * region.south_west_england +
+	    #             br10 * region.wales +
+	    #             br11 * region.west_midlands +
+	    #             br12 * region.yorkshire_and_the_humber +
+	    #             br13 * region.isle_of_man +
+	    #             bhe1 * highest.education.education.gcse +
+	    #             bhe2 * highest.education.education.alevels +
+	    #             bhe3 * highest.education.education.bsc +
+	    #             bhe4 * highest.education.education.msc +
+	    #             bhe5 * highest.education.education.stillin +
+	    bu * urban +
+	    bwu * work.urban,
     a ~ dnorm(2.5, 1),
     ba ~ dnorm(0, 1),
-    k ~ dexp(1),
-  ), data=contacts %>% data.frame, constraints=list(b="lower=0"), start=list(a=2.5), iter=500
+    bh ~ dnorm(0, 1),
+    bhc ~ dnorm(0, 1),
+    bm1 ~ dnorm(0, 1),
+    bm2 ~ dnorm(0, 1),
+    bm3 ~ dnorm(0, 1),
+    bm4 ~ dnorm(0, 1),
+    bm5 ~ dnorm(0, 1),
+    bm6 ~ dnorm(0, 1),
+    bm7 ~ dnorm(0, 1),
+    bm8 ~ dnorm(0, 1),
+    bo1 ~ dnorm(0, 1),
+    bo2 ~ dnorm(0, 1),
+    bo3 ~ dnorm(0, 1),
+    bo4 ~ dnorm(0, 1),
+    bo5 ~ dnorm(0, 1),
+    br1 ~ dnorm(0, 1),
+    br2 ~ dnorm(0, 1),
+    br3 ~ dnorm(0, 1),
+    br4 ~ dnorm(0, 1),
+    br5 ~ dnorm(0, 1),
+    br6 ~ dnorm(0, 1),
+    br7 ~ dnorm(0, 1),
+    br8 ~ dnorm(0, 1),
+    br9 ~ dnorm(0, 1),
+    br10 ~ dnorm(0, 1),
+    br11 ~ dnorm(0, 1),
+    br12 ~ dnorm(0, 1),
+    br13 ~ dnorm(0, 1),
+    bhe1 ~ dnorm(0, 1),
+    bhe2 ~ dnorm(0, 1),
+    bhe3 ~ dnorm(0, 1),
+    bhe4 ~ dnorm(0, 1),
+    bhe5 ~ dnorm(0, 1),
+    bu ~ dnorm(0, 1),
+    bwu ~ dnorm(0, 1),
+    k ~ dexp(1)
+  ), data=contacts[complete.cases(contacts), ] %>% data.frame, constraints=list(b="lower=0"), start=list(a=2.5), iter=500
 )
 
 individual_mu_model <- map2stan(
