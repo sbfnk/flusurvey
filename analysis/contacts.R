@@ -5,6 +5,9 @@ library('cowplot')
 library('stringi')
 library('scales')
 
+## https://en.wikipedia.org/wiki/Climate_of_the_United_Kingdom
+sunshine_hours <- c(54.2, 74.3, 107.6, 155.2, 190.6, 182.6, 193.5, 182.5, 137.2, 103.1, 64.5, 47.3)
+
 dt <- extract_data("flusurvey_raw_2010_2017.rds", years=2012:2013)
 
 dt_back_contacts <- extract_data("flusurvey_raw_2010_2017.rds", years=2012:2013, surveys=c("background", "contact"))
@@ -82,7 +85,23 @@ for (type in c("conversational", "physical"))
     mutate_(mean=lazyeval::interp(~mean(type), type=as.name(type)),
             var=lazyeval::interp(~var(type), type=as.name(type))) %>%
     ungroup
-  max_y <- bg_means %>% .$mean %>% quantile(probs=0.99, na.rm=TRUE)
+  max_y <- bg_means %>% .$mean %>% quantile(probs=0.95, na.rm=TRUE)
+
+  type_settings <- colnames(dt_back_contacts) %>%
+    grep(paste0("^", type, "."), ., value=TRUE) %>%
+    grep("^[^0-9]*$", ., value=TRUE)
+
+  ## setting
+  dots <- paste0("~mean(", type_settings, ")") %>%
+    lapply(as.formula)
+  bg_type_means <- dt_back_contacts %>%
+    group_by(participant_id) %>%
+    mutate_(.dots=setNames(dots, paste0("mean.", type_settings))) %>%
+    ungroup %>%
+    gather(setting, mean, starts_with("mean.")) %>%
+    mutate(setting=sub(".*\\.", "", setting)) %>%
+    mutate(setting=ifelse(setting == "work", "work/school", setting))
+  max_type_y <- bg_type_means %>% .$mean %>% quantile(probs=0.95, na.rm=TRUE)
 
   ## age
   p <- ggplot(bg_means %>% dplyr::filter(!is.na(age)),
@@ -93,23 +112,37 @@ for (type in c("conversational", "physical"))
     scale_x_discrete("Age group")
   save_plot(paste0(type, "_age.pdf"), p)
 
+  p <- ggplot(bg_type_means %>% dplyr::filter(!is.na(age)),
+              aes(x=agegroup, y=mean, color=setting)) +
+    geom_boxplot() +
+    coord_cartesian(ylim=c(0, max_y)) +
+    scale_y_continuous(paste0("Number of ", type, " contacts")) +
+    scale_x_discrete("Age group") +
+    scale_color_brewer("", palette="Set1") +
+    theme(legend.position = "top")
+  save_plot(paste0(type, "_age_setting.pdf"), p)
+
   ## education
-  p <- ggplot(bg_means %>% dplyr::filter(!is.na(highest.education)),
-              aes(x=highest.education, y=mean)) +
+  p <- ggplot(bg_type_means %>% dplyr::filter(!is.na(highest.education)),
+              aes(x=highest.education, y=mean, color=setting)) +
     geom_boxplot() +
     coord_cartesian(ylim=c(0, max_y)) +
     scale_y_continuous(paste0("Number of ", type, " contacts")) +
     scale_x_discrete("Highest education level",
-                     labels=c("None", "GCSE", "A-levels", "BSc", "MSc"))
+                     labels=c("None", "GCSE", "A-levels", "BSc", "MSc", "Student")) +
+    scale_color_brewer("", palette="Set1") +
+    theme(legend.position = "top")
   save_plot(paste0(type, "_education.pdf"), p)
 
   ## students
-  p <- ggplot(bg_means %>% dplyr::filter(!is.na(education.stillin)),
-              aes(x=education.stillin, y=mean)) +
+  p <- ggplot(bg_type_means %>% dplyr::filter(!is.na(education.stillin)),
+              aes(x=education.stillin, y=mean, color=setting)) +
     geom_boxplot() +
     coord_cartesian(ylim=c(0, max_y)) +
     scale_y_continuous(paste0("Number of ", type, " contacts")) +
-    scale_x_discrete("In education", labels="No", "Yes")
+    scale_x_discrete("In education", labels=c("No", "Yes")) +
+    scale_color_brewer("", palette="Set1") +
+    theme(legend.position = "top")
   save_plot(paste0(type, "_students.pdf"), p)
 
   ## rural/urban? postcode?
@@ -121,6 +154,16 @@ for (type in c("conversational", "physical"))
     scale_x_discrete("Settlement type")
   save_plot(paste0(type, "_settlement.pdf"), p)
 
+  p <- ggplot(bg_type_means %>% dplyr::filter(!is.na(urban.rural)),
+              aes(x=urban.rural, y=mean, color=setting)) +
+    geom_boxplot() +
+    coord_cartesian(ylim=c(0, max_y)) +
+    scale_y_continuous(paste0("Number of ", type, " contacts")) +
+    scale_x_discrete("Settlement type") +
+    scale_color_brewer("", palette="Set1") +
+    theme(legend.position = "top")
+  save_plot(paste0(type, "_settlement.pdf"), p)
+
   p <- ggplot(bg_means %>% dplyr::filter(!is.na(work.urban.rural)),
               aes(x=work.urban.rural, y=mean)) +
     geom_boxplot() +
@@ -128,6 +171,16 @@ for (type in c("conversational", "physical"))
     scale_y_continuous(paste0("Number of ", type, " contacts")) +
     scale_x_discrete("Work settlement type")
   save_plot(paste0(type, "_work_settlement.pdf"), p)
+
+  p <- ggplot(bg_type_means %>% dplyr::filter(!is.na(work.urban.rural)),
+              aes(x=work.urban.rural, y=mean, color=setting)) +
+    geom_boxplot() +
+    coord_cartesian(ylim=c(0, max_y)) +
+    scale_y_continuous(paste0("Number of ", type, " contacts")) +
+    scale_x_discrete("Work settlement type") +
+    scale_color_brewer("", palette="Set1") +
+    theme(legend.position = "top")
+  save_plot(paste0(type, "_work_settlement_setting.pdf"), p)
 
   ## main activity
   p <- ggplot(bg_means %>% dplyr::filter(!is.na(main.activity)),
@@ -147,6 +200,26 @@ for (type in c("conversational", "physical"))
                               "Other")) +
     theme(axis.text.x=element_text(angle=45,hjust=1,vjust=1))
   save_plot(paste0(type, "_main_activity.pdf"), p)
+
+  p <- ggplot(bg_type_means %>% dplyr::filter(!is.na(main.activity)),
+              aes(x=main.activity, y=mean, color=setting)) +
+    geom_boxplot() +
+    coord_cartesian(ylim=c(0, max_y)) +
+    scale_y_continuous(paste0("Number of ", type, " contacts")) +
+    scale_x_discrete("Main activity",
+                     labels=c("Full time employed",
+                              "Part-time employed",
+                              "Self-employed",
+                              "School",
+                              "Home-maker",
+                              "Unemployed",
+                              "Long-term leave",
+                              "Retired",
+                              "Other")) +
+    theme(axis.text.x=element_text(angle=45,hjust=1,vjust=1)) +
+    scale_color_brewer("", palette="Set1") +
+    theme(legend.position = "top")
+  save_plot(paste0(type, "_main_activity_setting.pdf"), p)
 
   ## occupation
   p <- ggplot(bg_means %>% dplyr::filter(!is.na(occupation)),

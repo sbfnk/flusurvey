@@ -1,6 +1,7 @@
 library('rethinking')
 library('flusurvey')
 library('dplyr')
+library('lubridate')
 
 categorical_to_single <- function(dt, var) {
     categories <- levels(dt[, get(var)])[-1]
@@ -20,9 +21,10 @@ contacts <- dt_back_contacts %>%
     categorical_to_single("occupation") %>%
     categorical_to_single("region") %>%
     categorical_to_single("highest.education") %>%
-    select(participant_id, contacts=conversational, age,
+    select(participant_id, contacts=physical, age,
            urban.rural, work.urban.rural,
            nb.household, nb.household.children,
+           gender, day.of.week, month,
            starts_with("main.activity."),
            starts_with("occupation."),
            starts_with("region."),
@@ -32,6 +34,7 @@ contacts <- dt_back_contacts %>%
            contacts=as.integer(contacts)) %>%
     dplyr::filter(!is.na(age)) %>%
     mutate(age=(age-mean(age))/sd(age), ## regularise
+           gender=as.integer(gender) - 1,
            urban=as.integer(urban.rural) - 1,
            work.urban=as.integer(work.urban.rural) - 1)
 
@@ -52,47 +55,53 @@ random_model <- map2stan(
 variate_model <- map2stan(
   alist(
     contacts ~ dgampois(mu, k),
-    log(mu) <- a + 
-	    ba * age + 
-	    bh * nb.household + 
-	    #             bhc * nb.household.children +
-	    bm1 * main.activity.paid_employment_part_time +
-	    bm2 * main.activity.self_employed +
-	    bm3 * main.activity.school +
-	    bm4 * main.activity.home_maker +
-	    bm5 * main.activity.unemployed +
-	    bm6 * main.activity.long_term_leave +
-	    bm7 * main.activity.retired +
-	    bm8 * main.activity.other +
-	    bo1 * occupation.office_worker +
-	    bo2 * occupation.retail +
-	    bo3 * occupation.skilled_manual +
-	    bo4 * occupation.other_manual +
-	    bo5 * occupation.other +
-	    #             br1 * region.east_midlands +
-	    #             br2 * region.east_of_england +
-	    #             br3 * region.london +
-	    #             br4 * region.north_east_england +
-	    #             br5 * region.north_west_england +
-	    #             br6 * region.northern_ireland +
-	    #             br7 * region.scotland +
-	    #             br8 * region.south_east_england +
-	    #             br9 * region.south_west_england +
-	    #             br10 * region.wales +
-	    #             br11 * region.west_midlands +
-	    #             br12 * region.yorkshire_and_the_humber +
-	    #             br13 * region.isle_of_man +
-	    #             bhe1 * highest.education.education.gcse +
-	    #             bhe2 * highest.education.education.alevels +
-	    #             bhe3 * highest.education.education.bsc +
-	    #             bhe4 * highest.education.education.msc +
-	    #             bhe5 * highest.education.education.stillin +
-	    bu * urban +
-	    bwu * work.urban,
+    log(mu) <- a +
+        ba * age +
+        bd * day.of.week +
+        bm * month +
+        bg * gender +
+        bh * nb.household +
+        bhc * nb.household.children +
+        bm1 * main.activity.paid_employment_part_time +
+        bm2 * main.activity.self_employed +
+        bm3 * main.activity.school +
+        bm4 * main.activity.home_maker +
+        bm5 * main.activity.unemployed +
+        bm6 * main.activity.long_term_leave +
+        bm7 * main.activity.retired +
+        bm8 * main.activity.other +
+        bo1 * occupation.office_worker +
+        bo2 * occupation.retail +
+        bo3 * occupation.skilled_manual +
+        bo4 * occupation.other_manual +
+        bo5 * occupation.other +
+        br1 * region.east_midlands +
+        br2 * region.east_of_england +
+        br3 * region.london +
+        br4 * region.north_east_england +
+        br5 * region.north_west_england +
+        br6 * region.northern_ireland +
+        br7 * region.scotland +
+        br8 * region.south_east_england +
+        br9 * region.south_west_england +
+        br10 * region.wales +
+        br11 * region.west_midlands +
+        br12 * region.yorkshire_and_the_humber +
+        br13 * region.isle_of_man +
+        bhe1 * highest.education.education.gcse +
+        bhe2 * highest.education.education.alevels +
+        bhe3 * highest.education.education.bsc +
+        bhe4 * highest.education.education.msc +
+        bhe5 * highest.education.education.stillin +
+        bu * urban +
+        bwu * work.urban,
     a ~ dnorm(2.5, 1),
     ba ~ dnorm(0, 1),
+    bd ~ dnorm(0, 1),
+    bg ~ dnorm(0, 1),
     bh ~ dnorm(0, 1),
     bhc ~ dnorm(0, 1),
+    bm ~ dnorm(0, 1),
     bm1 ~ dnorm(0, 1),
     bm2 ~ dnorm(0, 1),
     bm3 ~ dnorm(0, 1),
@@ -127,7 +136,7 @@ variate_model <- map2stan(
     bu ~ dnorm(0, 1),
     bwu ~ dnorm(0, 1),
     k ~ dexp(1)
-  ), data=contacts[complete.cases(contacts), ] %>% data.frame, constraints=list(b="lower=0"), start=list(a=2.5), iter=500
+  ), data=contacts[complete.cases(contacts), ] %>% data.frame, constraints=list(b="lower=0"), start=list(a=2.5), iter=5000, chains=4, cores=4
 )
 
 individual_mu_model <- map2stan(
@@ -160,6 +169,7 @@ individual_model <- map2stan(
 )
 
 saveRDS(list(random=random_model,
+             variate_model=variate_model,
              individual_mu=individual_mu_model,
              individual_sigma=individual_sigma_model,
              individual=individual_model),
