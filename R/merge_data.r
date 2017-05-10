@@ -279,6 +279,9 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
         if ("user" %in% colnames(dt)) dt[, user := NULL]
         if ("timestamp" %in% colnames(dt)) dt[, timestamp := NULL]
 
+        dt[, day.of.week := (data.table::wday(date) - 2) %% 7 + 1]
+        dt[, month := data.table::month(date)]
+
         setkey(dt, global_id, date)
         dt_list[[name]] <- dt
     }
