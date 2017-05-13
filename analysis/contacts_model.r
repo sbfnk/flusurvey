@@ -38,18 +38,19 @@ contacts <- dt_back_contacts %>%
            urban=as.integer(urban.rural) - 1,
            work.urban=as.integer(work.urban.rural) - 1)
 
-    # nb_participants <- contacts %>%
-    #     group_by(participant_id) %>%
-    #     summarise %>%
-    #     nrow
+nb_participants <- contacts %>%
+    group_by(participant_id) %>%
+    summarise %>%
+    nrow
 
 random_model <- map2stan(
   alist(
     contacts ~ dgampois(mu, k),
-    log(mu) <- a
+    log(mu) <- a,
+    k <- b,
     a ~ dnorm(2.5, 1),
-    k ~ dexp(1),
-  ), data=contacts %>% data.frame, constraints=list(b="lower=0"), start=list(a=2.5), iter=500
+    b ~ dexp(1)
+  ), data=contacts %>% data.frame, constraints=list(b="lower=0"), start=list(a=2.5, b=1), iter=100
 )
 
 variate_model <- map2stan(
@@ -136,16 +137,17 @@ variate_model <- map2stan(
     bu ~ dnorm(0, 1),
     bwu ~ dnorm(0, 1),
     k ~ dexp(1)
-  ), data=contacts[complete.cases(contacts), ] %>% data.frame, constraints=list(b="lower=0"), start=list(a=2.5), iter=5000, chains=4, cores=4
+  ), data=contacts[complete.cases(contacts), ] %>% data.frame, constraints=list(b="lower=0"), start=list(a=2.5), iter=5000, chains=2, cores=2
 )
 
 individual_mu_model <- map2stan(
     alist(
         contacts ~ dgampois(mu, k),
         log(mu) <- a[participant_id],
+        k <- b,
         a[participant_id] ~ dnorm(2.5, 1),
-        k ~ dexp(1)
-    ), data=just_contacts %>% data.frame, constraints=list(b="lower=0"), start=list(a=rep(2.5, nb_participants), b=1), iter=5000, chains=4, cores=4
+        b ~ dexp(1)
+    ), data=contacts %>% data.frame, constraints=list(b="lower=0"), start=list(a=rep(2.5, nb_participants), b=1), iter=100
 )
 
 individual_sigma_model <- map2stan(
@@ -155,7 +157,7 @@ individual_sigma_model <- map2stan(
         k <- b[participant_id],
         a ~ dnorm(2.5, 1),
         b[participant_id] ~ dexp(1)
-    ), data=just_contacts %>% data.frame, constraints=list(b="lower=0"), start=list(a=2.5, b=rep(1, nb_participants)), iter=5000, chains=4, cores=4
+    ), data=contacts %>% data.frame, constraints=list(b="lower=0"), start=list(a=2.5, b=rep(1, nb_participants)), iter=5000, chains=4, cores=4
 )
 
 individual_model <- map2stan(
@@ -165,7 +167,7 @@ individual_model <- map2stan(
         k <- b[participant_id],
         a[participant_id] ~ dnorm(2.5, 1),
         b[participant_id] ~ dexp(1)
-    ), data=just_contacts %>% data.frame, constraints=list(b="lower=0"), start=list(a=rep(2.5, nb_participants), b=rep(1, nb_participants)), iter=5000, chains=4, cores=4
+    ), data=contacts %>% data.frame, constraints=list(b="lower=0"), start=list(a=rep(2.5, nb_participants), b=rep(1, nb_participants)), iter=5000, chains=4, cores=4
 )
 
 saveRDS(list(random=random_model,
@@ -176,14 +178,14 @@ saveRDS(list(random=random_model,
         "contact_models.rds")
 
 ## contacts_data <- list(
-##   N = just_contacts %>%
+##   N = contacts %>%
 ##     nrow,
-##   N_participant_id = just_contacts %>%
+##   N_participant_id = contacts %>%
 ##     group_by(participant_id) %>%
 ##     summarise %>%
 ##     nrow,
-##   contacts = just_contacts$contacts,
-##   participant_id = just_contacts$participant_id
+##   contacts = contacts$contacts,
+##   participant_id = contacts$participant_id
 ## )
 
 ## fit <- stan(file=contacts_stan_file,
