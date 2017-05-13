@@ -76,7 +76,7 @@ random_model <- map2stan(
     a ~ dnorm(2.5, 1),
     b ~ dexp(1)
   ), data=contacts %>% data.frame, constraints=list(b="lower=0"),
-  start=list(a=2.5, b=1), iter=100
+  start=list(a=2.5, b=1), chains=4, cores=4
 )
 
 variate_model <- map2stan(
@@ -164,7 +164,7 @@ variate_model <- map2stan(
     bwu ~ dnorm(0, 1),
     k ~ dexp(1)
   ), data=complete_contacts %>% data.frame, constraints=list(b="lower=0"),
-  start=list(a=2.5), iter=100
+  start=list(a=2.5), chains=4, cores=4
 )
 
 individual_mu_model <- map2stan(
@@ -175,7 +175,7 @@ individual_mu_model <- map2stan(
         a[participant_id] ~ dnorm(2.5, 1),
         b ~ dexp(1)
     ), data=contacts %>% data.frame, constraints=list(b="lower=0"),
-    start=list(a=rep(2.5, nb_participants), b=1), iter=100
+    start=list(a=rep(2.5, nb_participants), b=1), chains=4, cores=4
 )
 
 individual_sigma_model <- map2stan(
@@ -186,7 +186,7 @@ individual_sigma_model <- map2stan(
         a ~ dnorm(2.5, 1),
         b[participant_id] ~ dexp(1)
     ), data=contacts %>% data.frame, constraints=list(b="lower=0"),
-    start=list(a=2.5, b=rep(1, nb_participants)), iter=100
+    start=list(a=2.5, b=rep(1, nb_participants)), chains=4, cores=4
 )
 
 individual_model <- map2stan(
@@ -198,7 +198,7 @@ individual_model <- map2stan(
         b[participant_id] ~ dexp(1)
     ), data=contacts %>% data.frame, constraints=list(b="lower=0"),
     start=list(a=rep(2.5, nb_participants), b=rep(1, nb_participants)),
-    iter=100
+    chains=4, cores=4
 )
 
 variate_individual_mu_model <- map2stan(
@@ -286,7 +286,7 @@ variate_individual_mu_model <- map2stan(
     bwu ~ dnorm(0, 1),
     k ~ dexp(1)
   ), data=complete_contacts %>% data.frame, constraints=list(b="lower=0"),
-  start=list(a=rep(2.5, nb_complete_participants)), iter=100
+  start=list(a=rep(2.5, nb_complete_participants)), chains=4, cores=4
 )
 
 saveRDS(list(random=random_model,
