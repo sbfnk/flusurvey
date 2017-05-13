@@ -124,6 +124,15 @@ for (type in c("conversational", "physical"))
 
   ## education
   p <- ggplot(bg_type_means %>% dplyr::filter(!is.na(highest.education)),
+              aes(x=highest.education, y=mean)) +
+    geom_boxplot() +
+    coord_cartesian(ylim=c(0, max_y)) +
+    scale_y_continuous(paste0("Number of ", type, " contacts")) +
+    scale_x_discrete("Highest education level",
+                     labels=c("None", "GCSE", "A-levels", "BSc", "MSc", "Student"))
+  save_plot(paste0(type, "_education.pdf"), p)
+
+  p <- ggplot(bg_type_means %>% dplyr::filter(!is.na(highest.education)),
               aes(x=highest.education, y=mean, color=setting)) +
     geom_boxplot() +
     coord_cartesian(ylim=c(0, max_y)) +
@@ -132,9 +141,17 @@ for (type in c("conversational", "physical"))
                      labels=c("None", "GCSE", "A-levels", "BSc", "MSc", "Student")) +
     scale_color_brewer("", palette="Set1") +
     theme(legend.position = "top")
-  save_plot(paste0(type, "_education.pdf"), p)
+  save_plot(paste0(type, "_education_setting.pdf"), p)
 
   ## students
+  p <- ggplot(bg_type_means %>% dplyr::filter(!is.na(education.stillin)),
+              aes(x=education.stillin, y=mean)) +
+    geom_boxplot() +
+    coord_cartesian(ylim=c(0, max_y)) +
+    scale_y_continuous(paste0("Number of ", type, " contacts")) +
+    scale_x_discrete("In education", labels=c("No", "Yes"))
+  save_plot(paste0(type, "_students.pdf"), p)
+
   p <- ggplot(bg_type_means %>% dplyr::filter(!is.na(education.stillin)),
               aes(x=education.stillin, y=mean, color=setting)) +
     geom_boxplot() +
@@ -143,7 +160,7 @@ for (type in c("conversational", "physical"))
     scale_x_discrete("In education", labels=c("No", "Yes")) +
     scale_color_brewer("", palette="Set1") +
     theme(legend.position = "top")
-  save_plot(paste0(type, "_students.pdf"), p)
+  save_plot(paste0(type, "_students_setting.pdf"), p)
 
   ## rural/urban? postcode?
   p <- ggplot(bg_means %>% dplyr::filter(!is.na(urban.rural)),
@@ -162,7 +179,7 @@ for (type in c("conversational", "physical"))
     scale_x_discrete("Settlement type") +
     scale_color_brewer("", palette="Set1") +
     theme(legend.position = "top")
-  save_plot(paste0(type, "_settlement.pdf"), p)
+  save_plot(paste0(type, "_settlement_setting.pdf"), p)
 
   p <- ggplot(bg_means %>% dplyr::filter(!is.na(work.urban.rural)),
               aes(x=work.urban.rural, y=mean)) +
@@ -247,6 +264,15 @@ for (type in c("conversational", "physical"))
     scale_x_discrete("Household size")
   save_plot(paste0(type, "_hh_size.pdf"), p)
 
+  p <- ggplot(bg_means, aes(x=hh_group, y=mean, color=setting)) +
+    geom_boxplot() +
+    coord_cartesian(ylim=c(0, max_y)) +
+    scale_y_continuous(paste0("Number of ", type, " contacts")) +
+    scale_x_discrete("Household size") +
+    scale_color_brewer("", palette="Set1") +
+    theme(legend.position = "top")
+  save_plot(paste0(type, "_hh_size_setting.pdf"), p)
+
   bg_means %<>%
     mutate(hh_children_group =
              factor(ifelse(nb.household.children<6,
@@ -260,6 +286,15 @@ for (type in c("conversational", "physical"))
     scale_x_discrete("Number of children in the household")
   save_plot(paste0(type, "_hh_size_children.pdf"), p)
 
+  p <- ggplot(bg_means, aes(x=hh_children_group, y=mean, color=setting)) +
+    geom_boxplot() +
+    coord_cartesian(ylim=c(0, max_y)) +
+    scale_y_continuous(paste0("Number of ", type, " contacts")) +
+    scale_x_discrete("Number of children in the household") +
+    scale_color_brewer("", palette="Set1") +
+    theme(legend.position = "top")
+  save_plot(paste0(type, "_hh_size_children_setting.pdf"), p)
+
   ## regional differences
   p <- ggplot(bg_means %>% filter(!is.na(country)), aes(x=country, y=mean)) +
     geom_boxplot() +
@@ -269,6 +304,18 @@ for (type in c("conversational", "physical"))
                      labels=stri_trans_totitle(gsub("_", " ",
                                                     levels(bg_means$country)))) +
   save_plot(paste0(type, "_country.pdf"), p)
+
+  p <- ggplot(bg_means %>% filter(!is.na(country)),
+              aes(x=country, y=mean, color=setting)) +
+    geom_boxplot() +
+    coord_cartesian(ylim=c(0, max_y)) +
+    scale_y_continuous(paste0("Number of ", type, " contacts")) +
+    scale_x_discrete("Country",
+                     labels=stri_trans_totitle(gsub("_", " ",
+                                                    levels(bg_means$country)))) +
+    scale_color_brewer("", palette="Set1") +
+    theme(legend.position = "top")
+  save_plot(paste0(type, "_country_setting.pdf"), p)
 
   p <- ggplot(bg_means %>% filter(!is.na(region)),
               aes(x=region, y=mean)) +
@@ -280,4 +327,17 @@ for (type in c("conversational", "physical"))
                                                     levels(bg_means$region)))) +
     theme(axis.text.x=element_text(angle=45,hjust=1,vjust=1))
   save_plot(paste0(type, "_region.pdf"), p)
+
+  p <- ggplot(bg_means %>% filter(!is.na(region)),
+              aes(x=region, y=mean, color=setting)) +
+    geom_boxplot() +
+    coord_cartesian(ylim=c(0, max_y)) +
+    scale_y_continuous(paste0("Number of ", type, " contacts")) +
+    scale_x_discrete("Region",
+                     labels=stri_trans_totitle(gsub("_", " ",
+                                                    levels(bg_means$region)))) +
+    theme(axis.text.x=element_text(angle=45,hjust=1,vjust=1),
+          legend.position="top") +
+    scale_color_brewer("", palette="Set1") +
+  save_plot(paste0(type, "_region_setting.pdf"), p)
 }
