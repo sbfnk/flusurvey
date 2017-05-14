@@ -25,6 +25,8 @@ contacts <- dt_back_contacts %>%
            urban.rural, work.urban.rural,
            nb.household, nb.household.children,
            gender, day.of.week, month,
+           enclosed.indoor.space,
+           public.transport,
            starts_with("main.activity."),
            starts_with("occupation."),
            starts_with("region."),
@@ -36,7 +38,9 @@ contacts <- dt_back_contacts %>%
     mutate(age=(age-mean(age))/sd(age), ## regularise
            gender=as.integer(gender) - 1,
            urban=as.integer(urban.rural) - 1,
-           work.urban=as.integer(work.urban.rural) - 1)
+           work.urban=as.integer(work.urban.rural) - 1,
+           enclosed.indoor.space=as.integer(enclosed.indoor.space) - 1,
+           public.transport=as.integer(public.transport) - 1)
 
 participants <-
     data.frame(participant_id=unique(contacts$participant_id)) %>%
@@ -76,7 +80,7 @@ random_model <- map2stan(
     a ~ dnorm(2.5, 1),
     b ~ dexp(1)
   ), data=contacts %>% data.frame, constraints=list(b="lower=0"),
-  start=list(a=2.5, b=1), chains=4, cores=4
+  start=list(a=2.5, b=1), iter=100
 )
 
 variate_model <- map2stan(
@@ -121,7 +125,9 @@ variate_model <- map2stan(
         bhe4 * highest.education.education.msc +
         bhe5 * highest.education.education.stillin +
         bu * urban +
-        bwu * work.urban,
+        bwu * work.urban +
+        be * enclosed.indoor.space +
+        bt * public.transport,
     a ~ dnorm(2.5, 1),
     ba ~ dnorm(0, 1),
     bd ~ dnorm(0, 1),
@@ -162,9 +168,11 @@ variate_model <- map2stan(
     bhe5 ~ dnorm(0, 1),
     bu ~ dnorm(0, 1),
     bwu ~ dnorm(0, 1),
+    be ~ dnorm(0, 1),
+    bt ~ dnorm(0, 1),
     k ~ dexp(1)
   ), data=complete_contacts %>% data.frame, constraints=list(b="lower=0"),
-  start=list(a=2.5), chains=4, cores=4
+  start=list(a=2.5), iter=100
 )
 
 individual_mu_model <- map2stan(
@@ -175,7 +183,7 @@ individual_mu_model <- map2stan(
         a[participant_id] ~ dnorm(2.5, 1),
         b ~ dexp(1)
     ), data=contacts %>% data.frame, constraints=list(b="lower=0"),
-    start=list(a=rep(2.5, nb_participants), b=1), chains=4, cores=4
+    start=list(a=rep(2.5, nb_participants), b=1), iter=100
 )
 
 individual_sigma_model <- map2stan(
@@ -186,7 +194,7 @@ individual_sigma_model <- map2stan(
         a ~ dnorm(2.5, 1),
         b[participant_id] ~ dexp(1)
     ), data=contacts %>% data.frame, constraints=list(b="lower=0"),
-    start=list(a=2.5, b=rep(1, nb_participants)), chains=4, cores=4
+    start=list(a=2.5, b=rep(1, nb_participants)), iter=100
 )
 
 individual_model <- map2stan(
@@ -198,7 +206,7 @@ individual_model <- map2stan(
         b[participant_id] ~ dexp(1)
     ), data=contacts %>% data.frame, constraints=list(b="lower=0"),
     start=list(a=rep(2.5, nb_participants), b=rep(1, nb_participants)),
-    chains=4, cores=4
+    iter=100
 )
 
 variate_individual_mu_model <- map2stan(
@@ -244,6 +252,8 @@ variate_individual_mu_model <- map2stan(
         bhe5 * highest.education.education.stillin +
         bu * urban +
         bwu * work.urban,
+        be * enclosed.indoor.space +
+        bt * public.transport,
     a[participant_id] ~ dnorm(2.5, 1),
     ba ~ dnorm(0, 1),
     bd ~ dnorm(0, 1),
@@ -284,9 +294,11 @@ variate_individual_mu_model <- map2stan(
     bhe5 ~ dnorm(0, 1),
     bu ~ dnorm(0, 1),
     bwu ~ dnorm(0, 1),
+    be ~ dnorm(0, 1),
+    bt ~ dnorm(0, 1),
     k ~ dexp(1)
   ), data=complete_contacts %>% data.frame, constraints=list(b="lower=0"),
-  start=list(a=rep(2.5, nb_complete_participants)), chains=4, cores=4
+  start=list(a=rep(2.5, nb_complete_participants)), iter=100
 )
 
 saveRDS(list(random=random_model,
