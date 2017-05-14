@@ -1,5 +1,6 @@
 library('flusurvey')
 library('magrittr')
+library('tidyr')
 library('dplyr')
 library('cowplot')
 library('stringi')
@@ -38,7 +39,8 @@ for (type in c("conversational", "physical"))
                  breaks=date_breaks("1 year"), labels=date_format("%Y"))+
     scale_y_continuous(paste0("Number of ", type, " contacts"))+
     theme(legend.position="none")
-  ggsave(paste0("example_users_", type, ".pdf"), p, width=6.5, height=3.5)
+  save_plot(paste0("example_users_", type, ".pdf"), p, base_aspect_ratio = 2)
+  save_plot(paste0("example_users_", type, ".png"), p, base_aspect_ratio = 2)
 
   means <- dt_contacts %>%
     group_by(participant_id) %>%
@@ -56,6 +58,7 @@ for (type in c("conversational", "physical"))
     scale_y_continuous("Number of surveys") +
     scale_x_continuous("Mean number of contacts")
   save_plot(paste0(type, "_dist.pdf"), p)
+  save_plot(paste0(type, "_dist.png"), p)
 
   max_contacts <-
     min(100, max(means %>%
@@ -78,6 +81,7 @@ for (type in c("conversational", "physical"))
     scale_y_continuous("Variance (log-scale)")
 
   save_plot(paste0(type, "_contacts_mean_var.pdf"), p)
+  save_plot(paste0(type, "_contacts_mean_var.png"), p)
 
   ## contact with respect to background
   bg_means <- dt_back_contacts %>%
@@ -111,6 +115,7 @@ for (type in c("conversational", "physical"))
     scale_y_continuous(paste0("Number of ", type, " contacts")) +
     scale_x_discrete("Age group")
   save_plot(paste0(type, "_age.pdf"), p)
+  save_plot(paste0(type, "_age.png"), p)
 
   p <- ggplot(bg_type_means %>% dplyr::filter(!is.na(age)),
               aes(x=agegroup, y=mean, color=setting)) +
@@ -121,6 +126,7 @@ for (type in c("conversational", "physical"))
     scale_color_brewer("", palette="Set1") +
     theme(legend.position = "top")
   save_plot(paste0(type, "_age_setting.pdf"), p)
+  save_plot(paste0(type, "_age_setting.png"), p)
 
   ## education
   p <- ggplot(bg_type_means %>% dplyr::filter(!is.na(highest.education)),
@@ -131,6 +137,7 @@ for (type in c("conversational", "physical"))
     scale_x_discrete("Highest education level",
                      labels=c("None", "GCSE", "A-levels", "BSc", "MSc", "Student"))
   save_plot(paste0(type, "_education.pdf"), p)
+  save_plot(paste0(type, "_education.png"), p)
 
   p <- ggplot(bg_type_means %>% dplyr::filter(!is.na(highest.education)),
               aes(x=highest.education, y=mean, color=setting)) +
@@ -142,6 +149,7 @@ for (type in c("conversational", "physical"))
     scale_color_brewer("", palette="Set1") +
     theme(legend.position = "top")
   save_plot(paste0(type, "_education_setting.pdf"), p)
+  save_plot(paste0(type, "_education_setting.png"), p)
 
   ## students
   p <- ggplot(bg_type_means %>% dplyr::filter(!is.na(education.stillin)),
@@ -151,6 +159,7 @@ for (type in c("conversational", "physical"))
     scale_y_continuous(paste0("Number of ", type, " contacts")) +
     scale_x_discrete("In education", labels=c("No", "Yes"))
   save_plot(paste0(type, "_students.pdf"), p)
+  save_plot(paste0(type, "_students.png"), p)
 
   p <- ggplot(bg_type_means %>% dplyr::filter(!is.na(education.stillin)),
               aes(x=education.stillin, y=mean, color=setting)) +
@@ -161,6 +170,7 @@ for (type in c("conversational", "physical"))
     scale_color_brewer("", palette="Set1") +
     theme(legend.position = "top")
   save_plot(paste0(type, "_students_setting.pdf"), p)
+  save_plot(paste0(type, "_students_setting.png"), p)
 
   ## rural/urban? postcode?
   p <- ggplot(bg_means %>% dplyr::filter(!is.na(urban.rural)),
@@ -170,6 +180,7 @@ for (type in c("conversational", "physical"))
     scale_y_continuous(paste0("Number of ", type, " contacts")) +
     scale_x_discrete("Settlement type")
   save_plot(paste0(type, "_settlement.pdf"), p)
+  save_plot(paste0(type, "_settlement.png"), p)
 
   p <- ggplot(bg_type_means %>% dplyr::filter(!is.na(urban.rural)),
               aes(x=urban.rural, y=mean, color=setting)) +
@@ -180,6 +191,7 @@ for (type in c("conversational", "physical"))
     scale_color_brewer("", palette="Set1") +
     theme(legend.position = "top")
   save_plot(paste0(type, "_settlement_setting.pdf"), p)
+  save_plot(paste0(type, "_settlement_setting.png"), p)
 
   p <- ggplot(bg_means %>% dplyr::filter(!is.na(work.urban.rural)),
               aes(x=work.urban.rural, y=mean)) +
@@ -188,6 +200,7 @@ for (type in c("conversational", "physical"))
     scale_y_continuous(paste0("Number of ", type, " contacts")) +
     scale_x_discrete("Work settlement type")
   save_plot(paste0(type, "_work_settlement.pdf"), p)
+  save_plot(paste0(type, "_work_settlement.png"), p)
 
   p <- ggplot(bg_type_means %>% dplyr::filter(!is.na(work.urban.rural)),
               aes(x=work.urban.rural, y=mean, color=setting)) +
@@ -198,6 +211,7 @@ for (type in c("conversational", "physical"))
     scale_color_brewer("", palette="Set1") +
     theme(legend.position = "top")
   save_plot(paste0(type, "_work_settlement_setting.pdf"), p)
+  save_plot(paste0(type, "_work_settlement_setting.png"), p)
 
   ## main activity
   p <- ggplot(bg_means %>% dplyr::filter(!is.na(main.activity)),
@@ -217,6 +231,7 @@ for (type in c("conversational", "physical"))
                               "Other")) +
     theme(axis.text.x=element_text(angle=45,hjust=1,vjust=1))
   save_plot(paste0(type, "_main_activity.pdf"), p)
+  save_plot(paste0(type, "_main_activity.png"), p)
 
   p <- ggplot(bg_type_means %>% dplyr::filter(!is.na(main.activity)),
               aes(x=main.activity, y=mean, color=setting)) +
@@ -237,6 +252,7 @@ for (type in c("conversational", "physical"))
     scale_color_brewer("", palette="Set1") +
     theme(legend.position = "top")
   save_plot(paste0(type, "_main_activity_setting.pdf"), p)
+  save_plot(paste0(type, "_main_activity_setting.png"), p)
 
   ## occupation
   p <- ggplot(bg_means %>% dplyr::filter(!is.na(occupation)),
@@ -250,6 +266,7 @@ for (type in c("conversational", "physical"))
                               "Other manual", "Other")) +
     theme(axis.text.x=element_text(angle=45,hjust=1,vjust=1))
   save_plot(paste0(type, "_occupation.pdf"), p)
+  save_plot(paste0(type, "_occupation.png"), p)
 
   ## household size?
   bg_means %<>%
@@ -263,6 +280,7 @@ for (type in c("conversational", "physical"))
     scale_y_continuous(paste0("Number of ", type, " contacts")) +
     scale_x_discrete("Household size")
   save_plot(paste0(type, "_hh_size.pdf"), p)
+  save_plot(paste0(type, "_hh_size.png"), p)
 
   p <- ggplot(bg_means, aes(x=hh_group, y=mean, color=setting)) +
     geom_boxplot() +
@@ -272,6 +290,7 @@ for (type in c("conversational", "physical"))
     scale_color_brewer("", palette="Set1") +
     theme(legend.position = "top")
   save_plot(paste0(type, "_hh_size_setting.pdf"), p)
+  save_plot(paste0(type, "_hh_size_setting.png"), p)
 
   bg_means %<>%
     mutate(hh_children_group =
@@ -285,6 +304,7 @@ for (type in c("conversational", "physical"))
     scale_y_continuous(paste0("Number of ", type, " contacts")) +
     scale_x_discrete("Number of children in the household")
   save_plot(paste0(type, "_hh_size_children.pdf"), p)
+  save_plot(paste0(type, "_hh_size_children.png"), p)
 
   p <- ggplot(bg_means, aes(x=hh_children_group, y=mean, color=setting)) +
     geom_boxplot() +
@@ -294,6 +314,7 @@ for (type in c("conversational", "physical"))
     scale_color_brewer("", palette="Set1") +
     theme(legend.position = "top")
   save_plot(paste0(type, "_hh_size_children_setting.pdf"), p)
+  save_plot(paste0(type, "_hh_size_children_setting.png"), p)
 
   ## regional differences
   p <- ggplot(bg_means %>% filter(!is.na(country)), aes(x=country, y=mean)) +
@@ -304,6 +325,7 @@ for (type in c("conversational", "physical"))
                      labels=stri_trans_totitle(gsub("_", " ",
                                                     levels(bg_means$country)))) +
   save_plot(paste0(type, "_country.pdf"), p)
+  save_plot(paste0(type, "_country.png"), p)
 
   p <- ggplot(bg_means %>% filter(!is.na(country)),
               aes(x=country, y=mean, color=setting)) +
@@ -316,6 +338,7 @@ for (type in c("conversational", "physical"))
     scale_color_brewer("", palette="Set1") +
     theme(legend.position = "top")
   save_plot(paste0(type, "_country_setting.pdf"), p)
+  save_plot(paste0(type, "_country_setting.png"), p)
 
   p <- ggplot(bg_means %>% filter(!is.na(region)),
               aes(x=region, y=mean)) +
@@ -327,6 +350,7 @@ for (type in c("conversational", "physical"))
                                                     levels(bg_means$region)))) +
     theme(axis.text.x=element_text(angle=45,hjust=1,vjust=1))
   save_plot(paste0(type, "_region.pdf"), p)
+  save_plot(paste0(type, "_region.png"), p)
 
   p <- ggplot(bg_means %>% filter(!is.na(region)),
               aes(x=region, y=mean, color=setting)) +
@@ -340,4 +364,5 @@ for (type in c("conversational", "physical"))
           legend.position="top") +
     scale_color_brewer("", palette="Set1") +
   save_plot(paste0(type, "_region_setting.pdf"), p)
+  save_plot(paste0(type, "_region_setting.png"), p)
 }
