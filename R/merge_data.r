@@ -10,13 +10,14 @@
 ##' - 'create.numeric.id', whether to create a numeric id for every user,
 ##' - 'n.reports', whether to exclude those with fewer than \code{min.reports} reports
 ##' - 'unsuccessful.join', whether to exclude those with unsuccesful joins (e.g. if symptoms are reported without a background survey present; the web site should have prevented this, but doesn't appear to have done so)
+##' - 'only.symptoms', whether to exclude those that have no report without symptoms
 ##' @param min.reports minimum number of reports per user (ignored if 'min.reports' is not given as a cleaning option)
 ##' @return a rolling-joined data table
 ##' @author seb
 ##' @import data.table
 ##' @importFrom lubridate month interval years
 ##' @export
-merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates", "guess.start.dates", "limit.season", "remove.postcodes", "create.numeric.id", "n.reports", "unsuccessful.join"), min.reports = 3)
+merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates", "guess.start.dates", "limit.season", "remove.postcodes", "create.numeric.id", "n.reports", "unsuccessful.join", "only.symptoms"), min.reports = 3)
 {
     dt_list <- list()
     clean <- match.arg(clean, several.ok = TRUE)
@@ -94,6 +95,19 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
                                 symptoms.end.date > date))]
                 }
             }
+
+            if ("only.symptoms" %in% clean)
+            {
+                no.symptoms <-
+                    res[, list(no.symptoms.reports =
+                                   sum(no.symptoms == "t")),
+                        by = global_id]
+                res <- merge(res, no.symptoms, by = "global_id",
+                             all.x = TRUE)
+                res <- res[no.symptoms.reports > 0]
+                res[, no.symptoms.reports := NULL]
+    }
+
         } else if (name == "background")
         {
             ## calculate birthdates, age and agegroup
@@ -279,9 +293,6 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
         if ("user" %in% colnames(dt)) dt[, user := NULL]
         if ("timestamp" %in% colnames(dt)) dt[, timestamp := NULL]
 
-        dt[, day.of.week := (data.table::wday(date) - 2) %% 7 + 1]
-        dt[, month := data.table::month(date)]
-
         setkey(dt, global_id, date)
         dt_list[[name]] <- dt
     }
@@ -296,6 +307,9 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
     }
 
     res <- res[nchar(as.character(global_id)) > 0]
+
+    res[, day.of.week := (data.table::wday(date) - 2) %% 7 + 1]
+    res[, month := data.table::month(date)]
 
     if ("unsuccessful.join" %in% clean)
     {

@@ -6,7 +6,7 @@
 \usage{
 merge_data(data, clean = c("remove.first", "remove.bad.symptom.dates",
   "guess.start.dates", "limit.season", "remove.postcodes", "create.numeric.id",
-  "n.reports", "unsuccessful.join"), min.reports = 3)
+  "n.reports", "unsuccessful.join", "only.symptoms"), min.reports = 3)
 }
 \arguments{
 \item{data}{the data to merge and clean, usually the result of \code{read_data}}
@@ -19,7 +19,8 @@ merge_data(data, clean = c("remove.first", "remove.bad.symptom.dates",
 - 'remove.postcodes', whether to remove postcodes
 - 'create.numeric.id', whether to create a numeric id for every user,
 - 'n.reports', whether to exclude those with fewer than \code{min.reports} reports
-- 'unsuccessful.join', whether to exclude those with unsuccesful joins (e.g. if symptoms are reported without a background survey present; the web site should have prevented this, but doesn't appear to have done so)}
+- 'unsuccessful.join', whether to exclude those with unsuccesful joins (e.g. if symptoms are reported without a background survey present; the web site should have prevented this, but doesn't appear to have done so)
+- 'only.symptoms', whether to exclude those that have no report without symptoms}
 
 \item{min.reports}{minimum number of reports per user (ignored if 'min.reports' is not given as a cleaning option)}
 }
@@ -32,4 +33,3 @@ Clean and merge flusurvey data tables
 \author{
 seb
 }
-
