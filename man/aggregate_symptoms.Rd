@@ -18,4 +18,3 @@ Aggregate symptoms in symptom table to work out ILI etc.
 \author{
 seb
 }
-

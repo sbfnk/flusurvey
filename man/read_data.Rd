@@ -29,4 +29,3 @@ and similarly for weekly surveys
 \author{
 seb
 }
-

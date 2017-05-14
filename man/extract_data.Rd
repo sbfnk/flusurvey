@@ -26,4 +26,3 @@ This extracts flusurvey data for a given number of surveys and years (all by def
 \author{
 seb
 }
-

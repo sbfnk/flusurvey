@@ -30,4 +30,3 @@ This calculates incidence according to a given column in the supplied data.
 \author{
 seb
 }
-
