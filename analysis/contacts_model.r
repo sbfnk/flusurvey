@@ -1,6 +1,7 @@
 library('rethinking')
 library('flusurvey')
 library('dplyr')
+library('magrittr')
 library('lubridate')
 
 categorical_to_single <- function(dt, var) {
@@ -21,7 +22,6 @@ for (type in c("conversational", "physical"))
     contacts <- dt_back_contacts %>%
         categorical_to_single("main.activity") %>%
         categorical_to_single("occupation") %>%
-        categorical_to_single("region") %>%
         categorical_to_single("highest.education") %>%
         select(participant_id, contacts=get(type), age,
                urban.rural, work.urban.rural,
@@ -31,7 +31,6 @@ for (type in c("conversational", "physical"))
                public.transport,
                starts_with("main.activity."),
                starts_with("occupation."),
-               starts_with("region."),
                starts_with("highest.education.")
                ) %>%
         mutate(participant_id=as.integer(participant_id),
@@ -108,19 +107,6 @@ for (type in c("conversational", "physical"))
                 bo3 * occupation.skilled_manual +
                 bo4 * occupation.other_manual +
                 bo5 * occupation.other +
-                br1 * region.east_midlands +
-                br2 * region.east_of_england +
-                br3 * region.london +
-                br4 * region.north_east_england +
-                br5 * region.north_west_england +
-                br6 * region.northern_ireland +
-                br7 * region.scotland +
-                br8 * region.south_east_england +
-                br9 * region.south_west_england +
-                br10 * region.wales +
-                br11 * region.west_midlands +
-                br12 * region.yorkshire_and_the_humber +
-                br13 * region.isle_of_man +
                 bhe1 * highest.education.education.gcse +
                 bhe2 * highest.education.education.alevels +
                 bhe3 * highest.education.education.bsc +
@@ -150,19 +136,6 @@ for (type in c("conversational", "physical"))
             bo3 ~ dnorm(0, 1),
             bo4 ~ dnorm(0, 1),
             bo5 ~ dnorm(0, 1),
-            br1 ~ dnorm(0, 1),
-            br2 ~ dnorm(0, 1),
-            br3 ~ dnorm(0, 1),
-            br4 ~ dnorm(0, 1),
-            br5 ~ dnorm(0, 1),
-            br6 ~ dnorm(0, 1),
-            br7 ~ dnorm(0, 1),
-            br8 ~ dnorm(0, 1),
-            br9 ~ dnorm(0, 1),
-            br10 ~ dnorm(0, 1),
-            br11 ~ dnorm(0, 1),
-            br12 ~ dnorm(0, 1),
-            br13 ~ dnorm(0, 1),
             bhe1 ~ dnorm(0, 1),
             bhe2 ~ dnorm(0, 1),
             bhe3 ~ dnorm(0, 1),
@@ -234,19 +207,6 @@ for (type in c("conversational", "physical"))
                 bo3 * occupation.skilled_manual +
                 bo4 * occupation.other_manual +
                 bo5 * occupation.other +
-                br1 * region.east_midlands +
-                br2 * region.east_of_england +
-                br3 * region.london +
-                br4 * region.north_east_england +
-                br5 * region.north_west_england +
-                br6 * region.northern_ireland +
-                br7 * region.scotland +
-                br8 * region.south_east_england +
-                br9 * region.south_west_england +
-                br10 * region.wales +
-                br11 * region.west_midlands +
-                br12 * region.yorkshire_and_the_humber +
-                br13 * region.isle_of_man +
                 bhe1 * highest.education.education.gcse +
                 bhe2 * highest.education.education.alevels +
                 bhe3 * highest.education.education.bsc +
@@ -276,19 +236,6 @@ for (type in c("conversational", "physical"))
             bo3 ~ dnorm(0, 1),
             bo4 ~ dnorm(0, 1),
             bo5 ~ dnorm(0, 1),
-            br1 ~ dnorm(0, 1),
-            br2 ~ dnorm(0, 1),
-            br3 ~ dnorm(0, 1),
-            br4 ~ dnorm(0, 1),
-            br5 ~ dnorm(0, 1),
-            br6 ~ dnorm(0, 1),
-            br7 ~ dnorm(0, 1),
-            br8 ~ dnorm(0, 1),
-            br9 ~ dnorm(0, 1),
-            br10 ~ dnorm(0, 1),
-            br11 ~ dnorm(0, 1),
-            br12 ~ dnorm(0, 1),
-            br13 ~ dnorm(0, 1),
             bhe1 ~ dnorm(0, 1),
             bhe2 ~ dnorm(0, 1),
             bhe3 ~ dnorm(0, 1),
@@ -312,22 +259,3 @@ for (type in c("conversational", "physical"))
             paste0(type, "_contact_models.rds"))
 }
 
-    ## contacts_data <- list(
-    ##   N = contacts %>%
-    ##     nrow,
-    ##   N_participant_id = contacts %>%
-    ##     group_by(participant_id) %>%
-    ##     summarise %>%
-    ##     nrow,
-    ##   contacts = contacts$contacts,
-    ##   participant_id = contacts$participant_id
-    ## )
-
-    ## fit <- stan(file=contacts_stan_file,
-    ##             data=contacts_data,
-    ##             chains=1,
-    ##             warmup=100,
-    ##             iter=200,
-    ##             refresh=10,
-    ##             init=list(list(a=2.5, inv_k=1)),
-    ##             verbose=TRUE)
