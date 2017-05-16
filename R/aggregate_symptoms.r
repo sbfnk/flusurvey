@@ -70,8 +70,6 @@ aggregate_symptoms <- function(symptoms, ili.sudden.unknown = 1)
         dt[, gi := as.integer(gi)]
     }
 
-    dt[, suddenly := NULL]
-
     return(dt)
 }
 
