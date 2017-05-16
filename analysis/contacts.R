@@ -65,21 +65,24 @@ for (type in c("conversational", "physical"))
                  dplyr::filter(mean <= 100, !is.na(var)) %>%
                  .$mean))
 
-  max_var <-
-    max(means %>%
-        dplyr::filter(mean <= max_contacts) %>%
-        .$var, na.rm=TRUE)
+  max_meanvar <- max(log10(means$mean), log10(means$var), na.rm=TRUE)
+  min_meanvar <- min(means %>% filter(mean > 0) %>% .$mean %>% log10,
+                     means %>% filter(var > 0) %>% .$var %>% log10)
 
-  p <- ggplot(means %>% filter(mean>0, var>0), aes(x=log10(mean), y=log10(var))) +
+  p <- ggplot(means %>% filter(mean>0, var>0),
+              aes(x=log10(mean), y=log10(var))) +
     geom_jitter() +
     geom_smooth(method=lm) +
+    expand_limits(x=c(min_meanvar, max_meanvar * 1.1),
+                  y=c(min_meanvar, max_meanvar * 1.1)) +
     ## coord_cartesian(xlim=c(1, max_contacts), ylim=c(1, max_var)) +
-    geom_line(data=data.frame(mean=seq_len(max_contacts),
-                              var=seq_len(max_contacts)), linetype="dashed") +
+    geom_line(data=data.frame(mean=10**c(min_meanvar, max_meanvar),
+                              var=10**c(min_meanvar, max_meanvar)),
+              linetype="dashed") +
     geom_point(data=data.frame(var_pop), color="red") +
     scale_x_continuous("Mean (log-scale)") +
-    scale_y_continuous("Variance (log-scale)")
-
+    scale_y_continuous("Variance (log-scale)") +
+    ggtitle(paste0("Number of ", type, " contacts"))
   save_plot(paste0(type, "_contacts_mean_var.pdf"), p)
   save_plot(paste0(type, "_contacts_mean_var.png"), p)
 
@@ -273,6 +276,12 @@ for (type in c("conversational", "physical"))
     mutate(hh_group =
              factor(ifelse(nb.household<6, as.character(nb.household), "6+"),
                     levels=c(as.character(seq_len(6)-1), "6+")))
+  ## household size?
+  bg_type_means %<>%
+    mutate(hh_group =
+             factor(ifelse(nb.household<6, as.character(nb.household), "6+"),
+                    levels=c(as.character(seq_len(6)-1), "6+")))
+
 
   p <- ggplot(bg_means, aes(x=hh_group, y=mean)) +
     geom_boxplot() +
@@ -282,7 +291,7 @@ for (type in c("conversational", "physical"))
   save_plot(paste0(type, "_hh_size.pdf"), p)
   save_plot(paste0(type, "_hh_size.png"), p)
 
-  p <- ggplot(bg_means, aes(x=hh_group, y=mean, color=setting)) +
+  p <- ggplot(bg_type_means, aes(x=hh_group, y=mean, color=setting)) +
     geom_boxplot() +
     coord_cartesian(ylim=c(0, max_y)) +
     scale_y_continuous(paste0("Number of ", type, " contacts")) +
@@ -297,6 +306,11 @@ for (type in c("conversational", "physical"))
              factor(ifelse(nb.household.children<6,
                            as.character(nb.household.children), "6+"),
                     levels=c(as.character(seq_len(6)-1), "6+")))
+  bg_type_means %<>%
+    mutate(hh_children_group =
+             factor(ifelse(nb.household.children<6,
+                           as.character(nb.household.children), "6+"),
+                    levels=c(as.character(seq_len(6)-1), "6+")))
 
   p <- ggplot(bg_means, aes(x=hh_children_group, y=mean)) +
     geom_boxplot() +
@@ -306,7 +320,8 @@ for (type in c("conversational", "physical"))
   save_plot(paste0(type, "_hh_size_children.pdf"), p)
   save_plot(paste0(type, "_hh_size_children.png"), p)
 
-  p <- ggplot(bg_means, aes(x=hh_children_group, y=mean, color=setting)) +
+  p <- ggplot(bg_type_means,
+              aes(x=hh_children_group, y=mean, color=setting)) +
     geom_boxplot() +
     coord_cartesian(ylim=c(0, max_y)) +
     scale_y_continuous(paste0("Number of ", type, " contacts")) +
@@ -327,7 +342,7 @@ for (type in c("conversational", "physical"))
   save_plot(paste0(type, "_country.pdf"), p)
   save_plot(paste0(type, "_country.png"), p)
 
-  p <- ggplot(bg_means %>% filter(!is.na(country)),
+  p <- ggplot(bg_type_means %>% filter(!is.na(country)),
               aes(x=country, y=mean, color=setting)) +
     geom_boxplot() +
     coord_cartesian(ylim=c(0, max_y)) +
@@ -352,7 +367,7 @@ for (type in c("conversational", "physical"))
   save_plot(paste0(type, "_region.pdf"), p)
   save_plot(paste0(type, "_region.png"), p)
 
-  p <- ggplot(bg_means %>% filter(!is.na(region)),
+  p <- ggplot(bg_type_means %>% filter(!is.na(region)),
               aes(x=region, y=mean, color=setting)) +
     geom_boxplot() +
     coord_cartesian(ylim=c(0, max_y)) +
@@ -366,3 +381,22 @@ for (type in c("conversational", "physical"))
   save_plot(paste0(type, "_region_setting.pdf"), p)
   save_plot(paste0(type, "_region_setting.png"), p)
 }
+
+means <- dt_contacts %>%
+    group_by(participant_id) %>%
+    mutate(mean.physical=mean(physical),
+           mean.conversational=mean(conversational)) %>%
+    ungroup %>%
+    gather(type, contacts, starts_with("mean.")) %>%
+    mutate(type=sub("mean.", "", type))
+
+p <- ggplot(means, aes(x=contacts, fill=type))+
+    geom_histogram(binwidth=1, position="stack") +
+    scale_fill_brewer("", palette="Set1") +
+    coord_cartesian(xlim=c(0, 25)) +
+    scale_y_continuous("Number of surveys") +
+    scale_x_continuous("Mean number of contacts") +
+    theme(legend.position="bottom")
+save_plot(paste0("contact_dist.pdf"), p)
+save_plot(paste0("contact_dist.png"), p)
+
