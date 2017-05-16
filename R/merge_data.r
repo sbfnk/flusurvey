@@ -99,11 +99,9 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
             if ("only.symptoms" %in% clean)
             {
                 no.symptoms <-
-                    dt[, list(no.symptoms.reports =
-                                   sum(no.symptoms == "t")),
+                    dt[, list(no.symptoms.reports = sum(no.symptoms == "t")),
                         by = global_id]
-                dt <- merge(dt, no.symptoms, by = "global_id",
-                             all.x = TRUE)
+                dt <- merge(dt, no.symptoms, by = "global_id", all.x = TRUE)
                 dt <- dt[no.symptoms.reports > 0]
                 dt[, no.symptoms.reports := NULL]
             }
