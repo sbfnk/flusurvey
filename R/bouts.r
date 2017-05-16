@@ -42,20 +42,27 @@ bouts_of_illness <- function(x, progress=TRUE)
         participant <- dt[participant_id == this.id]
         ## group into bouts
         participant[, new.bout := (same == "no")]
-        first.no.symptoms <- min(which(participant[, no.symptoms] == "t"))
-        if (first.no.symptoms > 1 &
-            any(participant[seq_len(first.no.symptoms - 1),
-                            !is.na(symptoms.start.date)]))
-        {
-            min.start <- min(which(participant[seq_len(first.no.symptoms - 1),
-                                               !is.na(symptoms.start.date)]))
-            participant[min.start, new.bout := TRUE]
-            if (min.start > 1)
+        no.symptoms <- participant[, no.symptoms == "t"]
+        if (sum(no.symptoms) > 0) {
+            first.no.symptoms <- min(which(no.symptoms))
+            if (first.no.symptoms > 1 &&
+                any(participant[seq_len(first.no.symptoms - 1),
+                                !is.na(symptoms.start.date)]))
             {
-                participant <- participant[-seq_len(min.start - 1)]
+                min.start <-
+                    min(which(participant[seq_len(first.no.symptoms - 1),
+                                          !is.na(symptoms.start.date)]))
+                participant[min.start, new.bout := TRUE]
+                if (min.start > 1)
+                {
+                    participant <- participant[-seq_len(min.start - 1)]
+                }
             }
+        } else {
+            participant[1, new.bout := TRUE]
         }
         participant[is.na(new.bout), new.bout := FALSE]
+
         if (nrow(participant) > 1)
         {
             participant[2:nrow(participant),
@@ -66,10 +73,12 @@ bouts_of_illness <- function(x, progress=TRUE)
                 participant[!is.na(previous.no.symptoms) &
                             previous.no.symptoms == "t" &
                             no.symptoms == "f", new.bout := TRUE]
+            participant[, previous.no.symptoms := NULL]
         }
-        participant[, bout := cumsum(new.bout)]
-        participant <- participant[no.symptoms == "f"]
-        for (this.bout in unique(participant[, bout]))
+        participant[no.symptoms == "f", bout := cumsum(new.bout)]
+        participant[, new.bout := NULL]
+        bouts <- c(bouts, list(participant[no.symptoms == "t"]))
+        for (this.bout in unique(participant[!is.na(bout), bout]))
         {
             df_bout <- participant[bout == this.bout]
             if (is.na(df_bout[nrow(df_bout), symptoms.start.date]) &
@@ -131,9 +140,18 @@ bouts_of_illness <- function(x, progress=TRUE)
                                                min(df_bout[, health.score])]
                 }
 
-                df_bout[, new.bout := NULL]
-                df_bout[, previous.no.symptoms := NULL]
-                df_bout[, bout := NULL]
+                if ("suddenly" %in% colnames(df_bout))
+                {
+                    df_bout[nrow(df_bout),
+                            suddenly := sum(any(suddenly == 1))]
+                }
+
+                if ("ili" %in% colnames(df_bout))
+                {
+                    df_bout[nrow(df_bout),
+                            ili := sum(any(ili == 1))]
+                }
+
                 bouts <- c(bouts, list(df_bout[nrow(df_bout)]))
             }
         }
