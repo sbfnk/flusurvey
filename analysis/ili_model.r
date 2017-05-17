@@ -5,12 +5,13 @@ library('dplyr')
 library('cowplot')
 library('stringi')
 library('scales')
+library('rethinking')
 
 categorical_to_single <- function(dt, var) {
-    categories <- levels(dt[, get(var)])[-1]
+    categories <- levels(dt[[var]])[-1]
     for (category in categories) {
-        dt[, paste(var, category, sep=".") :=
-                 as.integer(get(var) == category)]
+        dt[[paste(var, category, sep=".")]] <-
+            as.integer(dt[[var]] == category)
     }
     return(dt)
 }
@@ -18,24 +19,26 @@ categorical_to_single <- function(dt, var) {
 dt <- extract_data("flusurvey_raw_2010_2017.rds", years=2012:2013)
 
 bouts <- bouts_of_illness(dt) %>%
-    filter(!is.na(ili)) %>%
-    data.table
+    filter(!is.na(ili))
 
-seasonal_nb <-
-    table(bouts[, list(bouts=sum(ili == 1)),
-                by=list(participant_id, season)][, list(season, bouts)])
+seasonal_nb <- bouts %>%
+    group_by(participant_id, season) %>%
+    summarise(bouts=sum(ili == 1)) %>%
+    ungroup %>%
+    select(season, bouts) %>%
+    table
 
-ili <- copy(bouts) %>% tbl_df %>%
+ili <- bouts %>%
     categorical_to_single("main.activity") %>%
     categorical_to_single("occupation") %>%
     categorical_to_single("highest.education") %>%
-    select(participant_id, contacts=get(type), age,
+    select(participant_id, age,
            urban.rural, work.urban.rural,
            nb.household, nb.household.children,
            gender, day.of.week, month,
            enclosed.indoor.space,
            public.transport, ili,
-           conversational, physical=physical,
+           conversational, physical,
            starts_with("main.activity."),
            starts_with("occupation."),
            starts_with("highest.education.")
@@ -62,18 +65,12 @@ complete_ili %<>%
     select(-participant_id) %>%
     rename(participant_id=new_participant_id)
 
-nb_complete_participants <- complete_ili %>%
-    group_by(participant_id) %>%
-    summarise %>%
-    nrow
-
-
 random_model <- map2stan(
     alist(
         ili ~ dbinom(1, p),
-        logit(p) <- a
+        logit(p) <- a,
         a ~ dnorm(0, 1)
-    ), data=complete_ili %>% data.frame
+    ), data=complete_ili %>% data.frame, cores=4, chains=4
 )
 
 random_contact_model <- map2stan(
@@ -82,11 +79,18 @@ random_contact_model <- map2stan(
         logit(p) <- a +
             bc * conversational +
             bp * physical,
-        a ~ dnorm(2.5, 1),
+        a ~ dnorm(0, 1),
         bc ~ dnorm(0, 1),
         bp ~ dnorm(0, 1)
-    ), data=complete_ili %>% data.frame, constraints=list(b="lower=0"),
-    start=list(a=2.5),
+    ), data=complete_ili %>% data.frame, cores=4, chains=4
+)
+
+individual_model <- map2stan(
+    alist(
+        ili ~ dbinom(1, p),
+        logit(p) <- a[participant_id],
+        a[participant_id]~ dnorm(0, 1)
+    ), data=complete_ili %>% data.frame, cores=4, chains=4
 )
 
 variate_model <- map2stan(
@@ -122,7 +126,7 @@ variate_model <- map2stan(
             bt * public.transport +
             bc * conversational +
             bp * physical,
-        a ~ dnorm(2.5, 1),
+        a ~ dnorm(0, 1),
         ba ~ dnorm(0, 1),
         bd ~ dnorm(0, 1),
         bg ~ dnorm(0, 1),
@@ -153,9 +157,7 @@ variate_model <- map2stan(
         bt ~ dnorm(0, 1),
         bc ~ dnorm(0, 1),
         bp ~ dnorm(0, 1),
-        b ~ dexp(1)
-    ), data=complete_ili %>% data.frame, constraints=list(b="lower=0"),
-    start=list(a=2.5),
+    ), data=complete_ili %>% data.frame, cores=4, chains=4
 )
 
 variate_individual_model <- map2stan(
@@ -222,16 +224,13 @@ variate_individual_model <- map2stan(
         be ~ dnorm(0, 1),
         bt ~ dnorm(0, 1),
         bc ~ dnorm(0, 1),
-        bp ~ dnorm(0, 1),
-        b ~ dexp(1)
-    ), data=complete_ili %>% data.frame, constraints=list(b="lower=0"),
-    start=list(a=rep(2.5, nb_complete_participants)),
+        bp ~ dnorm(0, 1)
+    ), data=complete_ili %>% data.frame, cores=4, chains=4
 )
 
 saveRDS(list(random=random_model,
-             variate=variate_model,
-             individual_mu=individual_mu_model,
-             individual_sigma=individual_sigma_model,
+             random_contact=random_contact_model,
              individual=individual_model,
-             variate_individual_mu=variate_individual_mu_model),
-        paste0(type, "_contact_models.rds"))
+             variate=variate_model,
+             variate_individual=variate_individual_model),
+        "ili_models.rds")
