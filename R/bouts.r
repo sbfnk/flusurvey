@@ -7,7 +7,7 @@
 ##' @import data.table
 ##' @importFrom utils setTxtProgressBar txtProgressBar
 ##' @export
-bouts_of_illness <- function(x, progress=TRUE)
+bouts_of_illness <- function(x, symptomatic.only=FALSE, progress=TRUE)
 {
     dt <- data.table(x)
 
@@ -17,8 +17,8 @@ bouts_of_illness <- function(x, progress=TRUE)
             dt[no.symptoms == "t",
                list(baseline.health.score =
                         as.numeric(median(health.score, na.rm = TRUE))),
-               by = participant_id]
-        dt <- merge(dt, baselines, by = "participant_id", all.x = TRUE)
+               by = list(participant_id, season)]
+        dt <- merge(dt, baselines, by = c("participant_id", "season"), all.x = TRUE)
     }
 
     ids <- unique(dt$participant_id)
@@ -39,6 +39,7 @@ bouts_of_illness <- function(x, progress=TRUE)
 
     for (this.id in ids)
     {
+	cat(this.id, "/", max(ids), "\n")
         participant <- dt[participant_id == this.id]
         ## group into bouts
         participant[, new.bout := (same == "no")]
@@ -77,7 +78,9 @@ bouts_of_illness <- function(x, progress=TRUE)
         }
         participant[no.symptoms == "f", bout := cumsum(new.bout)]
         participant[, new.bout := NULL]
-        bouts <- c(bouts, list(participant[no.symptoms == "t"]))
+	if (!symptomatic.only) {
+          bouts[[length(bouts)+1]] <- copy(participant[no.symptoms == "t"])
+	}
         for (this.bout in unique(participant[!is.na(bout), bout]))
         {
             df_bout <- participant[bout == this.bout]
@@ -136,8 +139,8 @@ bouts_of_illness <- function(x, progress=TRUE)
 
                 if ("health.score" %in% colnames(df_bout))
                 {
-                    df_bout[nrow(df_bout), health.score :=
-                                               min(df_bout[, health.score])]
+                    df_bout[nrow(df_bout), min.health.score :=
+                                               min(df_bout[, health.score], na.rm=TRUE)]
                 }
 
                 if ("suddenly" %in% colnames(df_bout))
@@ -152,11 +155,11 @@ bouts_of_illness <- function(x, progress=TRUE)
                             ili := sum(any(ili == 1))]
                 }
 
-                bouts <- c(bouts, list(df_bout[nrow(df_bout)]))
+                bouts[[length(bouts)+1]] <- copy(df_bout[nrow(df_bout)])
             }
         }
         if (progress) setTxtProgressBar(pb, this.id)
     }
     if (progress) close(pb)
-    return(rbindlist(bouts))
+    return(bouts)
 }
