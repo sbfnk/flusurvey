@@ -156,7 +156,7 @@ variate_model <- map2stan(
         be ~ dnorm(0, 1),
         bt ~ dnorm(0, 1),
         bc ~ dnorm(0, 1),
-        bp ~ dnorm(0, 1),
+        bp ~ dnorm(0, 1)
     ), data=complete_ili %>% data.frame, cores=4, chains=4
 )
 
