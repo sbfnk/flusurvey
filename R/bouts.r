@@ -7,7 +7,7 @@
 ##' @import data.table
 ##' @importFrom utils setTxtProgressBar txtProgressBar
 ##' @export
-bouts_of_illness <- function(x, progress=TRUE)
+bouts_of_illness <- function(x, symptomatic.only=FALSE, progress=TRUE)
 {
     dt <- data.table(x)
 
@@ -39,6 +39,7 @@ bouts_of_illness <- function(x, progress=TRUE)
 
     for (this.id in ids)
     {
+	cat(this.id, "/", max(ids), "\n")
         participant <- dt[participant_id == this.id]
         ## group into bouts
         participant[, new.bout := (same == "no")]
@@ -77,7 +78,9 @@ bouts_of_illness <- function(x, progress=TRUE)
         }
         participant[no.symptoms == "f", bout := cumsum(new.bout)]
         participant[, new.bout := NULL]
-        bouts <- c(bouts, list(participant[no.symptoms == "t"]))
+	if (!symptomatic.only) {
+          bouts[[length(bouts)+1]] <- copy(participant[no.symptoms == "t"])
+	}
         for (this.bout in unique(participant[!is.na(bout), bout]))
         {
             df_bout <- participant[bout == this.bout]
@@ -152,7 +155,7 @@ bouts_of_illness <- function(x, progress=TRUE)
                             ili := sum(any(ili == 1))]
                 }
 
-                bouts <- c(bouts, list(df_bout[nrow(df_bout)]))
+                bouts[[length(bouts)+1]] <- copy(df_bout[nrow(df_bout)])
             }
         }
         if (progress) setTxtProgressBar(pb, this.id)
