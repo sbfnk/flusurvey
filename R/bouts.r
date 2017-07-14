@@ -17,8 +17,8 @@ bouts_of_illness <- function(x, symptomatic.only=FALSE, progress=TRUE)
             dt[no.symptoms == "t",
                list(baseline.health.score =
                         as.numeric(median(health.score, na.rm = TRUE))),
-               by = participant_id]
-        dt <- merge(dt, baselines, by = "participant_id", all.x = TRUE)
+               by = list(participant_id, season)]
+        dt <- merge(dt, baselines, by = c("participant_id", "season"), all.x = TRUE)
     }
 
     ids <- unique(dt$participant_id)
@@ -139,8 +139,8 @@ bouts_of_illness <- function(x, symptomatic.only=FALSE, progress=TRUE)
 
                 if ("health.score" %in% colnames(df_bout))
                 {
-                    df_bout[nrow(df_bout), health.score :=
-                                               min(df_bout[, health.score])]
+                    df_bout[nrow(df_bout), min.health.score :=
+                                               min(df_bout[, health.score], na.rm=TRUE)]
                 }
 
                 if ("suddenly" %in% colnames(df_bout))
@@ -161,5 +161,5 @@ bouts_of_illness <- function(x, symptomatic.only=FALSE, progress=TRUE)
         if (progress) setTxtProgressBar(pb, this.id)
     }
     if (progress) close(pb)
-    return(rbindlist(bouts))
+    return(bouts)
 }
