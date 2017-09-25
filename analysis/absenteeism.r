@@ -69,6 +69,14 @@ df_reduced <- df_bouts %>%
          howlong.altered,
          main.activity,
          occupation,
+         smoke,
+         transport,
+         howlong.transport,
+         pets.none,
+         pets.dogs,
+         pets.cats,
+         pets.birds,
+         pets.other,
          baseline.health.score,
          min.health.score
          )
