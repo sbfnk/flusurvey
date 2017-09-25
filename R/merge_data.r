@@ -4,6 +4,7 @@
 ##' @param clean cleaning options, NULL for no cleaning, otherwise a vector of cleans to perform (by default all):
 ##' - 'remove.first', whether to remove everyone's first report,
 ##' - 'remove.bad.symptom.dates', whether to remove rows with the symptom end date before the symptom start date, or with symptom dates outside the reporting dates
+##' - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 ##' - 'guess.start.dates', whether to guess the symptom start dates when the person couldn't remember (as a day of the report)
 ##' - 'limit.season', whether to limit a flu season to November -> April
 ##' - 'remove.postcodes', whether to remove postcodes
@@ -17,7 +18,7 @@
 ##' @import data.table
 ##' @importFrom lubridate month interval years
 ##' @export
-merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates", "guess.start.dates", "limit.season", "remove.postcodes", "create.numeric.id", "n.reports", "unsuccessful.join", "only.symptoms"), min.reports = 3)
+merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates", "remove.bad.health.score", "guess.start.dates", "limit.season", "remove.postcodes", "create.numeric.id", "n.reports", "unsuccessful.join", "only.symptoms"), min.reports = 3)
 {
     dt_list <- list()
     clean <- match.arg(clean, several.ok = TRUE)
@@ -94,6 +95,12 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
                                (symptoms.end.date < min.date |
                                 symptoms.end.date > date))]
                 }
+            }
+
+            if ("remove.bad.health.scores" %in% clean)
+            {
+                dt <- dt[health.score < 0 | health.score > 100,
+                         health.score := NA_real_]
             }
 
             if ("only.symptoms" %in% clean)
