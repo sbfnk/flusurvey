@@ -24,12 +24,12 @@ bouts_of_illness <- function(x, symptomatic.only=FALSE, progress=TRUE)
     ids <- unique(dt$participant_id)
     bouts <- list()
 
-    symptoms <-
-        c("fever", "chills", "blocked.runny.nose", "sneezing",
-          "sore.throat", "cough", "shortness.breath", "headache",
-          "muscle.and.or.joint.pain ", "chest.pain", "tired", "loss.appetite",
-          "phlegm", "watery.eyes", "nausea", "vomiting", "diarrhoea",
-          "stomach.ache", "other.symptoms")
+    ## symptoms <-
+    ##     c("fever", "chills", "blocked.runny.nose", "sneezing",
+    ##       "sore.throat", "cough", "shortness.breath", "headache",
+    ##       "muscle.and.or.joint.pain ", "chest.pain", "tired", "loss.appetite",
+    ##       "phlegm", "watery.eyes", "nausea", "vomiting", "diarrhoea",
+    ##       "stomach.ache", "other.symptoms")
 
     if (progress)
     {
