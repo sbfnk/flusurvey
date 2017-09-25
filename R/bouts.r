@@ -1,13 +1,15 @@
 ##' Extract bouts of illness from a flusurvey data table
 ##'
 ##' @param x the data to extract bouts from
+##' @param symptomatic.only whether to only include symptomatic periods 
 ##' @param progress whether to display a progress bar (default: TRUE)
 ##' @return a data table of bouts of illness
 ##' @author seb
 ##' @import data.table
 ##' @importFrom utils setTxtProgressBar txtProgressBar
 ##' @export
-bouts_of_illness <- function(x, symptomatic.only=FALSE, progress=TRUE)
+bouts_of_illness <- function(x, symptomatic.only=FALSE, progress=TRUE,
+                             as.data.frame=TRUE)
 {
     dt <- data.table(x)
 
@@ -39,7 +41,7 @@ bouts_of_illness <- function(x, symptomatic.only=FALSE, progress=TRUE)
 
     for (this.id in ids)
     {
-	cat(this.id, "/", max(ids), "\n")
+        ## cat(this.id, "/", max(ids), "\n")
         participant <- dt[participant_id == this.id]
         ## group into bouts
         participant[, new.bout := (same == "no")]
@@ -78,9 +80,9 @@ bouts_of_illness <- function(x, symptomatic.only=FALSE, progress=TRUE)
         }
         participant[no.symptoms == "f", bout := cumsum(new.bout)]
         participant[, new.bout := NULL]
-	if (!symptomatic.only) {
-          bouts[[length(bouts)+1]] <- copy(participant[no.symptoms == "t"])
-	}
+        if (!symptomatic.only) {
+            bouts[[length(bouts)+1]] <- copy(participant[no.symptoms == "t"])
+        }
         for (this.bout in unique(participant[!is.na(bout), bout]))
         {
             df_bout <- participant[bout == this.bout]
@@ -127,9 +129,9 @@ bouts_of_illness <- function(x, symptomatic.only=FALSE, progress=TRUE)
                 df_bout[nrow(df_bout), bg_columns] <-
                     df_bout[1, bg_columns, with=FALSE]
 
-                symptom_columns <- which(colnames(df_bout) %in% symptoms)
+                tf_columns <- which(colnames(df_bout) %in% tf)
                 bout.symptoms <-
-                    as.list(apply(df_bout[, symptom_columns, with = FALSE], 2,
+                    as.list(apply(df_bout[, tf, with = FALSE], 2,
                                   function(x)
                                   {
                                       ifelse(any(x == "t"), "t", "f")
