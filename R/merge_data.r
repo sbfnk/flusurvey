@@ -234,6 +234,7 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
                             levels=c("no.education", "education.gcse",
                                      "education.alevels", "education.bsc",
                                      "education.msc", "education.stillin"))]
+            dt[is.na(highest.education) & !is.na(education), highest.education := education + 1]
 
             ## household members
             hh_columns <- grep("^nb.household\\.", value=TRUE, colnames(dt))
@@ -350,6 +351,16 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
     {
         res <- res[, setdiff(colnames(res), grep("postcode$", colnames(res), value = TRUE)), with = FALSE]
     }
+
+    char_columns <-
+      which(vapply(colnames(res), function(x) class(dt[[x]]), "") == "character", TRUE)
+
+    tf <-
+      names(char_columns)[vapply(names(char_columns), function(x) {
+        length(setdiff(c("t", "f"), setdiff(unique(dt[[x]]), NA_character_))) ==  0
+      }, TRUE)]
+
+    for (column in tf) res[, paste(column) := factor(get(column))]
 
     return(res)
 }
