@@ -46,3 +46,6 @@ p <- ggplot(antibiotics %>%
   scale_color_brewer(palette="Dark2")
 
 ggsave("antibiotic_prescription_rate.pdf", p)
+
+bouts <- bouts_of_illness(dt, symptomatic.only=TRUE)
+saveRDS(bouts, "bouts_20180131.rds")
