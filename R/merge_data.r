@@ -223,7 +223,7 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
             ## setnames(regions, seq_along(regions), regions_names)
 
             ## highest education level
-            dt[,  highest.education := NA_character_]
+            dt[, highest.education := NA_character_]
             edu.columns <-
                 grep("^(no\\.)?education(\\.|$)", colnames(dt), value=TRUE)
             for (col in edu.columns) {
@@ -234,7 +234,11 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
                             levels=c("no.education", "education.gcse",
                                      "education.alevels", "education.bsc",
                                      "education.msc", "education.stillin"))]
-            dt[is.na(highest.education) & !is.na(education), highest.education := education + 1]
+            if ("education" %in% colnames(dt))
+            {
+                dt[is.na(highest.education) & !is.na(education),
+                   highest.education := education + 1]
+            }
 
             ## household members
             hh_columns <- grep("^nb.household\\.", value=TRUE, colnames(dt))
