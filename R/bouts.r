@@ -26,12 +26,15 @@ bouts_of_illness <- function(x, symptomatic.only=FALSE, progress=TRUE,
     ids <- unique(dt$participant_id)
     bouts <- list()
 
-    ## symptoms <-
-    ##     c("fever", "chills", "blocked.runny.nose", "sneezing",
-    ##       "sore.throat", "cough", "shortness.breath", "headache",
-    ##       "muscle.and.or.joint.pain ", "chest.pain", "tired", "loss.appetite",
-    ##       "phlegm", "watery.eyes", "nausea", "vomiting", "diarrhoea",
-    ##       "stomach.ache", "other.symptoms")
+    tf <-
+      colnames(dt)[vapply(colnames(dt), function(x) {
+        length(setdiff(c("t", "f"), levels(dt[[x]]))) ==  0
+      }, TRUE)]
+
+    zo <-
+      colnames(dt)[vapply(colnames(dt), function(x) {
+        length(setdiff(c(0, 1), unique(dt[[x]]))) ==  0
+      }, TRUE)]
 
     if (progress)
     {
@@ -118,7 +121,7 @@ bouts_of_illness <- function(x, symptomatic.only=FALSE, progress=TRUE,
 
             if (!is.null(df_bout))
             {
-                ## copy anything before symptom.id (backround etc)
+                ## copy anything before symptom.id (background etc)
                 ## from first row
                 symptoms.id.column <-
                     which(colnames(df_bout) == "symptom.id")
@@ -130,20 +133,24 @@ bouts_of_illness <- function(x, symptomatic.only=FALSE, progress=TRUE,
                     df_bout[1, bg_columns, with=FALSE]
 
                 tf_columns <- which(colnames(df_bout) %in% tf)
-                bout.symptoms <-
+                bout.tf <-
                     as.list(apply(df_bout[, tf, with = FALSE], 2,
                                   function(x)
                                   {
                                       ifelse(any(x == "t"), "t", "f")
                                   }))
-                df_bout[nrow(df_bout), colnames(df_bout)[symptom_columns] :=
-                                           bout.symptoms]
+                df_bout[nrow(df_bout), colnames(df_bout)[tf_columns] := bout.tf]
 
                 if ("health.score" %in% colnames(df_bout))
                 {
                     df_bout[nrow(df_bout), min.health.score :=
                                                min(df_bout[, health.score], na.rm=TRUE)]
                 }
+
+                tf <-
+                    colnames(dt)[vapply(colnames(dt), function(x) {
+                        length(setdiff(c(0, 1 ), unique(dt[[x]]))) ==  0
+                    }, TRUE)]
 
                 if ("suddenly" %in% colnames(df_bout))
                 {
