@@ -23,6 +23,7 @@ bouts_of_illness <- function(x, symptomatic.only=FALSE, progress=TRUE,
         dt <- merge(dt, baselines, by = c("participant_id", "season"), all.x = TRUE)
     }
 
+    dt[, id := 1:.N]
     ids <- unique(dt$participant_id)
     bouts <- list()
 
@@ -31,16 +32,13 @@ bouts_of_illness <- function(x, symptomatic.only=FALSE, progress=TRUE,
         length(setdiff(c("t", "f"), levels(dt[[x]]))) ==  0
       }, TRUE)]
 
-    zo <-
-      colnames(dt)[vapply(colnames(dt), function(x) {
-        length(setdiff(c(0, 1), unique(dt[[x]]))) ==  0
-      }, TRUE)]
-
     if (progress)
     {
         pb <-
             txtProgressBar(min = 0, max = length(ids), char = ".", style = 1)
     }
+
+    keep_rows <- c()
 
     for (this.id in ids)
     {
@@ -84,7 +82,9 @@ bouts_of_illness <- function(x, symptomatic.only=FALSE, progress=TRUE,
         participant[no.symptoms == "f", bout := cumsum(new.bout)]
         participant[, new.bout := NULL]
         if (!symptomatic.only) {
-            bouts[[length(bouts)+1]] <- copy(participant[no.symptoms == "t"])
+            ncopy <- participant[, sum(no.symptoms == "t")]
+            keep_rows[(length(keep_rows)+1):(length(keep_rows)+ncopy)] <-
+                participant[no.symptoms == "t", id]
         }
         for (this.bout in unique(participant[!is.na(bout), bout]))
         {
@@ -147,28 +147,25 @@ bouts_of_illness <- function(x, symptomatic.only=FALSE, progress=TRUE,
                                                min(df_bout[, health.score], na.rm=TRUE)]
                 }
 
-                tf <-
-                    colnames(dt)[vapply(colnames(dt), function(x) {
-                        length(setdiff(c(0, 1 ), unique(dt[[x]]))) ==  0
-                    }, TRUE)]
-
                 if ("suddenly" %in% colnames(df_bout))
                 {
                     df_bout[nrow(df_bout),
-                            suddenly := sum(any(suddenly == 1))]
+                            suddenly := sum(any(suddenly == "t"))]
                 }
 
                 if ("ili" %in% colnames(df_bout))
                 {
                     df_bout[nrow(df_bout),
-                            ili := sum(any(ili == 1))]
+                            ili := sum(any(ili == "t"))]
                 }
 
-                bouts[[length(bouts)+1]] <- copy(df_bout[nrow(df_bout)])
+                keep_rows[length(keep_rows)+1] <- df_bout[nrow(df_bout), id]
+                ## bouts[[length(bouts)+1]] <- copy(df_bout[nrow(df_bout)])
             }
         }
         if (progress) setTxtProgressBar(pb, this.id)
     }
     if (progress) close(pb)
-    return(bouts)
+    dt[, id := NULL]
+    return(dt[keep_rows])
 }
