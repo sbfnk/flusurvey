@@ -2,14 +2,12 @@
 ##'
 ##' @param x the data to extract bouts from
 ##' @param symptomatic.only whether to only include symptomatic periods 
-##' @param progress whether to display a progress bar (default: TRUE)
 ##' @return a data table of bouts of illness
 ##' @author seb
 ##' @import data.table
-##' @importFrom utils setTxtProgressBar txtProgressBar
+##' @importFrom utils
 ##' @export
-bouts_of_illness <- function(x, symptomatic.only=FALSE, progress=TRUE,
-                             as.data.frame=TRUE)
+bouts_of_illness <- function(x, symptomatic.only=TRUE, as.data.frame=TRUE)
 {
     dt <- data.table(x)
 
@@ -25,147 +23,96 @@ bouts_of_illness <- function(x, symptomatic.only=FALSE, progress=TRUE,
 
     dt[, id := 1:.N]
     ids <- unique(dt$participant_id)
-    bouts <- list()
 
     tf <-
       colnames(dt)[vapply(colnames(dt), function(x) {
         length(setdiff(c("t", "f"), levels(dt[[x]]))) ==  0
       }, TRUE)]
 
-    if (progress)
-    {
-        pb <-
-            txtProgressBar(min = 0, max = length(ids), char = ".", style = 1)
-    }
-
     keep_rows <- c()
 
-    for (this.id in ids)
+    last <- function(x) x[length(x)]
+    last_not_na <- function(x) x[!is.na(x)][sum(!is.na(x))]
+
+    dt[, new.bout := (same == "no")]
+    dt[, part.symptom.id := 1:.N, by=list(participant_id, season)]
+    dt[, first.no.symptoms := ifelse(sum(no.symptoms == "t") > 0,
+                                     min(which(no.symptoms == "t")),
+                                     0),
+       by=list(participant_id, season)]
+    dt[, min.symptoms.start.date := as.Date(ifelse(any(!is.na(symptoms.start.date)), as.character(min(symptoms.start.date, na.rm=TRUE)), NA_character_)), by=list(participant_id, season)]
+    dt[part.symptom.id < first.no.symptoms & !is.na(symptoms.start.date) &
+       symptoms.start.date == min.symptoms.start.date, new.bout := TRUE,
+       by=list(participant_id, season)]
+    dt[first.no.symptoms == 0 & part.symptom.id == min(part.symptom.id), new.bout := TRUE]
+    dt[is.na(new.bout), new.bout := FALSE]
+    dt[, previous.no.symptoms := factor(c(NA_character_, as.character(no.symptoms[-.N])),
+                                        levels=levels(no.symptoms))]
+    dt[part.symptom.id == 1, previous.no.symptoms := NA]
+    dt[!is.na(previous.no.symptoms) & previous.no.symptoms == "t" & no.symptoms == "f",
+       new.bout := TRUE]
+    dt[, previous.no.symptoms := NULL]
+    dt[, previous.symptoms.end.date := as.Date(c(NA_character_, as.character(symptoms.end.date[-.N])))]
+    dt[!new.bout & !is.na(previous.symptoms.end.date) & !is.na(symptoms.start.date) & no.symptoms == "f" & previous.symptoms.end.date < symptoms.start.date, new.bout := TRUE]
+    dt[, previous.symptoms.end.date := NULL]
+    dt[no.symptoms == "f", bout := cumsum(new.bout), by=list(participant_id, season)]
+    dt[bout == 0, bout := NA]
+    dt[, new.bout := NULL]
+
+    dt[!is.na(bout), last.symptoms.start.date := last(symptoms.start.date),
+       by=list(participant_id, season, bout)]
+    dt[!is.na(bout), last.not.na.symptoms.start.date := last_not_na(symptoms.start.date),
+       by=list(participant_id, season, bout)]
+    dt[!is.na(bout), last.symptoms.end.date := last(symptoms.end.date),
+       by=list(participant_id, season, bout)]
+    dt[!is.na(bout), last.not.na.symptoms.end.date := last_not_na(symptoms.end.date),
+       by=list(participant_id, season, bout)]
+
+    dt[!is.na(bout) & !is.na(last.symptoms.start.date),
+       symptoms.start.date := last.symptoms.start.date,
+       by=list(participant_id, season, bout)]
+    dt[!is.na(bout) & is.na(last.symptoms.start.date) & !is.na(last.not.na.symptoms.start.date),
+       symptoms.start.date := last.not.na.symptoms.start.date,
+       by=list(participant_id, season, bout)]
+    dt[!is.na(bout) & is.na(last.not.na.symptoms.start.date),
+       symptoms.start.date := date[1],
+       by=list(participant_id, season, bout)]
+    dt[!is.na(bout) & is.na(last.symptoms.end.date) & !is.na(last.not.na.symptoms.end.date),
+       symptoms.end.date := last.not.na.symptoms.end.date,
+       by=list(participant_id, season, bout)]
+    dt[!is.na(bout) & is.na(last.not.na.symptoms.end.date) & date != symptoms.start.date,
+       symptoms.end.date := last(date),
+       by=list(participant_id, season, bout)]
+
+    dt[, last.symptoms.start.date := NULL]
+    dt[, last.not.na.symptoms.start.date := NULL]
+    dt[, last.symptoms.end.date := NULL]
+    dt[, last.not.na.symptoms.end.date := NULL]
+
+
+    symptoms.id.column <- which(colnames(dt) == "symptom.id")
+    if (symptoms.id.column > 1)
     {
-        ## cat(this.id, "/", max(ids), "\n")
-        participant <- dt[participant_id == this.id]
-        ## group into bouts
-        participant[, new.bout := (same == "no")]
-        no.symptoms <- participant[, no.symptoms == "t"]
-        if (sum(no.symptoms) > 0) {
-            first.no.symptoms <- min(which(no.symptoms))
-            if (first.no.symptoms > 1 &&
-                any(participant[seq_len(first.no.symptoms - 1),
-                                !is.na(symptoms.start.date)]))
-            {
-                min.start <-
-                    min(which(participant[seq_len(first.no.symptoms - 1),
-                                          !is.na(symptoms.start.date)]))
-                participant[min.start, new.bout := TRUE]
-                if (min.start > 1)
-                {
-                    participant <- participant[-seq_len(min.start - 1)]
-                }
-            }
-        } else {
-            participant[1, new.bout := TRUE]
-        }
-        participant[is.na(new.bout), new.bout := FALSE]
+        dt[!is.na(bout), min.part.symptom.id := min(part.symptom.id), by=list(participant_id, season, bout)]
+        dt[!is.na(bout), max.part.symptom.id := max(part.symptom.id), by=list(participant_id, season, bout)]
 
-        if (nrow(participant) > 1)
+        tf_columns <- intersect(colnames(dt), tf)
+
+        cat("Merging columns:\n")
+        for (column in tf_columns)
         {
-            participant[2:nrow(participant),
-                        previous.no.symptoms :=
-                            participant[1:(nrow(participant) - 1),
-                                        no.symptoms]]
-            participant <-
-                participant[!is.na(previous.no.symptoms) &
-                            previous.no.symptoms == "t" &
-                            no.symptoms == "f", new.bout := TRUE]
-            participant[, previous.no.symptoms := NULL]
+            cat("  ", column, "\n")
+            dt[, paste(column) := factor(as.integer(any(get(column) == "t")), levels=0:1, labels=c("f", "t")), by=list(participant_id, season, bout)]
         }
-        participant[no.symptoms == "f", bout := cumsum(new.bout)]
-        participant[, new.bout := NULL]
-        if (!symptomatic.only) {
-            ncopy <- participant[, sum(no.symptoms == "t")]
-            keep_rows[(length(keep_rows)+1):(length(keep_rows)+ncopy)] <-
-                participant[no.symptoms == "t", id]
-        }
-        for (this.bout in unique(participant[!is.na(bout), bout]))
+        if ("health.score" %in% colnames(dt))
         {
-            df_bout <- participant[bout == this.bout]
-            if (is.na(df_bout[nrow(df_bout), symptoms.start.date]) &
-                any(!is.na(df_bout[, symptoms.start.date])))
-            {
-                max.sd <- max(which(!is.na(df_bout[, symptoms.start.date])))
-                df_bout[nrow(df_bout), symptoms.start.date :=
-                                           df_bout[max.sd, symptoms.start.date]]
-            } else if (all(is.na(df_bout[, symptoms.start.date])))
-            {
-                df_bout[nrow(df_bout), symptoms.start.date :=
-                                           df_bout[nrow(df_bout), date]]
-            }
-
-            if (is.na(df_bout[nrow(df_bout), symptoms.end.date]) &
-                any(!is.na(df_bout[, symptoms.end.date])))
-            {
-                max.sd <- max(which(!is.na(df_bout[, symptoms.end.date])))
-                df_bout[nrow(df_bout), symptoms.end.date :=
-                                           df_bout[max.sd, symptoms.end.date]]
-            } else if (all(is.na(df_bout[, symptoms.end.date])))
-            {
-                if (df_bout[nrow(df_bout), max.date > date])
-                {
-                    df_bout[nrow(df_bout), symptoms.end.date :=
-                                               df_bout[nrow(df_bout), date]]
-                } else
-                {
-                    df_bout <- NULL
-                }
-            }
-
-            if (!is.null(df_bout))
-            {
-                ## copy anything before symptom.id (background etc)
-                ## from first row
-                symptoms.id.column <-
-                    which(colnames(df_bout) == "symptom.id")
-                if (symptoms.id.column > 1)
-                {
-                    bg_columns <- seq_len(symptoms.id.column - 1)
-                }
-                df_bout[nrow(df_bout), bg_columns] <-
-                    df_bout[1, bg_columns, with=FALSE]
-
-                tf_columns <- which(colnames(df_bout) %in% tf)
-                bout.tf <-
-                    as.list(apply(df_bout[, tf, with = FALSE], 2,
-                                  function(x)
-                                  {
-                                      ifelse(any(x == "t"), "t", "f")
-                                  }))
-                df_bout[nrow(df_bout), colnames(df_bout)[tf_columns] := bout.tf]
-
-                if ("health.score" %in% colnames(df_bout))
-                {
-                    df_bout[nrow(df_bout), min.health.score :=
-                                               min(df_bout[, health.score], na.rm=TRUE)]
-                }
-
-                if ("suddenly" %in% colnames(df_bout))
-                {
-                    df_bout[nrow(df_bout),
-                            suddenly := sum(any(suddenly == "t"))]
-                }
-
-                if ("ili" %in% colnames(df_bout))
-                {
-                    df_bout[nrow(df_bout),
-                            ili := sum(any(ili == "t"))]
-                }
-
-                keep_rows[length(keep_rows)+1] <- df_bout[nrow(df_bout), id]
-                ## bouts[[length(bouts)+1]] <- copy(df_bout[nrow(df_bout)])
-            }
+            dt[!is.na(bout), min.health.score := ifelse(any(!is.na(health.score)), min(health.score, na.rm=TRUE), NA_integer_), by=list(participant_id, season, bout)]
         }
-        if (progress) setTxtProgressBar(pb, this.id)
+        dt <- dt[is.na(min.part.symptom.id) | part.symptom.id == min.part.symptom.id]
     }
-    if (progress) close(pb)
+    if (symptomatic.only) {
+        dt <- dt[!is.na(min.part.symptom.id)]
+    }
     dt[, id := NULL]
-    return(dt[keep_rows])
+    return(dt)
 }
