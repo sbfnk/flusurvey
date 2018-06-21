@@ -3,7 +3,7 @@ library('cowplot')
 library('binom')
 library('tidyverse')
 
-dt <- extract_data("flusurvey_raw_2010_2017.rds", surveys=c("background", "symptom"))
+dt <- extract_data("flusurvey_raw_2010_2017.rds", years=2012:2017, surveys=c("background", "symptom"))
 
 antibiotics <- dt %>%
   dplyr::filter(!is.na(medication.antibiotic)) %>%
