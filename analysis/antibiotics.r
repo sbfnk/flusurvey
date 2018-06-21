@@ -1,7 +1,7 @@
 library('flusurvey')
 library('cowplot')
 library('binom')
-library('magrittr')
+library('tidyverse')
 
 dt <- extract_data("flusurvey_raw_2010_2017.rds", surveys=c("background", "symptom"))
 
@@ -46,3 +46,6 @@ p <- ggplot(antibiotics %>%
   scale_color_brewer(palette="Dark2")
 
 ggsave("antibiotic_prescription_rate.pdf", p)
+
+bouts <- bouts_of_illness(dt, symptomatic.only=TRUE)
+saveRDS(bouts, "bouts_20180209.rds")

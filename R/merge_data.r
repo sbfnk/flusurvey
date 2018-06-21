@@ -223,7 +223,7 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
             ## setnames(regions, seq_along(regions), regions_names)
 
             ## highest education level
-            dt[,  highest.education := NA_character_]
+            dt[, highest.education := NA_character_]
             edu.columns <-
                 grep("^(no\\.)?education(\\.|$)", colnames(dt), value=TRUE)
             for (col in edu.columns) {
@@ -234,6 +234,11 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
                             levels=c("no.education", "education.gcse",
                                      "education.alevels", "education.bsc",
                                      "education.msc", "education.stillin"))]
+            if ("education" %in% colnames(dt))
+            {
+                dt[is.na(highest.education) & !is.na(education),
+                   highest.education := education + 1]
+            }
 
             ## household members
             hh_columns <- grep("^nb.household\\.", value=TRUE, colnames(dt))
@@ -350,6 +355,16 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
     {
         res <- res[, setdiff(colnames(res), grep("postcode$", colnames(res), value = TRUE)), with = FALSE]
     }
+
+    char_columns <-
+      which(vapply(colnames(res), function(x) class(dt[[x]]), "") == "character", TRUE)
+
+    tf <-
+      names(char_columns)[vapply(names(char_columns), function(x) {
+        length(setdiff(c("t", "f"), setdiff(unique(dt[[x]]), NA_character_))) ==  0
+      }, TRUE)]
+
+    for (column in tf) res[, paste(column) := factor(get(column))]
 
     return(res)
 }

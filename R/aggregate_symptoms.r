@@ -11,20 +11,20 @@ aggregate_symptoms <- function(symptoms, ili.sudden.unknown = 1)
     ## calculate ili
     if (any(grepl("\\.suddenly$", colnames(dt))))
     {
-      dt[, suddenly := NA_real_]
+      dt[, suddenly := NA_character_]
       if ("symptoms.suddenly" %in% colnames(dt))
       {
-        dt[symptoms.suddenly == "yes", suddenly := 1]
-        dt[symptoms.suddenly == "no", suddenly := 0]
+        dt[symptoms.suddenly == "yes", suddenly := "t"]
+        dt[symptoms.suddenly == "no", suddenly := "f"]
       }
       if ("fever.suddenly" %in% colnames(dt)) {
-        dt[(is.na(suddenly) | suddenly == 0) & fever.suddenly == "yes",
-           suddenly := 1]
-        dt[is.na(suddenly) & fever.suddenly == "no", suddenly := 0]
+        dt[(is.na(suddenly) | suddenly == "f") & fever.suddenly == "yes",
+           suddenly := "t"]
+        dt[is.na(suddenly) & fever.suddenly == "no", suddenly := "f"]
       }
     } else
     {
-        dt[, suddenly := 1]
+        dt[, suddenly := "t"]
     }
     if (!("fever" %in% colnames(dt)) && "fever.temperature.range" %in% colnames(dt))
     {
@@ -40,34 +40,34 @@ aggregate_symptoms <- function(symptoms, ili.sudden.unknown = 1)
     if (length(c(fever.symptoms, ili.symptoms)) > 0 &&
         length(resp.symptoms) > 0)
     {
-        dt[, ili := suddenly == 1 &
+        dt[, ili := suddenly == "t" &
                  apply(dt, 1, function(x) {any(x[c(fever.symptoms, ili.symptoms)] %in% c(1, "t"))}) &
                  apply(dt, 1, function(x) {any(x[resp.symptoms] %in% c(1, "t"))})]
-        dt[, ili := as.integer(ili)]
+        dt[, ili := ifelse(ili, "t", "f")]
     }
 
     if (length(fever.symptoms) > 0 &&
         length(ili.symptoms) > 0 &&
         length(resp.symptoms) > 0)
     {
-        dt[, ili.fever := suddenly == 1 &
+        dt[, ili.fever := suddenly == "t" &
                  apply(dt, 1, function(x) {any(x[fever.symptoms] %in% c(1, "t"))}) &
                  apply(dt, 1, function(x) {any(x[ili.symptoms] %in% c(1, "t"))}) &
                  apply(dt, 1, function(x) {any(x[resp.symptoms] %in% c(1, "t"))})]
-        dt[, ili.fever := as.integer(ili.fever)]
+        dt[, ili.fever := ifelse(ili.fever, "t", "f")]
     }
 
     if ("what.do.you.think" %in% colnames(dt))
     {
         dt[, ili.self := (what.do.you.think == 0)]
         dt[is.na(ili.self), ili.self := FALSE]
-        dt[, ili.self := as.integer(ili.self)]
+        dt[, ili.self := ifelse(ili.self, "t", "f")]
     }
 
     if (length(gi.symptoms) > 0)
     {
         dt[, gi := apply(dt, 1, function(x) {any(x[gi.symptoms] %in% c(1, "t"))})]
-        dt[, gi := as.integer(gi)]
+        dt[, gi := ifelse(gi, "t", "f")]
     }
 
     return(dt)
