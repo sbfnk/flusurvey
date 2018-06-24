@@ -606,6 +606,7 @@ questions[["2016"]][["symptom"]] <-
                     c("Q2", "Q12"))
 
 questions[["2017"]] <- questions[["2016"]]
+questions[["2018"]] <- questions[["2017"]]
 
 options <-
     list(self = c("0" = "self", "1" = "household_member", "2" = "someone_else"),

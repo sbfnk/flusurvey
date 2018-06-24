@@ -1,9 +1,11 @@
 library('flusurvey')
 library('tidyverse')
 
-dt <- extract_data("flusurvey_raw_2010_2017.rds", years=2012:2017, surveys=c("background", "symptom"),
-                   clean=c("remove.first", "remove.bad.symptom.dates", "remove.bad.health.score",
-                           "guess.start.dates", "limit.season", "create.numeric.id", "n.reports",
+dt <- extract_data("flusurvey_raw_2010_2018.rds", years=2012:2018,
+                   surveys=c("background", "symptom"),
+                   clean=c("remove.first", "remove.bad.symptom.dates",
+                           "remove.bad.health.score", "guess.start.dates",
+                           "limit.season", "create.numeric.id", "n.reports",
                            "unsuccessful.join", "only.symptoms"))
 
 dbg <- dt %>%
