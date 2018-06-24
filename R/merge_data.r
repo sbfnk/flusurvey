@@ -285,13 +285,13 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
               agegroup_columns <-
                 grep(paste0("^", type, "\\.[^.]*\\.", agegroup),
                      contact_columns, value=TRUE)
-              columns[[paste(type, agegroup, sep=".")]] <- setting_columns
+              columns[[paste(type, agegroup, sep=".")]] <- agegroup_columns
             }
           }
 
           for (column_name in names(columns)) {
-            dt[, paste(column_name) := rowSums(.SD, na.rm=TRUE) *
-                   ifelse(rowSums(is.na(.SD)) == ncol(.SD), NA, 1),
+            dt[, paste(column_name) := as.integer(rowSums(.SD, na.rm=TRUE)) *
+                   ifelse(rowSums(is.na(.SD)) == ncol(.SD), NA, 1L),
                .SDcols = columns[[column_name]]]
           }
 
