@@ -223,9 +223,9 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
 
             ## highest education level
             dt[, highest.education := NA_character_]
-            edu.columns <-
+            edu_columns <-
                 grep("^(no\\.)?education(\\.|$)", colnames(dt), value=TRUE)
-            for (col in edu.columns) {
+            for (col in edu_columns) {
                 dt[get(col) == "t", highest.education := col]
             }
             dt[, highest.education :=
@@ -241,9 +241,15 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
 
             ## household members
             hh_columns <- grep("^nb.household\\.", value=TRUE, colnames(dt))
-            dt[, nb.household := rowSums(.SD, na.rm=TRUE),
+            for (col in hh_columns) {
+                indicator_col <- sub("nb\\.", "", col)
+                if (indicator_col %in% colnames(dt)) {
+                    dt[get(indicator_col)=="f", paste(col) := 0]
+                }
+            }
+            dt[, nb.household := rowSums(.SD),
                .SDcols = hh_columns]
-            dt[, nb.household.children := rowSums(.SD, na.rm=TRUE),
+            dt[, nb.household.children := rowSums(.SD),
                .SDcols = c("nb.household.0.4", "nb.household.5.18")]
         } else if (name == "contact")
         {
@@ -300,7 +306,6 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
         {
             setnames(dt, "id", paste(name, "id", sep = "."))
         }
-        if ("user" %in% colnames(dt)) dt[, user := NULL]
         if ("timestamp" %in% colnames(dt)) dt[, timestamp := NULL]
 
         setkey(dt, global_id, date)
