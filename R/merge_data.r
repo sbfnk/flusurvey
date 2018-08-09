@@ -8,7 +8,6 @@
 ##' - 'guess.start.dates', whether to guess the symptom start dates when the person couldn't remember (as a day of the report)
 ##' - 'limit.season', whether to limit a flu season to November -> April
 ##' - 'remove.postcodes', whether to remove postcodes
-##' - 'create.numeric.id', whether to create a numeric id for every user,
 ##' - 'n.reports', whether to exclude those with fewer than \code{min.reports} reports
 ##' - 'unsuccessful.join', whether to exclude those with unsuccesful joins (e.g. if symptoms are reported without a background survey present; the web site should have prevented this, but doesn't appear to have done so)
 ##' - 'only.symptoms', whether to exclude those that have no report without symptoms
@@ -18,7 +17,7 @@
 ##' @import data.table
 ##' @importFrom lubridate month interval years
 ##' @export
-merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates", "remove.bad.health.score", "guess.start.dates", "limit.season", "remove.postcodes", "create.numeric.id", "n.reports", "unsuccessful.join", "only.symptoms"), min.reports = 3)
+merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates", "remove.bad.health.score", "guess.start.dates", "limit.season", "remove.postcodes", "n.reports", "unsuccessful.join", "only.symptoms"), min.reports = 3)
 {
     dt_list <- list()
     clean <- match.arg(clean, several.ok = TRUE)
@@ -331,14 +330,6 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
     }
 
     setkey(res, date, global_id)
-
-    if ("create.numeric.id" %in% clean)
-    {
-        id_table <- data.table(global_id = unique(res[, global_id]),
-                               participant_id = seq_along(unique(res[, global_id])))
-        res <- merge(res, id_table, all.x = TRUE, by = "global_id")
-        res[, global_id := NULL]
-    }
 
     if ("nReports" %in% colnames(res))
     {

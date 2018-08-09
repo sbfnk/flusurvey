@@ -83,6 +83,11 @@ extract_data <- function(data, surveys = "all", years = "all", join = TRUE, ...)
             res[[as.character(year)]][, season := year]
         }
         res <- rbindlist(res, use.names = TRUE, fill = TRUE)
+
+        id_table <- data.table(global_id = unique(res[, global_id]),
+                               participant_id = seq_along(unique(res[, global_id])))
+        res <- merge(res, id_table, all.x = TRUE, by = "global_id")
+        res[, global_id := NULL]
     }
 
     return(res)
