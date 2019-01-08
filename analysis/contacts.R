@@ -9,11 +9,11 @@ library('scales')
 ## https://en.wikipedia.org/wiki/Climate_of_the_United_Kingdom
 sunshine_hours <- c(54.2, 74.3, 107.6, 155.2, 190.6, 182.6, 193.5, 182.5, 137.2, 103.1, 64.5, 47.3)
 
-dt <- extract_data("flusurvey_raw_2010_2017.rds", years=2012:2013)
+dt <- extract_data("data/flusurvey_raw_2010_2018.rds", years=2012:2013)
 
-dt_back_contacts <- extract_data("flusurvey_raw_2010_2017.rds", years=2012:2013, surveys=c("background", "contact"))
+dt_back_contacts <- extract_data("data/flusurvey_raw_2010_2018.rds", years=2012:2013, surveys=c("background", "contact"))
 
-dt_contacts <- extract_data("flusurvey_raw_2010_2017.rds", years=2012:2013, surveys="contact")
+dt_contacts <- extract_data("data/flusurvey_raw_2010_2018.rds", years=2012:2013, surveys="contact")
 
 for (type in c("conversational", "physical"))
 {
@@ -400,3 +400,50 @@ p <- ggplot(means, aes(x=contacts, fill=type))+
 save_plot(paste0("contact_dist.pdf"), p)
 save_plot(paste0("contact_dist.png"), p)
 
+weekly_means <- dt_contacts %>%
+    group_by(participant_id) %>%
+    mutate(mean.physical=mean(physical),
+           mean.conversational=mean(conversational)) %>%
+    ungroup %>%
+    gather(type, contacts, starts_with("mean.")) %>%
+    mutate(type=sub("mean.", "", type))
+
+dt_symptom_contacts <- extract_data("data/flusurvey_raw_2010_2018.rds", years=2012:2013, surveys=c("symptom", "contact"))
+
+# of contacts
+weekly_contacts <- dt_symptom_contacts %>%
+    mutate(health_status=recode_factor(no.symptoms, t="healthy", f="symptomatic"),
+           health_score=cut(health.score, breaks=seq(0, 100, by=25)),
+           week=floor_date(date, "week"))
+
+contacts_by_health_status <- weekly_contacts %>%
+    group_by(season, week, health_status) %>%
+    summarise(mean=mean(conversational),
+              sd=sd(conversational)) %>%
+    ungroup
+
+contacts_by_health_score <- weekly_contacts %>%
+    filter(!is.na(health_score)) %>% 
+    group_by(season, week, health_score) %>%
+    summarise(mean=mean(conversational),
+              sd=sd(conversational)) %>%
+    ungroup
+
+p <- ggplot(contacts_by_health_status, aes(x=week, y=mean, colour=health_status, group=interaction(season, health_status))) +
+    facet_wrap(~season, scales="free_x") +
+    geom_line() +
+    scale_color_brewer("", palette="Set1") +
+    xlab("Week") + ylab("Mean conversational contacts") +
+    theme(legend.position="bottom")
+ggsave("contacts_by_health_status.pdf", p)
+
+p <- ggplot(contacts_by_health_score, aes(x=week, y=mean, colour=health_score, group=interaction(season, health_score))) +
+    facet_wrap(~season, scales="free_x") +
+    geom_line() +
+    scale_color_brewer("Health score (100 best)", palette="Set1") +
+    xlab("Week") + ylab("Mean conversational contacts") +
+    theme(legend.position="bottom")
+ggsave("contacts_by_health_score.pdf", p)
+
+write_csv(contacts_by_health_status, "contacts_by_health_status.csv")
+write_csv(contacts_by_health_score, "contacts_by_health_score.csv")
