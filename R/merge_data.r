@@ -27,34 +27,34 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
         dt <- copy(data.table::data.table(data[[name]]))
         dt <- dt[!duplicated(dt[, list(global_id, date)], fromLast = TRUE)]
 
+        if ("limit.season" %in% clean)
+        {
+            ## figure out date with most reports, this defines the season
+            reports <- dt[, .N, date]
+            max_date <- reports[N == max(N), date]
+            ## season begins on 1 November before the maximum date
+            if (lubridate::month(max_date) >= 11)
+            {
+                season_start <- as.Date(paste(year(max_date), 11, 1, sep = "-"))
+            } else
+            {
+                season_start <- as.Date(paste(year(max_date) - 1, 11, 1, sep = "-"))
+            }
+            ## season ends on 1 April after the maximum date
+            if (lubridate::month(max_date) <= 4)
+            {
+                season_end <- as.Date(paste(year(max_date), 4, 1, sep = "-"))
+            } else
+            {
+                season_end <- as.Date(paste(year(max_date) + 1, 4, 1, sep = "-"))
+            }
+            dt <- dt[date >= season_start & date <= season_end]
+        }
+
         if (name == "symptom") ## clean symptoms data
         {
             dt <- aggregate_symptoms(dt)
             ## calculate min.reports, max.reports, nReports
-            if ("limit.season" %in% clean)
-            {
-                ## figure out date with most reports, this defines the season
-                reports <- dt[, .N, date]
-                max_date <- reports[N == max(N), date]
-                ## season begins on 1 November before the maximum date
-                if (lubridate::month(max_date) >= 11)
-                {
-                    season_start <- as.Date(paste(year(max_date), 11, 1, sep = "-"))
-                } else
-                {
-                    season_start <- as.Date(paste(year(max_date) - 1, 11, 1, sep = "-"))
-                }
-                ## season ends on 1 April after the maximum date
-                if (lubridate::month(max_date) <= 4)
-                {
-                    season_end <- as.Date(paste(year(max_date), 4, 1, sep = "-"))
-                } else
-                {
-                    season_end <- as.Date(paste(year(max_date) + 1, 4, 1, sep = "-"))
-                }
-                dt <- dt[date >= season_start & date <= season_end]
-            }
-
             dt[, nReports := .N, by = global_id]
             dt[, min.date := min(date), by = global_id]
             dt[, max.date := max(date), by = global_id]
