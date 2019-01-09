@@ -5,6 +5,7 @@ library('dplyr')
 library('cowplot')
 library('stringi')
 library('scales')
+library('lubridate')
 
 ## https://en.wikipedia.org/wiki/Climate_of_the_United_Kingdom
 sunshine_hours <- c(54.2, 74.3, 107.6, 155.2, 190.6, 182.6, 193.5, 182.5, 137.2, 103.1, 64.5, 47.3)
@@ -414,28 +415,23 @@ dt_symptom_contacts <- extract_data("data/flusurvey_raw_2010_2018.rds", years=20
 weekly_contacts <- dt_symptom_contacts %>%
     mutate(health_status=recode_factor(no.symptoms, t="healthy", f="symptomatic"),
            health_score=cut(health.score, breaks=seq(0, 100, by=25)),
-           week=floor_date(date, "week"))
+           week=floor_date(date, "week")) %>%
+    filter(contact.id != "2013.1801") ## remove spurious contact
 
 contacts_by_health_status <- weekly_contacts %>%
     group_by(season, week, health_status) %>%
     summarise(mean=mean(conversational),
-              sd=sd(conversational)) %>%
+              sd=sd(conversational),
+              n=n()) %>%
     ungroup
 
 contacts_by_health_score <- weekly_contacts %>%
     filter(!is.na(health_score)) %>% 
     group_by(season, week, health_score) %>%
     summarise(mean=mean(conversational),
-              sd=sd(conversational)) %>%
+              sd=sd(conversational),
+              n=n()) %>%
     ungroup
-
-p <- ggplot(contacts_by_health_status, aes(x=week, y=mean, colour=health_status, group=interaction(season, health_status))) +
-    facet_wrap(~season, scales="free_x") +
-    geom_line() +
-    scale_color_brewer("", palette="Set1") +
-    xlab("Week") + ylab("Mean conversational contacts") +
-    theme(legend.position="bottom")
-ggsave("contacts_by_health_status.pdf", p)
 
 p <- ggplot(contacts_by_health_score, aes(x=week, y=mean, colour=health_score, group=interaction(season, health_score))) +
     facet_wrap(~season, scales="free_x") +
