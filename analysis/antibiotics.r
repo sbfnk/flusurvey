@@ -5,6 +5,12 @@ library('tidyverse')
 
 dt <- extract_data("flusurvey_raw_2010_2017.rds", years=2012:2017, surveys=c("background", "symptom"))
 
+dt %<>%
+    group_by(season, participant_id) %>%
+    mutate(nSymptomatic=sum(no.symptoms=="f"),
+           nAntibiotic=sum(medication.antibiotic=="t")) %>%
+    ungroup
+
 antibiotics <- dt %>%
   dplyr::filter(!is.na(medication.antibiotic)) %>%
   group_by(season, agegroup) %>%
@@ -48,4 +54,4 @@ p <- ggplot(antibiotics %>%
 ggsave("antibiotic_prescription_rate.pdf", p)
 
 bouts <- bouts_of_illness(dt, symptomatic.only=TRUE)
-saveRDS(bouts, "bouts_20180209.rds")
+saveRDS(bouts, "bouts_20190113.rds")
