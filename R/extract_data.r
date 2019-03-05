@@ -80,7 +80,7 @@ extract_data <- function(data, surveys = "all", years = "all", join = TRUE, ...)
             for (id_name in id_cols) {
               res[[as.character(year)]][, paste(id_name) := paste(year, get(id_name), sep=".")]
             }
-            res[[as.character(year)]][, season := year]
+            res[[as.character(year)]][, season := paste(year-1, year-2000, sep="/")]
         }
         res <- rbindlist(res, use.names = TRUE, fill = TRUE)
 
