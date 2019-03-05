@@ -415,8 +415,17 @@ dt_symptom_contacts <- extract_data("data/flusurvey_raw_2010_2018.rds", years=20
 weekly_contacts <- dt_symptom_contacts %>%
     mutate(health_status=recode_factor(no.symptoms, t="healthy", f="symptomatic"),
            health_score=cut(health.score, breaks=seq(0, 100, by=25)),
-           week=floor_date(date, "week")) %>%
+           week=floor_date(date, "week")) %>% 
     filter(contact.id != "2013.1801") ## remove spurious contact
+
+individual_contacts_by_health_status <- weekly_contacts %>%
+    group_by(season, week, participant_id, health_status) %>%
+    summarise(conversational=mean(conversational)) %>%
+    group_by(season, participant_id, health_status) %>%
+    summarise(conversational=mean(conversational)) %>%
+    ungroup %>%
+    spread(health_status, conversational) %>%
+    filter(!(is.na(healthy) | is.na(symptomatic)))
 
 contacts_by_health_status <- weekly_contacts %>%
     group_by(season, week, health_status) %>%
@@ -443,3 +452,28 @@ ggsave("contacts_by_health_score.pdf", p)
 
 write_csv(contacts_by_health_status, "contacts_by_health_status.csv")
 write_csv(contacts_by_health_score, "contacts_by_health_score.csv")
+
+healthy_means <- weekly_contacts %>%
+    filter(health_status=="healthy") %>%
+    group_by(participant_id, season) %>%
+    summarise(healthy_mean=mean(conversational)) %>%
+    ungroup() %>%
+    filter(healthy_mean>0) %>%
+    select(participant_id, season, healthy_mean)
+
+weekly_relative_contacts <- weekly_contacts %>%
+    inner_join(healthy_means, by=c("participant_id", "season")) %>%
+    mutate(dc=(conversational-healthy_mean)/healthy_mean)
+
+hvs <- weekly_relative_contacts %>%
+    group_by(week, health_status) %>%
+    summarise(dc=median(dc)) %>%
+    ungroup() %>% 
+    spread(health_status, dc)
+
+p <- ggplot(hvs, aes(x=healthy, y=symptomatic)) +
+    geom_jitter() +
+    geom_hline(yintercept=0, linetype="dashed") +
+    geom_vline(xintercept=0, linetype="dashed")
+
+ggsave("dc_vs_dc.pdf", p)
