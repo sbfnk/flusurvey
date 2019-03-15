@@ -60,6 +60,13 @@ read_data <- function(files, year, ...)
                         labels=flusurvey::options[[option]])]
         }
 
+        ## convert integer 0/1 to character t/f
+        for (col in colnames(dt)) {
+            if (length(na.omit(setdiff(unique(dt[[col]]), c(0, 1)))) == 0) {
+                dt[, paste(col) := factor(get(col), levels=0:1, labels=c("f", "t"))]
+            }
+        }
+
         if (!("global_id" %in% colnames(dt))) {
           if ("uid" %in% colnames(dt)) {
             setnames(dt, "uid", "global_id")
