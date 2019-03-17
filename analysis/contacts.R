@@ -409,7 +409,7 @@ weekly_means <- dt_contacts %>%
     gather(type, contacts, starts_with("mean.")) %>%
     mutate(type=sub("mean.", "", type))
 
-dt_symptom_contacts <- extract_data("data/flusurvey_raw_2010_2018.rds", years=2012:2013, surveys=c("symptom", "contact"))
+dt_symptom_contacts <- extract_data("data/flusurvey_raw_2010_2018.rds", years=2012:2013, surveys=c("background", "symptom", "contact"))
 
 # of contacts
 weekly_contacts <- dt_symptom_contacts %>%
@@ -466,14 +466,15 @@ weekly_relative_contacts <- weekly_contacts %>%
     mutate(dc=(conversational-healthy_mean)/healthy_mean)
 
 hvs <- weekly_relative_contacts %>%
-    group_by(week, health_status) %>%
-    summarise(dc=median(dc)) %>%
-    ungroup() %>% 
+    group_by(week, region, health_status) %>%
+    summarise(dc=mean(dc)) %>%
+    ungroup() %>%
     spread(health_status, dc)
 
 p <- ggplot(hvs, aes(x=healthy, y=symptomatic)) +
     geom_jitter() +
+    ylim(c(-1, 1)) +
+    xlim(c(-1, 1)) +
     geom_hline(yintercept=0, linetype="dashed") +
     geom_vline(xintercept=0, linetype="dashed")
-
-ggsave("dc_vs_dc.pdf", p)
+ggsave("dc_vs_dc_regional.pdf", p)
