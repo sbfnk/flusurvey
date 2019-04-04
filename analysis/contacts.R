@@ -418,6 +418,11 @@ weekly_contacts <- dt_symptom_contacts %>%
            week=floor_date(date, "week")) %>% 
     filter(contact.id != "2013.1801") ## remove spurious contact
 
+nb_sick <- weekly_contacts %>%
+    group_by(season, week) %>%
+    summarise(incidence=mean(health_status=="symptomatic")) %>%
+    ungroup()
+
 individual_contacts_by_health_status <- weekly_contacts %>%
     group_by(season, week, participant_id, health_status) %>%
     summarise(conversational=mean(conversational)) %>%
@@ -467,7 +472,7 @@ weekly_relative_contacts <- weekly_contacts %>%
 
 hvs <- weekly_relative_contacts %>%
     group_by(week, region, health_status) %>%
-    summarise(dc=mean(dc)) %>%
+    summarise(dc=median(dc)) %>%
     ungroup() %>%
     spread(health_status, dc)
 
@@ -477,4 +482,34 @@ p <- ggplot(hvs, aes(x=healthy, y=symptomatic)) +
     xlim(c(-1, 1)) +
     geom_hline(yintercept=0, linetype="dashed") +
     geom_vline(xintercept=0, linetype="dashed")
-ggsave("dc_vs_dc_regional.pdf", p)
+ggsave("dc_vs_dc_median_regional.pdf", p)
+
+contacts_vs_sick <- weekly_relative_contacts %>%
+    inner_join(healthy_means, by=c("participant_id", "season")) %>%
+    group_by(season, week, health_status) %>%
+    summarise(mean_dc=mean(dc),
+              mean=mean(conversational),
+              n=n()) %>%
+    ungroup %>%
+    left_join(nb_sick)
+
+p <- ggplot(contacts_vs_sick %>% filter(incidence>0.1),
+            aes(x=incidence, y=mean, colour=health_status)) +
+    geom_point() +
+    xlab("Incidence of sickness") +
+    ylab("Mean number of contacts") +
+    geom_smooth(method="lm") +
+    scale_color_brewer("", palette="Set1") +
+    theme(legend.position="top")
+ggsave("dc_vs_sickness.pdf", p)
+
+p <- ggplot(contacts_vs_sick %>% filter(incidence>0.1),
+            aes(x=incidence, y=mean_dc, colour=health_status)) +
+    geom_point() +
+    xlab("Incidence of sickness") +
+    ylab("Relative change in contacts") +
+    geom_smooth(method="lm") +
+    scale_color_brewer("", palette="Set1") +
+    theme(legend.position="top")
+ggsave("contacts_vs_sickness.pdf", p)
+
