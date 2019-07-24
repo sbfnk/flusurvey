@@ -9,11 +9,12 @@
 ##' and similarly for weekly surveys
 ##'
 ##' @param files a (named!) list of files. The names stand for the surveys (e.g., "symptom", "background", "contact", etc.)
-##' @param year the year from which the data come. If not given, will try to guess it from the headers in the .csv files
+##' @param year the year from which the data come
 ##' @param ... options to be passed to \code{read.csv}
 ##' @return a list of data tables with the data
 ##' @author seb
 ##' @import data.table
+##' @importFrom lubridate parse_date_time
 ##' @export
 read_data <- function(files, year, ...)
 {
@@ -46,7 +47,7 @@ read_data <- function(files, year, ...)
             if (is.character(dt[, get(col)]) | is.factor(dt[, get(col)])) {
                 dt[get(col) == "", paste(col) := NA_character_]
                 dt[get(col) == "None", paste(col) := NA_character_]
-                dt[, paste(col) := as.Date(get(col))]
+                dt[, paste(col) := as.Date(lubridate::parse_date_time(get(col), orders=c("Ymd", "dmY", "Ymd HMS")))]
             }
         }
 
@@ -57,6 +58,13 @@ read_data <- function(files, year, ...)
                  factor(get(option),
                         levels=names(flusurvey::options[[option]]),
                         labels=flusurvey::options[[option]])]
+        }
+
+        ## convert integer 0/1 to character t/f
+        for (col in colnames(dt)) {
+            if (length(na.omit(setdiff(unique(dt[[col]]), c(0, 1)))) == 0) {
+                dt[, paste(col) := factor(get(col), levels=0:1, labels=c("f", "t"))]
+            }
         }
 
         if (!("global_id" %in% colnames(dt))) {

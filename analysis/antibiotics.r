@@ -3,7 +3,7 @@ library('cowplot')
 library('binom')
 library('tidyverse')
 
-dt <- extract_data("flusurvey_raw_2010_2017.rds", years=2012:2017, surveys=c("background", "symptom"))
+dt <- extract_data(file.path("data", "flusurvey_raw_2010_2018.rds"), years=2010:2018, surveys=c("background", "symptom"))
 
 dt %<>%
     group_by(season, participant_id) %>%
