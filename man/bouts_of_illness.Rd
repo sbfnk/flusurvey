@@ -4,12 +4,12 @@
 \alias{bouts_of_illness}
 \title{Extract bouts of illness from a flusurvey data table}
 \usage{
-bouts_of_illness(x, progress = TRUE)
+bouts_of_illness(x, symptomatic.only = TRUE, as.data.frame = TRUE)
 }
 \arguments{
 \item{x}{the data to extract bouts from}
 
-\item{progress}{whether to display a progress bar (default: TRUE)}
+\item{symptomatic.only}{whether to only include symptomatic periods}
 }
 \value{
 a data table of bouts of illness
