@@ -3,9 +3,6 @@
 ##' @param data the data to merge and clean, usually the result of \code{read_data}
 ##' @param clean cleaning options, NULL for no cleaning, otherwise a vector of cleans to perform (by default all):
 ##' - 'remove.first', whether to remove everyone's first report,
-##' - 'remove.bad.symptom.dates', whether to remove rows with the symptom end date before the symptom start date, or with symptom dates outside the reporting dates
-##' - 'remove.bad.health.scores', whether to remove health scores <0 or >100
-##' - 'guess.start.dates', whether to guess the symptom start dates when the person couldn't remember (as a day of the report)
 ##' - 'limit.season', whether to limit a flu season to November -> April
 ##' - 'remove.postcodes', whether to remove postcodes
 ##' - 'n.reports', whether to exclude those with fewer than \code{min.reports} reports
@@ -17,7 +14,7 @@
 ##' @import data.table
 ##' @importFrom lubridate month interval years
 ##' @export
-merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates", "remove.bad.health.score", "guess.start.dates", "limit.season", "remove.postcodes", "n.reports", "unsuccessful.join", "only.symptoms"), min.reports = 3)
+merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates", "remove.bad.health.score", "limit.season", "remove.postcodes", "n.reports", "unsuccessful.join", "only.symptoms"), min.reports = 3)
 {
     dt_list <- list()
     clean <- match.arg(clean, several.ok = TRUE)
@@ -65,34 +62,29 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
                 dt <- dt[duplicated(global_id)]
             }
 
-            if ("guess.start.dates" %in% clean)
-            {
-                dt[no.symptoms == "f" & is.na(symptoms.start.date), 
-                   symptoms.start.date := date]
-            }
-
             if ("remove.bad.symptom.dates" %in% clean)
             {
                 ## remove end date before start date
                 if (length(intersect(c("symptoms.start.date", "symptoms.end.date"), colnames(dt))) == 2)
                 {
-                    dt <- dt[!(!is.na(symptoms.end.date) &
-                               !is.na(symptoms.start.date) &
-                               symptoms.end.date < symptoms.start.date)]
+                  dt[!is.na(symptoms.end.date) & !is.na(symptoms.start.date) &
+                     symptoms.end.date < symptoms.start.date,
+                     c("symptoms.start.date", "symptoms.end.date") :=
+                       list(as.Date(NA_character_), as.Date(NA_character_))]
                 }
                 ## remove start date before first report or after reporting date
                 if ("sypmtoms.start.date" %in% colnames(dt))
                 {
-                    dt <- dt[!(!is.na(symptoms.start.date) &
-                               (symptoms.start.date < min.date |
-                                symptoms.start.date > date))]
+                  dt[!is.na(symptoms.start.date) &
+                     (symptoms.start.date < min.date | symptoms.start.date > date),
+                     symptoms.start.date := as.Date(NA_character_)]
                 }
                 ## remove end date before first report or after reporting date
                 if ("sypmtoms.end.date" %in% colnames(dt))
                 {
-                    dt <- dt[!(!is.na(symptoms.end.date) &
-                               (symptoms.end.date < min.date |
-                                symptoms.end.date > date))]
+                  dt[!is.na(symptoms.end.date) &
+                       (symptoms.end.date < min.date | symptoms.end.date > date),
+                     symptoms.end.date := as.Date(NA_character_)]
                 }
             }
 
