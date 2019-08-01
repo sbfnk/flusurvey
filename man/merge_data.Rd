@@ -5,8 +5,9 @@
 \title{Clean and merge flusurvey data tables}
 \usage{
 merge_data(data, clean = c("remove.first", "remove.bad.symptom.dates",
-  "guess.start.dates", "limit.season", "remove.postcodes", "create.numeric.id",
-  "n.reports", "unsuccessful.join", "only.symptoms"), min.reports = 3)
+  "remove.bad.health.score", "guess.start.dates", "limit.season",
+  "remove.postcodes", "n.reports", "unsuccessful.join", "only.symptoms"),
+  min.reports = 3)
 }
 \arguments{
 \item{data}{the data to merge and clean, usually the result of \code{read_data}}
@@ -14,10 +15,10 @@ merge_data(data, clean = c("remove.first", "remove.bad.symptom.dates",
 \item{clean}{cleaning options, NULL for no cleaning, otherwise a vector of cleans to perform (by default all):
 - 'remove.first', whether to remove everyone's first report,
 - 'remove.bad.symptom.dates', whether to remove rows with the symptom end date before the symptom start date, or with symptom dates outside the reporting dates
+- 'remove.bad.health.scores', whether to remove health scores <0 or >100
 - 'guess.start.dates', whether to guess the symptom start dates when the person couldn't remember (as a day of the report)
 - 'limit.season', whether to limit a flu season to November -> April
 - 'remove.postcodes', whether to remove postcodes
-- 'create.numeric.id', whether to create a numeric id for every user,
 - 'n.reports', whether to exclude those with fewer than \code{min.reports} reports
 - 'unsuccessful.join', whether to exclude those with unsuccesful joins (e.g. if symptoms are reported without a background survey present; the web site should have prevented this, but doesn't appear to have done so)
 - 'only.symptoms', whether to exclude those that have no report without symptoms}

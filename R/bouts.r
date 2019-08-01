@@ -1,11 +1,10 @@
 ##' Extract bouts of illness from a flusurvey data table
 ##'
 ##' @param x the data to extract bouts from
-##' @param symptomatic.only whether to only include symptomatic periods 
+##' @param symptomatic.only whether to only include symptomatic periods
 ##' @return a data table of bouts of illness
 ##' @author seb
 ##' @import data.table
-##' @importFrom utils
 ##' @export
 bouts_of_illness <- function(x, symptomatic.only=TRUE, as.data.frame=TRUE)
 {

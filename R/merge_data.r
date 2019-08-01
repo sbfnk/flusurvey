@@ -3,18 +3,21 @@
 ##' @param data the data to merge and clean, usually the result of \code{read_data}
 ##' @param clean cleaning options, NULL for no cleaning, otherwise a vector of cleans to perform (by default all):
 ##' - 'remove.first', whether to remove everyone's first report,
+##' - 'remove.bad.symptom.dates', whether to remove bad symptom dates: symptom start before date of first or end after end of last report, end of symptoms before start of symptoms, symptoms reported to have started or ended after date of report
+##' - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 ##' - 'limit.season', whether to limit a flu season to November -> April
 ##' - 'remove.postcodes', whether to remove postcodes
 ##' - 'n.reports', whether to exclude those with fewer than \code{min.reports} reports
 ##' - 'unsuccessful.join', whether to exclude those with unsuccesful joins (e.g. if symptoms are reported without a background survey present; the web site should have prevented this, but doesn't appear to have done so)
 ##' - 'only.symptoms', whether to exclude those that have no report without symptoms
 ##' @param min.reports minimum number of reports per user (ignored if 'min.reports' is not given as a cleaning option)
+##' @param age.breaks a vector of limits of age groups (first age group starts at 0 years of age)
 ##' @return a rolling-joined data table
 ##' @author seb
 ##' @import data.table
 ##' @importFrom lubridate month interval years
 ##' @export
-merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates", "remove.bad.health.score", "limit.season", "remove.postcodes", "n.reports", "unsuccessful.join", "only.symptoms"), min.reports = 3)
+merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates", "remove.bad.health.score", "limit.season", "remove.postcodes", "n.reports", "unsuccessful.join", "only.symptoms"), min.reports = 3, age.breaks=c(18,45,65))
 {
     dt_list <- list()
     clean <- match.arg(clean, several.ok = TRUE)
@@ -120,7 +123,7 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
             dt[age < 0, birthdate := NA]
             dt[age < 0, age := NA]
 
-            dt[, agegroup := cut(age, breaks=c(0,18,45,65, max(age, na.rm = TRUE)),
+          dt[, agegroup := cut(age, breaks=c(0, age.breaks, max(age, na.rm = TRUE)),
                                  include.lowest = TRUE, right = TRUE)]
             dt[grep("^\\(65,", agegroup), agegroup := "(65,)"]
             dt[, agegroup := factor(agegroup)]
@@ -228,7 +231,7 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
             if ("education" %in% colnames(dt))
             {
                 dt[is.na(highest.education) & !is.na(education),
-                   highest.education := education + 1]
+                   highest.education := education + 1L]
             }
 
             ## household members
