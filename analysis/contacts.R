@@ -409,111 +409,78 @@ weekly_means <- dt_contacts %>%
     gather(type, contacts, starts_with("mean.")) %>%
     mutate(type=sub("mean.", "", type))
 
-dt_symptom_contacts <- extract_data("data/flusurvey_raw_2010_2018.rds", years=2012:2013, surveys=c("background", "symptom", "contact"))
-# of contacts
-weekly_contacts <- dt_symptom_contacts %>%
-    mutate(health_status=recode_factor(no.symptoms, t="healthy", f="symptomatic"),
-           health_score=cut(health.score, breaks=seq(0, 100, by=25)),
-           week=floor_date(date, "week")) %>% 
-    filter(contact.id != "2013.1801") %>% ## remove spurious entry
-    group_by(background.id) %>%
-    mutate(n=n()) %>%
-    ungroup %>%
-    filter(n>1)
+dt_symptoms <- extract_data("data/flusurvey_raw_2010_2018.rds", years=2010:2013, surveys=c("symptom"))
+dt_back_symptoms <- extract_data("data/flusurvey_raw_2010_2018.rds", years=2010:2013, surveys=c("background", "symptom"))
+dt_contacts <- extract_data("data/flusurvey_raw_2010_2018.rds", years=2010:2013, surveys=c("background", "contact"))
 
-nb_sick <- weekly_contacts %>%
-    group_by(season, week) %>%
-    summarise(incidence=mean(health_status=="symptomatic")) %>%
-    ungroup()
+bouts <- bouts_of_illness(dt_symptoms)
 
-individual_contacts_by_health_status <- weekly_contacts %>%
-    group_by(season, week, participant_id, health_status) %>%
-    summarise(conversational=mean(conversational)) %>%
-    group_by(season, participant_id, health_status) %>%
-    summarise(conversational=mean(conversational)) %>%
-    ungroup %>%
-    spread(health_status, conversational) %>%
-    filter(!(is.na(healthy) | is.na(symptomatic)))
+## check all contact reports for symptoms
+bouts_end <- copy(bouts)
+bouts_end[, date := symptoms.end.date]
+bouts_end[, health.status := "healthy"]
+bouts_end[, order := 3]
 
-contacts_by_health_status <- weekly_contacts %>%
-    group_by(season, week, health_status) %>%
-    summarise(mean=mean(conversational),
-              sd=sd(conversational),
-              n=n()) %>%
-    ungroup
+bouts_min <- copy(bouts)
+bouts_min <- bouts_min[, date:=unique(min.date), by=list(season, global_id)]
+bouts_min <- unique(bouts_min, by=c("season", "global_id"))
+bouts_min[, health.status := "healthy"]
+bouts_min[, order := 1]
 
-contacts_by_health_score <- weekly_contacts %>%
-    filter(!is.na(health_score)) %>% 
-    group_by(season, week, health_score) %>%
-    summarise(mean=mean(conversational),
-              sd=sd(conversational),
-              n=n()) %>%
-    ungroup
+bouts[, date := symptoms.start.date]
+bouts[, health.status := "ill"]
+bouts[, order := 2]
 
-p <- ggplot(contacts_by_health_score, aes(x=week, y=mean, colour=health_score, group=interaction(season, health_score))) +
-    facet_wrap(~season, scales="free_x") +
-    geom_line() +
-    scale_color_brewer("Health score (100 best)", palette="Set1") +
-    xlab("Week") + ylab("Mean conversational contacts") +
-    theme(legend.position="bottom")
-ggsave("contacts_by_health_score.pdf", p)
+db <- rbindlist(list(bouts_min, bouts, bouts_end))
+db[, health.status := factor(health.status, levels=c("ill", "healthy"))]
 
-write_csv(contacts_by_health_status, "contacts_by_health_status.csv")
-write_csv(contacts_by_health_score, "contacts_by_health_score.csv")
+setkey(db, season, global_id, date, order)
+setkey(dt_contacts, season, global_id, date)
 
-healthy_medians <- weekly_contacts %>%
-    filter(health_status=="healthy") %>%
-    group_by(participant_id, season) %>%
-    summarise(healthy_median=median(conversational)) %>%
-    ungroup() %>%
-    filter(healthy_median>0) %>%
-    select(participant_id, season, healthy_median)
+joined <- db[dt_contacts, roll=TRUE]
+## ill is if any ill status on the day
+setkey(joined, season, global_id, date, health.status)
+joined <- unique(joined, by=c("season", "global_id", "date"))
+joined <- joined[!is.na(health.status)]
 
-weekly_relative_contacts <- weekly_contacts %>%
-    inner_join(healthy_medians, by=c("participant_id", "season")) %>%
-    mutate(dc=(conversational-healthy_median)/healthy_median)
+dt_inc <- get_incidence(dt_back_symptoms, incidence.columns = "ili.symptoms")
+setnames(dt_inc, "week", "date")
 
-hvs <- weekly_relative_contacts %>%
-    group_by(week, region, health_status) %>%
-    summarise(dc=median(dc)) %>%
-    ungroup() %>%
-    spread(health_status, dc)
+inc <- dt_inc[, list(date, season, incidence=ili.symptoms/N)]
+setkey(inc, season, date)
+setkey(joined, season, date)
 
-p <- ggplot(hvs, aes(x=healthy, y=symptomatic)) +
+dc <- inc[joined, roll=TRUE]
+
+contacts <- dc %>%
+  mutate(week=floor_date(date, "week")) %>% 
+  group_by(season, week, health.status) %>%
+  summarise(mc=median(conversational, na.rm=TRUE),
+            incidence=unique(incidence),
+            n=n()) %>%
+  ungroup %>%
+  filter(n >= 5, mc < 25)
+
+hvs <- contacts %>%
+  filter(season != "2009/10") %>%
+  select(-n) %>%
+  spread(health.status, mc) %>%
+  filter(!is.na(ill), !is.na(healthy))
+
+p <- ggplot(hvs, aes(x=healthy, y=ill)) +
     geom_jitter() +
-    geom_smooth(method="lm") +
-    ylim(c(-1, 1)) +
-    xlim(c(-1, 1)) +
-    geom_hline(yintercept=0, linetype="dashed") +
-    geom_vline(xintercept=0, linetype="dashed")
-ggsave("dc_vs_dc_median_regional.pdf", p)
+    geom_smooth(method="lm")
 
-contacts_vs_sick <- weekly_relative_contacts %>%
-    inner_join(healthy_medians, by=c("participant_id", "season")) %>%
-    group_by(season, week, health_status) %>%
-    summarise(median_dc=median(dc),
-              median=median(conversational),
-              n=n()) %>%
-    ungroup %>%
-    left_join(nb_sick)
+ggsave("dc_vs_dc_mean.pdf", p)
 
-p <- ggplot(contacts_vs_sick %>% filter(incidence>0.1),
-            aes(x=incidence, y=median, colour=health_status)) +
-    geom_point() +
-    xlab("Incidence of sickness") +
-    ylab("Median number of contacts") +
-    geom_smooth(method="lm") +
-    scale_color_brewer("", palette="Set1") +
-    theme(legend.position="top")
-ggsave("dc_vs_sickness.pdf", p)
+hdc <- hvs %>%
+  gather(health.status, contacts, ill, healthy) %>%
+  unite(status_season, health.status, season, remove=FALSE)
 
-p <- ggplot(contacts_vs_sick %>% filter(incidence>0.1),
-            aes(x=incidence, y=median_dc, colour=health_status)) +
-    geom_point() +
-    xlab("Incidence of sickness") +
-    ylab("Relative change in contacts") +
-    geom_smooth(method="lm") +
-    scale_color_brewer("", palette="Set1") +
-    theme(legend.position="top")
-ggsave("contacts_vs_sickness.pdf", p)
+p <- ggplot(hdc, aes(x=week, group=status_season, y=contacts, colour=health.status)) +
+  geom_line()
+
+p <- ggplot(contacts, aes(x=incidence, y=mc, color=health.status)) +
+  geom_point() +
+  geom_smooth(method="lm")
 
