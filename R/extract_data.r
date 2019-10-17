@@ -5,7 +5,7 @@
 ##' @param surveys the surveys to extract (e.g., "background", "symptom", "contact" or a combination thereof), "all" for all of surveys that can be found; note that any surveys that don't exist in all years will be dropped
 ##' @param years the years to extract, "all" for all years
 ##' @param join whether to join the data into one big data.table in the end
-##' @param ... parameters to be passed to merge_data, especially 'clean' (see documentation of \code{\link{read_data}}, by default all cleaning will be performed, set 'clean' to NULL to get the raw data).
+##' @param ... parameters to be passed to merge_data, especially 'clean' (see documentation of \code{\link{merge_data}}, by default all cleaning will be performed, set 'clean' to NULL to get the raw data).
 ##' @return a data.table (if \code{join} is TRUE) or a list of data.tables (if \code{join} is FALSE) with the data
 ##' @author seb
 ##' @import data.table
@@ -87,7 +87,6 @@ extract_data <- function(data, surveys = "all", years = "all", join = TRUE, ...)
         id_table <- data.table(global_id = unique(res[, global_id]),
                                participant_id = seq_along(unique(res[, global_id])))
         res <- merge(res, id_table, all.x = TRUE, by = "global_id")
-        res[, global_id := NULL]
     }
 
     return(res)
