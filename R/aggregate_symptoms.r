@@ -9,13 +9,18 @@ aggregate_symptoms <- function(symptoms, ili.sudden.unknown = 1)
 {
     dt <- copy(data.table::data.table(symptoms))
     ## calculate ili
-    if (any(grepl("\\.suddenly$", colnames(dt))))
+    if (any(grepl("\\.(suddenly|quickly)$", colnames(dt))))
     {
       dt[, suddenly := NA_character_]
       if ("symptoms.suddenly" %in% colnames(dt))
       {
         dt[symptoms.suddenly == "yes", suddenly := "t"]
         dt[symptoms.suddenly == "no", suddenly := "f"]
+      }
+      if ("fever.quickly" %in% colnames(dt)) {
+          dt[(is.na(suddenly) | suddenly == "f") & fever.quickly == "yes",
+             suddenly := "t"]
+          dt[is.na(suddenly) & fever.quickly == "no", suddenly := "f"]
       }
       if ("fever.suddenly" %in% colnames(dt)) {
         dt[(is.na(suddenly) | suddenly == "f") & fever.suddenly == "yes",
@@ -29,31 +34,35 @@ aggregate_symptoms <- function(symptoms, ili.sudden.unknown = 1)
     if (!("fever" %in% colnames(dt)) && "fever.temperature.range" %in% colnames(dt))
     {
         dt[, fever := as.integer(fever.temperature.range > 0)]
-
     }
 
     fever.symptoms <- intersect(c("fever", "fever.symptom"), colnames(dt))
-    ili.symptoms <- intersect(c("tired", "weakness", "headache"), colnames(dt))
+    systemic.symptoms <- intersect(c("tired", "weakness", "headache"), colnames(dt))
     resp.symptoms <- intersect(c("sore.throat", "cough", "shortness.breath"), colnames(dt))
     gi.symptoms <- intersect(c("vomiting", "diarrhoea"), colnames(dt))
 
-    if (length(c(fever.symptoms, ili.symptoms)) > 0 &&
+    if (length(c(fever.symptoms, systemic.symptoms)) > 0 &&
         length(resp.symptoms) > 0)
     {
-        dt[, ili := suddenly == "t" &
-                 apply(dt, 1, function(x) {any(x[c(fever.symptoms, ili.symptoms)] %in% c(1, "t"))}) &
-                 apply(dt, 1, function(x) {any(x[resp.symptoms] %in% c(1, "t"))})]
+        dt[, fever.symptoms := apply(dt, 1, function(x) {any(x[c(fever.symptoms)] %in% c(1, "t"))})]
+        dt[, systemic.symptoms := apply(dt, 1, function(x) {any(x[c(systemic.symptoms)] %in% c(1, "t"))})]
+        dt[, resp.symptoms := apply(dt, 1, function(x) {any(x[resp.symptoms] %in% c(1, "t"))})]
+        dt[, fever.symptoms := ifelse(fever.symptoms, "t", "f")]
+        dt[, systemic.symptoms := ifelse(systemic.symptoms, "t", "f")]
+        dt[, resp.symptoms := ifelse(resp.symptoms, "t", "f")]
+        dt[, general.symptoms := fever.symptoms == "t" | systemic.symptoms == "t"]
+        dt[, general.symptoms := ifelse(general.symptoms, "t", "f")]
+        dt[, ili.symptoms := general.symptoms == "t" & resp.symptoms == "t"]
+        dt[, ili.symptoms := ifelse(ili.symptoms, "t", "f")]
+        dt[, ili := ili.symptoms == "t" & suddenly == "t"]
         dt[, ili := ifelse(ili, "t", "f")]
     }
 
     if (length(fever.symptoms) > 0 &&
-        length(ili.symptoms) > 0 &&
+        length(systemic.symptoms) > 0 &&
         length(resp.symptoms) > 0)
     {
-        dt[, ili.fever := suddenly == "t" &
-                 apply(dt, 1, function(x) {any(x[fever.symptoms] %in% c(1, "t"))}) &
-                 apply(dt, 1, function(x) {any(x[ili.symptoms] %in% c(1, "t"))}) &
-                 apply(dt, 1, function(x) {any(x[resp.symptoms] %in% c(1, "t"))})]
+        dt[, ili.fever := fever.symptoms == "t" & ili == "t"]
         dt[, ili.fever := ifelse(ili.fever, "t", "f")]
     }
 
