@@ -11,13 +11,14 @@
 ##' - 'unsuccessful.join', whether to exclude those with unsuccesful joins (e.g. if symptoms are reported without a background survey present; the web site should have prevented this, but doesn't appear to have done so)
 ##' - 'only.symptoms', whether to exclude those that have no report without symptoms
 ##' @param min.reports minimum number of reports per user (ignored if 'min.reports' is not given as a cleaning option)
+##' @param ranges what to do if a number of contacts is given as a range: sample from the range ("sample"), or apply a function, given as character string (e.g., "mean")
 ##' @param age.breaks a vector of limits of age groups (first age group starts at 0 years of age)
 ##' @return a rolling-joined data table
 ##' @author seb
 ##' @import data.table
 ##' @importFrom lubridate month interval years
 ##' @export
-merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates", "remove.bad.health.score", "limit.season", "remove.postcodes", "n.reports", "unsuccessful.join", "only.symptoms"), min.reports = 3, age.breaks=c(18,45,65))
+merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates", "remove.bad.health.score", "limit.season", "remove.postcodes", "n.reports", "unsuccessful.join", "only.symptoms"), min.reports = 3, ranges="sample", age.breaks=c(18,45,65))
 {
     dt_list <- list()
     clean <- match.arg(clean, several.ok = TRUE)
@@ -29,7 +30,7 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
 
         if ("limit.season" %in% clean)
         {
-            ## figure out date with most reports, this defines the season
+          ## figure out date with most reports, this defines the season
             reports <- dt[, .N, date]
             max_date <- reports[N == max(N), date]
             ## season begins on 1 November before the maximum date
@@ -56,6 +57,11 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
             dt <- aggregate_symptoms(dt)
             ## calculate min.reports, max.reports, nReports
             dt[, nReports := .N, by = global_id]
+            if ("n.reports" %in% clean)
+            {
+              dt <- dt[nReports >= min.reports]
+            }
+
             dt[, min.date := min(date), by = global_id]
             dt[, max.date := max(date), by = global_id]
 
@@ -75,18 +81,16 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
                      c("symptoms.start.date", "symptoms.end.date") :=
                        list(as.Date(NA_character_), as.Date(NA_character_))]
                 }
-                ## remove start date before first report or after reporting date
-                if ("sypmtoms.start.date" %in% colnames(dt))
+                ## remove start date after reporting date
+                if ("symptoms.start.date" %in% colnames(dt))
                 {
-                  dt[!is.na(symptoms.start.date) &
-                     (symptoms.start.date < min.date | symptoms.start.date > date),
+                  dt[!is.na(symptoms.start.date) & symptoms.start.date > date,
                      symptoms.start.date := as.Date(NA_character_)]
                 }
-                ## remove end date before first report or after reporting date
-                if ("sypmtoms.end.date" %in% colnames(dt))
+                ## remove end date after reporting date
+                if ("symptoms.end.date" %in% colnames(dt))
                 {
-                  dt[!is.na(symptoms.end.date) &
-                       (symptoms.end.date < min.date | symptoms.end.date > date),
+                  dt[!is.na(symptoms.end.date) & symptoms.end.date > date,
                      symptoms.end.date := as.Date(NA_character_)]
                 }
             }
@@ -123,7 +127,7 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
             dt[age < 0, birthdate := NA]
             dt[age < 0, age := NA]
 
-          dt[, agegroup := cut(age, breaks=c(0, age.breaks, max(age, na.rm = TRUE)),
+            dt[, agegroup := cut(age, breaks=c(0, age.breaks, max(age, na.rm = TRUE)),
                                  include.lowest = TRUE, right = TRUE)]
             dt[grep("^\\(65,", agegroup), agegroup := "(65,)"]
             dt[, agegroup := factor(agegroup)]
@@ -261,11 +265,20 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
           for (column in contact_columns) {
             dt[, paste(column) := as.character(get(column))]
             dt[get(column) == "NULL", paste(column) := NA_character_]
-            dt[grepl("-", get(column)),
-               paste(column) :=
-                 as.character((as.integer(sub("-.*$", "", get(column))) +
-                               as.integer(sub("^.*-", "", get(column))) + 1)
-                              / 2)]
+            if (ranges=="sample") {
+              dt[grepl("-", get(column)),
+                 paste(column) :=
+                   as.character(as.integer(runif(.N,
+                                                 as.integer(sub("-.*$", "", get(column))),
+                                                 as.integer(sub("^.*-", "", get(column))) + 1)))]
+            } else {
+              ## apply a function
+              dt[grepl("-", get(column)),
+                 paste(column) :=
+                   as.character(as.integer(do.call(ranges,
+                                                   list(c(as.integer(sub("-.*$", "", get(column))),
+                                                          as.integer(sub("^.*-", "", get(column))) + 1)))))]
+            }
             dt[, paste(column) :=
                    as.integer(gsub("[^0-9]", "", get(column)))]
           }
@@ -330,17 +343,6 @@ merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates
     }
 
     setkey(res, date, global_id)
-
-    if ("nReports" %in% colnames(res))
-    {
-        if ("n.reports" %in% clean)
-        {
-            res <- res[nReports >= min.reports]
-        } else
-        {
-            res <- res[nReports > 0]
-        }
-    }
 
     if ("remove.postcodes" %in% clean)
     {
