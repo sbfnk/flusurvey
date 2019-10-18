@@ -6,6 +6,7 @@ library('cowplot')
 library('stringi')
 library('scales')
 library('lubridate')
+library('ggplot2')
 
 ## https://en.wikipedia.org/wiki/Climate_of_the_United_Kingdom
 sunshine_hours <- c(54.2, 74.3, 107.6, 155.2, 190.6, 182.6, 193.5, 182.5, 137.2, 103.1, 64.5, 47.3)
@@ -413,25 +414,21 @@ dt_symptoms <- extract_data("data/flusurvey_raw_2010_2018.rds", years=2010:2013,
 dt_back_symptoms <- extract_data("data/flusurvey_raw_2010_2018.rds", years=2010:2013, surveys=c("background", "symptom"))
 dt_contacts <- extract_data("data/flusurvey_raw_2010_2018.rds", years=2010:2013, surveys=c("background", "contact"))
 
-bouts <- bouts_of_illness(dt_symptoms)
+bouts <- bouts_of_illness(dt_symptoms, symptomatic.only=FALSE)
+
+bouts[, health.status := ifelse(is.na(bout), "healthy", "ill")]
+bouts[health.status=="ill", date := symptoms.start.date]
+bouts[, order := 1]
 
 ## check all contact reports for symptoms
 bouts_end <- copy(bouts)
+bouts_end <- bouts_end[!is.na(bout)]
+bouts_end[is.na(symptoms.end.date), symptoms.end.date := date]
 bouts_end[, date := symptoms.end.date]
 bouts_end[, health.status := "healthy"]
-bouts_end[, order := 3]
+bouts_end[, order := 2]
 
-bouts_min <- copy(bouts)
-bouts_min <- bouts_min[, date:=unique(min.date), by=list(season, global_id)]
-bouts_min <- unique(bouts_min, by=c("season", "global_id"))
-bouts_min[, health.status := "healthy"]
-bouts_min[, order := 1]
-
-bouts[, date := symptoms.start.date]
-bouts[, health.status := "ill"]
-bouts[, order := 2]
-
-db <- rbindlist(list(bouts_min, bouts, bouts_end))
+db <- rbindlist(list(bouts, bouts_end))
 db[, health.status := factor(health.status, levels=c("ill", "healthy"))]
 
 setkey(db, season, global_id, date, order)
@@ -442,6 +439,7 @@ joined <- db[dt_contacts, roll=TRUE]
 setkey(joined, season, global_id, date, health.status)
 joined <- unique(joined, by=c("season", "global_id", "date"))
 joined <- joined[!is.na(health.status)]
+joined[, order := NULL]
 
 dt_inc <- get_incidence(dt_back_symptoms, incidence.columns = "ili.symptoms")
 setnames(dt_inc, "week", "date")
@@ -452,35 +450,74 @@ setkey(joined, season, date)
 
 dc <- inc[joined, roll=TRUE]
 
+saveRDS(dc, "res/contacts_health.rds")
+
+dc <- readRDS("res/contacts_health.rds")
+
 contacts <- dc %>%
-  mutate(week=floor_date(date, "week")) %>% 
+  mutate(week=floor_date(date, "week"),
+         month=floor_date(date, "month"))
+
+hvsw <- contacts %>%
   group_by(season, week, health.status) %>%
   summarise(mc=median(conversational, na.rm=TRUE),
             incidence=unique(incidence),
             n=n()) %>%
   ungroup %>%
-  filter(n >= 5, mc < 25)
-
-hvs <- contacts %>%
-  filter(season != "2009/10") %>%
+  filter(n >= 15) %>%
   select(-n) %>%
   spread(health.status, mc) %>%
   filter(!is.na(ill), !is.na(healthy))
 
-p <- ggplot(hvs, aes(x=healthy, y=ill)) +
-    geom_jitter() +
-    geom_smooth(method="lm")
+hvsm <- contacts %>%
+  group_by(season, month, health.status) %>%
+  summarise(mc=median(conversational, na.rm=TRUE),
+            n=n()) %>%
+  ungroup %>%
+  filter(n >= 15) %>%
+  select(-n) %>%
+  spread(health.status, mc) %>%
+  filter(!is.na(ill), !is.na(healthy))
 
-ggsave("dc_vs_dc_mean.pdf", p)
+p <- ggplot(hvsw, aes(x=healthy, y=ill)) +
+    geom_point() +
+    geom_smooth(method="lm") +
+    theme_cowplot()
+save_plot("dc_vs_dc_mean.pdf", p)
 
-hdc <- hvs %>%
+s <- stats::lm(formula=ill ~ healthy,  data=hvsw)
+confint(s)
+summary(s)
+
+hdcw <- hvsw %>%
+  gather(health.status, contacts, ill, healthy) %>%
+  unite(status_season, health.status, season, remove=FALSE) %>% 
+
+hdcm <- hvsm %>%
   gather(health.status, contacts, ill, healthy) %>%
   unite(status_season, health.status, season, remove=FALSE)
 
-p <- ggplot(hdc, aes(x=week, group=status_season, y=contacts, colour=health.status)) +
+p <- ggplot(hdcm, aes(x=month, group=status_season, y=contacts, colour=health.status)) +
   geom_line()
 
-p <- ggplot(contacts, aes(x=incidence, y=mc, color=health.status)) +
+hvsl <- hvsw %>%
+  gather(health.status, mc, ill, healthy)
+
+p <- ggplot(hvsl, aes(x=incidence, y=mc, color=health.status)) +
   geom_point() +
-  geom_smooth(method="lm")
+  geom_smooth(method="lm") +
+  scale_colour_brewer("Health status", palette="Set1") +
+  xlab("Incidence of ILI symptoms") +
+  ylab("Median number of contacts") +
+  theme_cowplot() +
+  theme(legend.position = "top")
+save_plot("contacts_vs_incidence.pdf", p)
+
+s <- stats::lm(formula=mc ~ incidence,  data=hvsl %>% filter(health.status=="healthy"))
+confint(s)
+summary(s)
+
+s <- stats::lm(formula=mc ~ incidence,  data=hvsl %>% filter(health.status=="ill"))
+confint(s)
+summary(s)
 
