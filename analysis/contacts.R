@@ -449,16 +449,13 @@ setkey(inc, season, date)
 setkey(joined, season, date)
 
 dc <- inc[joined, roll=TRUE]
+dc[, week := floor_date(date, "week")]
+dc[, month := floor_date(date, "week")]
 
 saveRDS(dc, "res/contacts_health.rds")
-
 dc <- readRDS("res/contacts_health.rds")
 
-contacts <- dc %>%
-  mutate(week=floor_date(date, "week"),
-         month=floor_date(date, "month"))
-
-hvsw <- contacts %>%
+hvsw <- dc %>%
   group_by(season, week, health.status) %>%
   summarise(mc=median(conversational, na.rm=TRUE),
             incidence=unique(incidence),
@@ -469,7 +466,7 @@ hvsw <- contacts %>%
   spread(health.status, mc) %>%
   filter(!is.na(ill), !is.na(healthy))
 
-hvsm <- contacts %>%
+hvsm <- dc %>%
   group_by(season, month, health.status) %>%
   summarise(mc=median(conversational, na.rm=TRUE),
             n=n()) %>%
