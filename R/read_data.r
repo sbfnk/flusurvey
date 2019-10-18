@@ -67,16 +67,38 @@ read_data <- function(files, year, ...)
             }
         }
 
-        if (!("global_id" %in% colnames(dt))) {
-          if ("uid" %in% colnames(dt)) {
-            setnames(dt, "uid", "global_id")
-          } else if ("user_id" %in% colnames(dt))  {
-            setnames(dt, "user_id", "global_id")
+        res[[name]] <- dt
+    }
+
+    ids_found <- TRUE
+    global_ids_present <- vapply(res, function(x) ("global_id" %in% colnames(x)), TRUE)
+
+    if (!all(global_ids_present)) {
+
+      ids_found <- FALSE
+      alternative_ids <- c("uid", "user_id")
+
+      i <- 0
+
+      while (!ids_found && i < length(alternative_ids)) {
+        i <- i + 1
+        ids_present <- vapply(res, function(x) (alternative_ids[i] %in% colnames(x)), TRUE)
+        if (all(ids_present)) {
+          ids_found <- TRUE
+          for (name in names(res)) {
+            if ("global_id" %in% colnames(res[[name]])) res[[name]][, global_id := NULL]
+            setnames(res[[name]], alternative_ids[i], "global_id")
           }
         }
-        setkey(dt, global_id, date)
+      }
+    }
 
-        res[[name]] <- dt
+    if (ids_found) {
+      for (name in names(res)) {
+        setkey(res[[name]], global_id, date)
+      }
+    } else {
+      warning("No global ID found. Won't be able to merge")
     }
 
     return(res)
