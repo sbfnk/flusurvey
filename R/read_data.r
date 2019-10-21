@@ -67,6 +67,9 @@ read_data <- function(files, year, ...)
             }
         }
 
+        ## remove year-specificity in column names
+        colnames(dt) <- sub(paste0("\\.", year, "$"), "", colnames(dt))
+
         res[[name]] <- dt
     }
 
