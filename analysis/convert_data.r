@@ -25,6 +25,7 @@ sep[["2010"]] <- ";"
 
 dt <- list()
 for (year in names(year_files)) {
+  cat(year, "\n")
   dt[[year]] <- read_data(year_files[[year]], year, sep=sep[[year]])
 }
 

@@ -452,10 +452,15 @@ dc <- inc[joined, roll=TRUE]
 dc[, week := floor_date(date, "week")]
 dc[, month := floor_date(date, "week")]
 
-saveRDS(dc, "res/contacts_health.rds")
-dc <- readRDS("res/contacts_health.rds")
+contacts <- dc %>%
+  mutate(week=floor_date(date, "week"),
+         month=floor_date(date, "month"))
 
-hvsw <- dc %>%
+saveRDS(contacts, "res/contacts_health.rds")
+
+contacts <- readRDS("res/contacts_health.rds")
+
+hvsw <- contacts %>%
   group_by(season, week, health.status) %>%
   summarise(mc=median(conversational, na.rm=TRUE),
             incidence=unique(incidence),
