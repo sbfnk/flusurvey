@@ -68,7 +68,7 @@ aggregate_symptoms <- function(symptoms, ili.sudden.unknown = 1)
 
     if ("what.do.you.think" %in% colnames(dt))
     {
-        dt[, ili.self := (what.do.you.think == 1)]
+        dt[, ili.self := (what.do.you.think == "ili")]
         dt[is.na(ili.self), ili.self := FALSE]
         dt[, ili.self := ifelse(ili.self, "t", "f")]
     }
@@ -81,4 +81,3 @@ aggregate_symptoms <- function(symptoms, ili.sudden.unknown = 1)
 
     return(dt)
 }
-
