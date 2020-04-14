@@ -1,17 +1,17 @@
 library('methods')
 library('flusurvey')
+library('tidyverse')
 
-library('data.table')
-dt <- extract_data("flusurvey_raw_2010_2017.rds", years=2011:2017)
+create <- FALSE
 
-bouts <- bouts_of_illness(dt, symptomatic.only=TRUE)
-df <- list(); for (i in seq_len(ceiling(length(bouts) / 1000))) { cat(i, "\n"); df[[i]] <- rbindlist(bouts[seq((i-1) * 1000 + 1, min(i*1000, length(bouts)))])}
-df_bouts <- rbindlist(df)
+if (create) {
+  dt <- extract_data(file.path("data", "flusurvey_raw_2010_2018.rds"), years=2012:2018, surveys=c("background", "symptom"))
 
-saveRDS(df_bouts, "bouts_absenteeism.rds")
+  bouts <- bouts_of_illness(dt, symptomatic.only=TRUE)
+  saveRDS(bouts, "bouts_absenteeism.rds")
+}
 
-library('dplyr')
-df_bouts <- readRDS("bouts_absenteeism.rds")
+bouts <- readRDS("bouts_absenteeism.rds")
 
 df_reduced <- df_bouts %>%
   select(participant_id,

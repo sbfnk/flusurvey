@@ -1,4 +1,5 @@
 library('readr')
+library('flusurvey')
 
 data_dir <- path.expand(file.path("~", "Research", "Flusurvey", "Data"))
 data_files <- list.files(data_dir, "_[0-9]+\\.csv$", full.names=TRUE)

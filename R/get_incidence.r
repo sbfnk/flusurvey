@@ -31,8 +31,15 @@ get_incidence <- function(data, incidence.columns = "ili", aggregation = c("week
         for (col_id in seq_along(columns))
         {
           col <- columns[col_id]
-          dt[, paste(col) := floor_date(get(names(col)), unit=aggregation)]
-          bouts[, paste(col) := floor_date(get(names(col)), unit=aggregation)]
+          if (aggregation == "year") {
+            dt[, paste(col) :=
+                   as.Date(paste(substr(season, 1, 4), 11, 1, sep = "-" ))]
+            bouts[, paste(col) :=
+                      as.Date(paste(substr(season, 1, 4), 11, 1, sep = "-" ))]
+          } else {
+            dt[, paste(col) := floor_date(get(names(col)), unit=aggregation)]
+            bouts[, paste(col) := floor_date(get(names(col)), unit=aggregation)]
+          }
         }
     }
 
@@ -54,7 +61,8 @@ get_incidence <- function(data, incidence.columns = "ili", aggregation = c("week
     setnames(incidence, columns[["symptoms.start.date"]], aggregation)
     incidence <-
       dcast(incidence,
-            as.formula(paste0(paste(aggregation, by, "season", sep="+"), "~ type")),
+            as.formula(paste0(paste(c(aggregation, by, "season"), collapse="+"),
+                              "~ type")),
             value.var="new.cases")
     for (incidence_column in intersect(incidence.columns, colnames(incidence)))
     {
@@ -87,7 +95,7 @@ get_incidence <- function(data, incidence.columns = "ili", aggregation = c("week
     }
 
     incidence <- incidence[N >= min.N]
-    
+
     setkeyv(incidence, aggregation)
 
     return(incidence)

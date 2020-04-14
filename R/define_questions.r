@@ -608,6 +608,13 @@ questions[["2016"]][["symptom"]] <-
 questions[["2017"]] <- questions[["2016"]]
 questions[["2018"]] <- questions[["2017"]]
 
+questions[["2019"]] <- questions[["2018"]]
+questions[["2019"]][["background"]] <-
+  header_replace(questions[["2019"]][["background"]],
+                 c("Q20"))
+
+
+
 options <-
     list(self = c("0" = "self", "1" = "household_member", "2" = "someone_else"),
          gender.2010 = c("1" = "male", "2" = "female"),

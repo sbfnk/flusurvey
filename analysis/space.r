@@ -6,12 +6,11 @@ dt <- extract_data(data = "data/flusurvey_raw_2010_2018.rds",
 
 vars <- c("ili", "ili.self", "ili.fever")
 
-dt[, postcode_area := gsub("[0-9]", "", postcode)]
 dt[, vaccinated := factor(as.integer(vaccine.this.year == "yes"), levels=0:1, labels=c("f", "t"))]
 
 space_incidence <-
   get_incidence(dt, incidence.columns = vars,
                 aggregation = "season",
-                by = c("postcode_area", "region", "agegroup", "vaccinated"))
+                by = c("postcode", "region", "agegroup", "vaccinated"))
 
 readr::write_csv(space_incidence %>% select(-year), "spatial_incidence.csv")
