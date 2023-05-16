@@ -7,6 +7,7 @@ library('stringi')
 library('scales')
 library('lubridate')
 library('ggplot2')
+library('data.table')
 
 ## https://en.wikipedia.org/wiki/Climate_of_the_United_Kingdom
 sunshine_hours <- c(54.2, 74.3, 107.6, 155.2, 190.6, 182.6, 193.5, 182.5, 137.2, 103.1, 64.5, 47.3)
@@ -340,7 +341,7 @@ for (type in c("conversational", "physical"))
     scale_y_continuous(paste0("Number of ", type, " contacts")) +
     scale_x_discrete("Country",
                      labels=stri_trans_totitle(gsub("_", " ",
-                                                    levels(bg_means$country)))) +
+                                                    levels(bg_means$country))))
   save_plot(paste0(type, "_country.pdf"), p)
   save_plot(paste0(type, "_country.png"), p)
 
@@ -379,7 +380,7 @@ for (type in c("conversational", "physical"))
                                                     levels(bg_means$region)))) +
     theme(axis.text.x=element_text(angle=45,hjust=1,vjust=1),
           legend.position="top") +
-    scale_color_brewer("", palette="Set1") +
+    scale_color_brewer("", palette="Set1")
   save_plot(paste0(type, "_region_setting.pdf"), p)
   save_plot(paste0(type, "_region_setting.png"), p)
 }
@@ -493,7 +494,7 @@ summary(s)
 
 hdcw <- hvsw %>%
   gather(health.status, contacts, ill, healthy) %>%
-  unite(status_season, health.status, season, remove=FALSE) %>% 
+  unite(status_season, health.status, season, remove=FALSE)
 
 hdcm <- hvsm %>%
   gather(health.status, contacts, ill, healthy) %>%

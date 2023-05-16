@@ -4,19 +4,23 @@
 \alias{merge_data}
 \title{Clean and merge flusurvey data tables}
 \usage{
-merge_data(data, clean = c("remove.first", "remove.bad.symptom.dates",
-  "remove.bad.health.score", "guess.start.dates", "limit.season",
-  "remove.postcodes", "n.reports", "unsuccessful.join", "only.symptoms"),
-  min.reports = 3)
+merge_data(
+  data,
+  clean = c("remove.first", "remove.bad.symptom.dates", "remove.bad.health.score",
+    "limit.season", "remove.postcodes", "n.reports", "unsuccessful.join",
+    "only.symptoms"),
+  min.reports = 3,
+  ranges = "sample",
+  age.breaks = c(18, 45, 65)
+)
 }
 \arguments{
 \item{data}{the data to merge and clean, usually the result of \code{read_data}}
 
 \item{clean}{cleaning options, NULL for no cleaning, otherwise a vector of cleans to perform (by default all):
 - 'remove.first', whether to remove everyone's first report,
-- 'remove.bad.symptom.dates', whether to remove rows with the symptom end date before the symptom start date, or with symptom dates outside the reporting dates
+- 'remove.bad.symptom.dates', whether to remove bad symptom dates: symptom start before date of first or end after end of last report, end of symptoms before start of symptoms, symptoms reported to have started or ended after date of report
 - 'remove.bad.health.scores', whether to remove health scores <0 or >100
-- 'guess.start.dates', whether to guess the symptom start dates when the person couldn't remember (as a day of the report)
 - 'limit.season', whether to limit a flu season to November -> April
 - 'remove.postcodes', whether to remove postcodes
 - 'n.reports', whether to exclude those with fewer than \code{min.reports} reports
@@ -24,6 +28,10 @@ merge_data(data, clean = c("remove.first", "remove.bad.symptom.dates",
 - 'only.symptoms', whether to exclude those that have no report without symptoms}
 
 \item{min.reports}{minimum number of reports per user (ignored if 'min.reports' is not given as a cleaning option)}
+
+\item{ranges}{what to do if a number of contacts is given as a range: sample from the range ("sample"), or apply a function, given as character string (e.g., "mean")}
+
+\item{age.breaks}{a vector of limits of age groups (first age group starts at 0 years of age)}
 }
 \value{
 a rolling-joined data table

@@ -7,14 +7,15 @@ if (create) {
   dt <- extract_data(file.path("data", "flusurvey_raw_2010_2019.rds"), years=2012:2019, surveys=c("background", "symptom"), clean = c("remove.first", "limit.season", "n.reports", "unsuccessful.join", "only.symptoms"))
 
   bouts <- bouts_of_illness(dt, symptomatic.only=FALSE)
-  saveRDS(bouts, "bouts_risk_factors.rds")
+  saveRDS(bouts, "data/bouts_risk_factors.rds")
 }
 
-bouts <- readRDS("bouts_risk_factors.rds")
+bouts <- readRDS("data/bouts_risk_factors.rds")
 
 df_reduced <- bouts %>%
-  tbl_df() %>%
-  select(participant_id,
+  as_tibble() %>%
+  select(date,
+         participant_id,
          season,
          starts_with("ili"),
          symptoms.start.date,
@@ -29,15 +30,19 @@ df_reduced <- bouts %>%
          highest.education,
          region,
          frequent.contact.children,
+         nb.household,
          nb.household.children,
          pets.none,
          pets.dogs,
          pets.cats,
          pets.birds,
-         pets.other, 
+         pets.other,
          starts_with("risk."),
          smoke,
-         transport) %>%
+         transport,
+         min.date,
+         max.date,
+         health.score) %>%
   mutate(any.ili = (!is.na(ili.symptoms) & ili.symptoms == "t") |
            (!is.na(ili) & ili == "t") |
            (!is.na(ili.fever) & ili.fever == "t") |
@@ -54,7 +59,7 @@ df_reduced <- bouts %>%
 library('dplyr')
 library('readr')
 
-df_reduced <- readRDS("bouts_reduced.rds") %>%
+df_reduced <- readRDS("bouts_reduced.rds")
 
 write_csv(df_reduced, "flusurvey_episodes.csv")
 

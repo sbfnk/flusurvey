@@ -17,6 +17,7 @@
 ##' @author seb
 ##' @import data.table
 ##' @importFrom lubridate month interval years
+##' @importFrom plyr revalue
 ##' @export
 merge_data <- function(data, clean = c("remove.first", "remove.bad.symptom.dates", "remove.bad.health.score", "limit.season", "remove.postcodes", "n.reports", "unsuccessful.join", "only.symptoms"), min.reports = 3, ranges="sample", age.breaks=c(18,45,65))
 {

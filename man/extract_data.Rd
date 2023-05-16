@@ -15,7 +15,7 @@ extract_data(data, surveys = "all", years = "all", join = TRUE, ...)
 
 \item{join}{whether to join the data into one big data.table in the end}
 
-\item{...}{parameters to be passed to merge_data, especially 'clean' (see documentation of \code{\link{read_data}}, by default all cleaning will be performed, set 'clean' to NULL to get the raw data).}
+\item{...}{parameters to be passed to merge_data, especially 'clean' (see documentation of \code{\link{merge_data}}, by default all cleaning will be performed, set 'clean' to NULL to get the raw data).}
 }
 \value{
 a data.table (if \code{join} is TRUE) or a list of data.tables (if \code{join} is FALSE) with the data
