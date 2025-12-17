@@ -613,6 +613,7 @@ questions[["2019"]][["background"]] <-
   header_replace(questions[["2019"]][["background"]],
                  c("Q20"))
 
+questions[["2020"]] <- questions[["2019"]]
 
 
 options <-
@@ -662,3 +663,5 @@ options <-
          enclosed.indoor.space = c("0" = "none", "1" = "(0,30]_minutes", "2" = "(30,90]_minutes", "3" = "(90,240]_minutes", "4" = "(240,)_minutes"),
          furthest.travelled =  c("0" = "[0,1)_miles", "1" = "[1,5)_miles", "2" = "[5,10)_miles", "3" = "[10,30)_miles", "4" = "[30,100]_miles", "5" = "(100,)_miles"))
 
+save(questions, file = here::here("data", "questions.rda"))
+save(options, file = here::here("data", "options.rda"))
