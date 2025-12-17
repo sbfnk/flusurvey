@@ -1,8 +1,8 @@
-library('dplyr')
-library('magrittr')
-library('lubridate')
-library('brms')
-library('docopt')
+library("dplyr")
+library("magrittr")
+library("lubridate")
+library("brms")
+library("docopt")
 
 options(mc.cores = parallel::detectCores())
 rstan_options(auto_write = TRUE)
