@@ -16,7 +16,7 @@ categorical_to_single <- function(dt, var) {
     return(dt)
 }
 
-dt <- extract_data("flusurvey_raw_2010_2017.rds", years=2012:2013)
+dt <- extract_data("data/flusurvey_raw_2010_2018.rds", years=2012:2013)
 
 bouts <- bouts_of_illness(dt) %>%
     filter(!is.na(ili))
@@ -54,7 +54,8 @@ ili <- bouts %>%
            physical=(physical-mean(physical))/sd(physical),
            conversational=(conversational-mean(conversational))/sd(conversational))
 
-complete_ili <- ili[complete.cases(ili), ]
+complete <- complete.cases(ili)
+complete_ili <- ili[complete]
 
 complete_participants <-
     data.frame(participant_id=unique(complete_ili$participant_id)) %>%
@@ -64,6 +65,10 @@ complete_ili %<>%
     left_join(complete_participants) %>%
     select(-participant_id) %>%
     rename(participant_id=new_participant_id)
+
+complete_ili <- complete_ili |>
+  mutate(ili = as.integer(ili == "t")) |>
+  mutate(participant_id )
 
 random_model <- map2stan(
     alist(
@@ -89,7 +94,7 @@ individual_model <- map2stan(
     alist(
         ili ~ dbinom(1, p),
         logit(p) <- a[participant_id],
-        a[participant_id]~ dnorm(0, 1)
+        a[participant_id] ~ dnorm(0, 1)
     ), data=complete_ili %>% data.frame, cores=4, chains=4
 )
 
@@ -234,3 +239,10 @@ saveRDS(list(random=random_model,
              variate=variate_model,
              variate_individual=variate_individual_model),
         "ili_models.rds")
+
+ili_models <- readRDS("ili_models.rds")
+ct <- coeftab(ili_models$variate)
+pars <- grep("^b", rownames(ct@coefs), value = TRUE)
+png(paste0(type, "ili_model.png"))
+plot(ct, pars = pars, labels = "")
+dev.off()
