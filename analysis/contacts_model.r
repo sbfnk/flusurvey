@@ -3,6 +3,7 @@ library("magrittr")
 library("lubridate")
 library("brms")
 library("docopt")
+library("here")
 
 options(mc.cores = parallel::detectCores())
 rstan_options(auto_write = TRUE)
@@ -29,7 +30,7 @@ if (!interactive()) {
 type <- opts[["type"]]
 model <- opts[["model"]]
 
-contacts <- readRDS("res/contacts_health.rds")
+contacts <- readRDS(here("res", "contacts_health.rds"))
 
 dt_back_contacts <- contacts %>%
     mutate(season_month = month(date) - 6,
@@ -69,8 +70,8 @@ if (model=="random") {
   stop("Unknown model")
 }
 
-options[["formula"]] <- list(formula=as.formula(paste(contacts, formula, sep="~"))
+options[["formula"]] <- as.formula(paste("contacts", formula, sep = "~"))
 
 fit <- do.call(brm, options)
 
-saveRDS(fit, file.path("res", paste0(paste(type, model, sep="_"), ".rds"))
+saveRDS(fit, here("res", paste0(type, "_", model, ".rds")))
