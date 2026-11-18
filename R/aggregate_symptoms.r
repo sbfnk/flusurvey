@@ -32,17 +32,26 @@ aggregate_symptoms <- function(symptoms, ili.sudden.unknown = 1) {
   } else {
     dt[, suddenly := "t"]
   }
-  if (!("fever" %in% colnames(dt)) && "fever.temperature.range" %in% colnames(dt)) {
+  needs_fever <- !("fever" %in% colnames(dt)) &&
+    "fever.temperature.range" %in% colnames(dt)
+  if (needs_fever) {
     dt[, fever := as.integer(fever.temperature.range > 0)]
   }
 
   fever.symptoms <- intersect(c("fever", "fever.symptom"), colnames(dt))
-  systemic.symptoms <- intersect(c("tired", "weakness", "headache"), colnames(dt))
-  resp.symptoms <- intersect(c("sore.throat", "cough", "shortness.breath"), colnames(dt))
+  systemic.symptoms <- intersect(
+    c("tired", "weakness", "headache"),
+    colnames(dt)
+  )
+  resp.symptoms <- intersect(
+    c("sore.throat", "cough", "shortness.breath"),
+    colnames(dt)
+  )
   gi.symptoms <- intersect(c("vomiting", "diarrhoea"), colnames(dt))
 
-  if (length(c(fever.symptoms, systemic.symptoms)) > 0 &&
-    length(resp.symptoms) > 0) {
+  has_ili_columns <- length(c(fever.symptoms, systemic.symptoms)) > 0 &&
+    length(resp.symptoms) > 0
+  if (has_ili_columns) {
     dt[, fever.symptoms := apply(dt, 1, function(x) {
       any(x[c(fever.symptoms)] %in% c(1, "t"))
     })]
@@ -63,9 +72,10 @@ aggregate_symptoms <- function(symptoms, ili.sudden.unknown = 1) {
     dt[, ili := ifelse(ili, "t", "f")]
   }
 
-  if (length(fever.symptoms) > 0 &&
+  has_ili_fever_columns <- length(fever.symptoms) > 0 &&
     length(systemic.symptoms) > 0 &&
-    length(resp.symptoms) > 0) {
+    length(resp.symptoms) > 0
+  if (has_ili_fever_columns) {
     dt[, ili.fever := fever.symptoms == "t" & ili == "t"]
     dt[, ili.fever := ifelse(ili.fever, "t", "f")]
   }
@@ -83,5 +93,5 @@ aggregate_symptoms <- function(symptoms, ili.sudden.unknown = 1) {
     dt[, gi := ifelse(gi, "t", "f")]
   }
 
-  return(dt)
+  dt
 }

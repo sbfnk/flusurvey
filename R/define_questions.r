@@ -4,7 +4,7 @@ header_replace <- function(x, old_questions, new_questions) {
   if (!missing(new_questions)) {
     x <- append(x, new_questions, after = min(old_pos) - 1)
   }
-  return(x)
+  x
 }
 
 
@@ -589,7 +589,18 @@ questions[["2014"]][["background"]] <-
 questions[["2014"]][["background"]] <-
   header_replace(
     questions[["2014"]][["background"]],
-    c("Q10c_0", "Q10c_1", "Q10c_2", "Q10c_3", "Q10c_4", "Q10c_5", "Q10c_6", "Q10c_7", "Q10c_8", "Q10c_9"),
+    c(
+      "Q10c_0",
+      "Q10c_1",
+      "Q10c_2",
+      "Q10c_3",
+      "Q10c_4",
+      "Q10c_5",
+      "Q10c_6",
+      "Q10c_7",
+      "Q10c_8",
+      "Q10c_9"
+    ),
     c(
       Q10c_0 = "why.vaccine.riskgroup",
       Q10c_1 = "why.vaccine.protected",
@@ -627,7 +638,7 @@ questions[["2014"]][["background"]] <-
 questions[["2014"]][["background"]] <-
   header_replace(
     questions[["2014"]][["background"]],
-    c("Q15_4")
+    "Q15_4"
   )
 
 questions[["2015"]] <- questions[["2014"]]
@@ -662,7 +673,7 @@ questions[["2019"]] <- questions[["2018"]]
 questions[["2019"]][["background"]] <-
   header_replace(
     questions[["2019"]][["background"]],
-    c("Q20")
+    "Q20"
   )
 
 questions[["2020"]] <- questions[["2019"]]
@@ -673,21 +684,71 @@ options <-
     self = c("0" = "self", "1" = "household_member", "2" = "someone_else"),
     gender.2010 = c("1" = "male", "2" = "female"),
     gender = c("0" = "male", "1" = "female"),
-    main.activity = c("0" = "paid_employment_full_time", "1" = "paid_employment_part_time", "2" = "self_employed", "3" = "school", "4" = "home_maker", "5" = "unemployed", "6" = "long_term_leave", "7" = "retired", "8" = "other"),
+    main.activity = c(
+      "0" = "paid_employment_full_time",
+      "1" = "paid_employment_part_time",
+      "2" = "self_employed",
+      "3" = "school",
+      "4" = "home_maker",
+      "5" = "unemployed",
+      "6" = "long_term_leave",
+      "7" = "retired",
+      "8" = "other"
+    ),
     work.postcode.option = c("0" = "yes", "1" = "dont_know"),
-    ## work.postcode.option = c("0" = "yes", "1" = "dont_know", "2" = "none"),
-    occupation = c("0" = "professional", "1" = "office_worker", "2" = "retail", "3" = "skilled_manual", "4" = "other_manual", "5" = "other"),
-    children.school = c("0" = "none", "1" = "1", "2" = "2", "3" = "3", "4" = "4", "5" = "5", "6" = "(5,)"),
-    transport = c("0" = "walking", "1" = "bike", "2" = "motorbike", "3" = "car", "4" = "public_transport", "5" = "other"),
-    howlong.transport = c("0" = "none", "1" = "(0,30)_minutes", "2" = "[30,90)_minutes", "3" = "[90,360)_minutes", "4" = "(360,)_minutes"),
-    howoften.flulike = c("0" = "almost_never", "1" = "(0,2]_annually", "2" = "(2,5]_annually", "3" = "(5-10]_annually", "4" = "(10,)_annually", "5" = "dont_know"),
+    occupation = c(
+      "0" = "professional",
+      "1" = "office_worker",
+      "2" = "retail",
+      "3" = "skilled_manual",
+      "4" = "other_manual",
+      "5" = "other"
+    ),
+    children.school = c(
+      "0" = "none",
+      "1" = "1",
+      "2" = "2",
+      "3" = "3",
+      "4" = "4",
+      "5" = "5",
+      "6" = "(5,)"
+    ),
+    transport = c(
+      "0" = "walking",
+      "1" = "bike",
+      "2" = "motorbike",
+      "3" = "car",
+      "4" = "public_transport",
+      "5" = "other"
+    ),
+    howlong.transport = c(
+      "0" = "none",
+      "1" = "(0,30)_minutes",
+      "2" = "[30,90)_minutes",
+      "3" = "[90,360)_minutes",
+      "4" = "(360,)_minutes"
+    ),
+    howoften.flulike = c(
+      "0" = "almost_never",
+      "1" = "(0,2]_annually",
+      "2" = "(2,5]_annually",
+      "3" = "(5-10]_annually",
+      "4" = "(10,)_annually",
+      "5" = "dont_know"
+    ),
     vaccine.last.year.2010 = c("1" = "yes", "2" = "no"),
     vaccine.last.year = c("0" = "yes", "1" = "no", "2" = "dont_know"),
     vaccine.this.year = c("0" = "yes", "1" = "no", "2" = "dont_know"),
     date.vaccine.option = c("0" = "dont_know", "1" = "yes"),
     pregnant = c("0" = "yes", "1" = "no", "2" = "dont_know"),
     smoke.2010 = c("1" = "daily", "2" = "sometimes", "3" = "never"),
-    smoke = c("0" = "no", "1" = "occasionally", "2" = "(,10]_daily", "3" = "(10,)_daily", "4" = "dont_know"),
+    smoke = c(
+      "0" = "no",
+      "1" = "occasionally",
+      "2" = "(,10]_daily",
+      "3" = "(10,)_daily",
+      "4" = "dont_know"
+    ),
     smart.phone = c("0" = "yes", "1" = "no"),
     self.swabbing = c("0" = "yes", "1" = "no"),
     same = c("0" = "yes", "1" = "no", "2" = "dont_know"),
@@ -698,23 +759,152 @@ options <-
     fever.quickly = c("1" = "yes", "2" = "no", "3" = "dont_know"),
     fever.suddenly = c("0" = "yes", "1" = "no", "2" = "dont_know"),
     fever.temperature = c("0" = "yes", "1" = "no", "2" = "dont_know"),
-    fever.temperature.value = c("0" = "[,37)", "1" = "[37,37.5)", "2" = "[37.5,38)", "3" = "[38,39)", "4" = "[39,40)", "5" = "[40,)", "6" = "dont_know"),
-    visit.medical.service.howsoon.gp.receptionist = c("0" = "same_day", "1" = "1_day", "2" = "2_days", "3" = "3_days", "4" = "4_days", "5" = "[5,7]_days", "6" = "(7,)_days", "7" = "dont_know"),
-    visit.medical.service.howsoon.gp.doctor.nurse = c("0" = "same_day", "1" = "1_day", "2" = "2_days", "3" = "3_days", "4" = "4_days", "5" = "[5,7]_days", "6" = "(7,)_days", "7" = "dont_know"),
-    visit.medical.service.howsoon.nhs = c("0" = "same_day", "1" = "1_day", "2" = "2_days", "3" = "3_days", "4" = "4_days", "5" = "[5,7]_days", "6" = "(7,)_days", "7" = "dont_know"),
-    visit.medical.service.howsoon.other = c("0" = "same_day", "1" = "1_day", "2" = "2_days", "3" = "3_days", "4" = "4_days", "5" = "[5,7]_days", "6" = "(7,)_days", "7" = "dont_know"),
-    contact.medical.service.howsoon.gp.receptionist = c("0" = "same_day", "1" = "1_day", "2" = "2_days", "3" = "3_days", "4" = "4_days", "5" = "[5,7]_days", "6" = "(7,)_days", "7" = "dont_know"),
-    contact.medical.service.howsoon.gp.doctor.nurse = c("0" = "same_day", "1" = "1_day", "2" = "2_days", "3" = "3_days", "4" = "4_days", "5" = "[5,7]_days", "6" = "(7,)_days", "7" = "dont_know"),
-    contact.medical.service.howsoon.nhs = c("0" = "same.day", "1" = "1_day", "2" = "2_days", "3" = "3_days", "4" = "4_days", "5" = "[5,7]_days", "6" = "(7,)_days", "7" = "dont_know"),
-    contact.medical.service.howsoon.other = c("0" = "same_day", "1" = "1_day", "2" = "2_days", "3" = "3_days", "4" = "4_days", "5" = "[5,7]_days", "6" = "(7,)_days", "7" = "dont_know"),
-    howsoon.medication = c("0" = "same_day", "1" = "1_day", "2" = "2_days", "3" = "3_days", "4" = "4_days", "5" = "[5,7]_days", "6" = "(7,)_days", "7" = "dont_know"),
-    alter.routine = c("0" = "no", "1" = "yes_but_no_time_off", "2" = "yes_time_off"),
+    fever.temperature.value = c(
+      "0" = "[,37)",
+      "1" = "[37,37.5)",
+      "2" = "[37.5,38)",
+      "3" = "[38,39)",
+      "4" = "[39,40)",
+      "5" = "[40,)",
+      "6" = "dont_know"
+    ),
+    visit.medical.service.howsoon.gp.receptionist = c(
+      "0" = "same_day",
+      "1" = "1_day",
+      "2" = "2_days",
+      "3" = "3_days",
+      "4" = "4_days",
+      "5" = "[5,7]_days",
+      "6" = "(7,)_days",
+      "7" = "dont_know"
+    ),
+    visit.medical.service.howsoon.gp.doctor.nurse = c(
+      "0" = "same_day",
+      "1" = "1_day",
+      "2" = "2_days",
+      "3" = "3_days",
+      "4" = "4_days",
+      "5" = "[5,7]_days",
+      "6" = "(7,)_days",
+      "7" = "dont_know"
+    ),
+    visit.medical.service.howsoon.nhs = c(
+      "0" = "same_day",
+      "1" = "1_day",
+      "2" = "2_days",
+      "3" = "3_days",
+      "4" = "4_days",
+      "5" = "[5,7]_days",
+      "6" = "(7,)_days",
+      "7" = "dont_know"
+    ),
+    visit.medical.service.howsoon.other = c(
+      "0" = "same_day",
+      "1" = "1_day",
+      "2" = "2_days",
+      "3" = "3_days",
+      "4" = "4_days",
+      "5" = "[5,7]_days",
+      "6" = "(7,)_days",
+      "7" = "dont_know"
+    ),
+    contact.medical.service.howsoon.gp.receptionist = c(
+      "0" = "same_day",
+      "1" = "1_day",
+      "2" = "2_days",
+      "3" = "3_days",
+      "4" = "4_days",
+      "5" = "[5,7]_days",
+      "6" = "(7,)_days",
+      "7" = "dont_know"
+    ),
+    contact.medical.service.howsoon.gp.doctor.nurse = c(
+      "0" = "same_day",
+      "1" = "1_day",
+      "2" = "2_days",
+      "3" = "3_days",
+      "4" = "4_days",
+      "5" = "[5,7]_days",
+      "6" = "(7,)_days",
+      "7" = "dont_know"
+    ),
+    contact.medical.service.howsoon.nhs = c(
+      "0" = "same.day",
+      "1" = "1_day",
+      "2" = "2_days",
+      "3" = "3_days",
+      "4" = "4_days",
+      "5" = "[5,7]_days",
+      "6" = "(7,)_days",
+      "7" = "dont_know"
+    ),
+    contact.medical.service.howsoon.other = c(
+      "0" = "same_day",
+      "1" = "1_day",
+      "2" = "2_days",
+      "3" = "3_days",
+      "4" = "4_days",
+      "5" = "[5,7]_days",
+      "6" = "(7,)_days",
+      "7" = "dont_know"
+    ),
+    howsoon.medication = c(
+      "0" = "same_day",
+      "1" = "1_day",
+      "2" = "2_days",
+      "3" = "3_days",
+      "4" = "4_days",
+      "5" = "[5,7]_days",
+      "6" = "(7,)_days",
+      "7" = "dont_know"
+    ),
+    alter.routine = c(
+      "0" = "no",
+      "1" = "yes_but_no_time_off",
+      "2" = "yes_time_off"
+    ),
     still.altered = c("0" = "yes", "1" = "no", "3" = "other"),
-    howlong.altered = c("0" = "1_day", "1" = "2_days", "2" = "3_days", "3" = "4_days", "4" = "5_days", "5" = "(5,10]_days", "6" = "(10,15]_days", "7" = "(15,) days"),
-    what.do.you.think = c("0" = "ili", "1" = "common_cold", "2" = "allergy_hay_fever", "3" = "gastro", "4" = "other", "5" = "dont_know", "6" = "asthma"),
-    public.transport = c("0" = "none", "1" = "(0,30]_minutes", "2" = "(30,90]_minutes", "3" = "(90,240]_minutes", "4" = "(240,)_minutes"),
-    enclosed.indoor.space = c("0" = "none", "1" = "(0,30]_minutes", "2" = "(30,90]_minutes", "3" = "(90,240]_minutes", "4" = "(240,)_minutes"),
-    furthest.travelled = c("0" = "[0,1)_miles", "1" = "[1,5)_miles", "2" = "[5,10)_miles", "3" = "[10,30)_miles", "4" = "[30,100]_miles", "5" = "(100,)_miles")
+    howlong.altered = c(
+      "0" = "1_day",
+      "1" = "2_days",
+      "2" = "3_days",
+      "3" = "4_days",
+      "4" = "5_days",
+      "5" = "(5,10]_days",
+      "6" = "(10,15]_days",
+      "7" = "(15,) days"
+    ),
+    what.do.you.think = c(
+      "0" = "ili",
+      "1" = "common_cold",
+      "2" = "allergy_hay_fever",
+      "3" = "gastro",
+      "4" = "other",
+      "5" = "dont_know",
+      "6" = "asthma"
+    ),
+    public.transport = c(
+      "0" = "none",
+      "1" = "(0,30]_minutes",
+      "2" = "(30,90]_minutes",
+      "3" = "(90,240]_minutes",
+      "4" = "(240,)_minutes"
+    ),
+    enclosed.indoor.space = c(
+      "0" = "none",
+      "1" = "(0,30]_minutes",
+      "2" = "(30,90]_minutes",
+      "3" = "(90,240]_minutes",
+      "4" = "(240,)_minutes"
+    ),
+    furthest.travelled = c(
+      "0" = "[0,1)_miles",
+      "1" = "[1,5)_miles",
+      "2" = "[5,10)_miles",
+      "3" = "[10,30)_miles",
+      "4" = "[30,100]_miles",
+      "5" = "(100,)_miles"
+    )
   )
 
 save(questions, file = here::here("data", "questions.rda"))

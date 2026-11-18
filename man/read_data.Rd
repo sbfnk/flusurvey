@@ -7,7 +7,8 @@
 read_data(files, year, ...)
 }
 \arguments{
-\item{files}{a (named!) list of files. The names stand for the surveys (e.g., "symptom", "background", "contact", etc.)}
+\item{files}{a (named!) list of files. The names stand for the surveys
+(e.g., "symptom", "background", "contact", etc.)}
 
 \item{year}{the year from which the data come}
 
