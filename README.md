@@ -87,7 +87,7 @@ bouts <- bouts_of_illness(dt)
 
 ## Analysis scripts
 
-The scripts in `analysis/` were written for particular studies over several years. They read the combined data file, and the older ones refer to it by earlier names such as `flusurvey_raw_2010_2018.rds`. The most recently updated are the contact analyses: `contacts.R`, `contacts_health_analysis.R`, `contacts_model.r` and `ili_model.r`.
+The scripts in `analysis/` were written for particular studies over several years. They read the combined data file, which many of them refer to by earlier names such as `flusurvey_raw_2010_2018.rds`. The most recently updated are `contacts.R`, `contacts_health_analysis.R`, `contacts_model.r` and `ili_model.r`.
 
 ## Licence
 
