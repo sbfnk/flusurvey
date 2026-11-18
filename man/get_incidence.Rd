@@ -34,6 +34,11 @@ a data.table with the incidence
 \description{
 This calculates incidence according to a given column in the supplied data.
 }
+\examples{
+dt <- extract_data(simulated_data, years = 2013:2014)
+get_incidence(dt, incidence.columns = "ili", aggregation = "week")
+get_incidence(dt, by = "agegroup")
+}
 \author{
 seb
 }

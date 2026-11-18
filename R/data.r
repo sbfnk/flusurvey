@@ -1,0 +1,22 @@
+##' Simulated FluSurvey data
+##'
+##' A small simulated data set in the format that \code{\link{extract_data}}
+##' reads: a list with one element per season (named "2013" and "2014", for the
+##' 2012/13 and 2013/14 seasons), each a list of the "background", "contact" and
+##' "symptom" questionnaires as returned by \code{\link{read_data}}. There are
+##' around 300 participants per season, of whom about 70 per cent take part in
+##' both seasons.
+##'
+##' The data are not derived from any survey responses.
+##' \code{data-raw/simulated_data.r} generates them from the questionnaire
+##' definitions in \code{questions} and \code{options} alone, with a fixed
+##' random seed. The values are only plausible enough for the functions in this
+##' package to run on them. Do not use them to draw any conclusion about
+##' influenza-like illness.
+##'
+##' @format A named list of seasons, each a named list of
+##'   \code{\link[data.table]{data.table}}s
+##' @examples
+##' names(simulated_data)
+##' sapply(simulated_data[["2013"]], nrow)
+"simulated_data"

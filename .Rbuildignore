@@ -1,3 +1,4 @@
+^data-raw$
 ^\.github$
 ^\.lintr$
 ^codecov\.yml$

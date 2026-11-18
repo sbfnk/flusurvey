@@ -15,6 +15,13 @@
 ##' @return a data.table (if \code{join} is TRUE) or a list of data.tables (if
 ##' \code{join} is FALSE) with the data
 ##' @author seb
+##' @examples
+##' dt <- extract_data(simulated_data, years = 2013:2014)
+##' table(dt$season)
+##'
+##' ## without the contact questionnaire
+##' extract_data(simulated_data, years = 2013:2014,
+##'              surveys = c("background", "symptom"))
 ##' @import data.table
 ##' @export
 extract_data <- function(

@@ -28,6 +28,12 @@
 ##' at 0 years of age)
 ##' @return a rolling-joined data table
 ##' @author seb
+##' @examples
+##' dt <- merge_data(simulated_data[["2013"]])
+##' table(dt$ili)
+##'
+##' ## only remove each participant's first report
+##' merge_data(simulated_data[["2013"]], clean = "remove.first")
 ##' @import data.table
 ##' @importFrom lubridate interval years
 ##' @importFrom plyr revalue

@@ -9,6 +9,10 @@
 ##' in a week
 ##' @param min.N the minimum denominator, by default 1
 ##' @param by one or more variables by which to group
+##' @examples
+##' dt <- extract_data(simulated_data, years = 2013:2014)
+##' get_incidence(dt, incidence.columns = "ili", aggregation = "week")
+##' get_incidence(dt, by = "agegroup")
 ##' @import data.table
 ##' @importFrom lubridate floor_date
 ##' @importFrom stats as.formula
