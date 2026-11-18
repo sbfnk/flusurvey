@@ -5,10 +5,16 @@ Version: 1.0
 Date: 2015-10-27
 Author: Sebastian Funk
 Maintainer: Sebastian Funk <sebastian.funk@lshtm.ac.uk>
-Description: This contains scripts for extracting, cleaning and maniulating
-    flusurvey data. For more details, see http://flusurvey.org.uk
+Description: Functions for reading, cleaning and linking the questionnaire
+    responses of FluSurvey, the UK online cohort survey of influenza-like
+    illness, and for estimating incidence and episodes of illness from them.
 License: GPL-2
+URL: https://sbfnk.github.io/flusurvey/, https://github.com/sbfnk/flusurvey
+BugReports: https://github.com/sbfnk/flusurvey/issues
 Imports:
-    data.table
+    data.table,
+    here,
+    lubridate,
+    plyr
 LazyData: true
-RoxygenNote: 7.2.3
+Config/roxygen2/version: 8.0.0

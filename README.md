@@ -1,5 +1,10 @@
 # flusurvey
 
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/sbfnk/flusurvey/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/sbfnk/flusurvey/actions/workflows/R-CMD-check.yaml)
+[![codecov](https://codecov.io/gh/sbfnk/flusurvey/branch/main/graph/badge.svg)](https://app.codecov.io/gh/sbfnk/flusurvey)
+<!-- badges: end -->
+
 An R package for analysing data from FluSurvey, the UK online cohort survey of influenza-like illness. Participants fill in a background questionnaire when they join and a symptom questionnaire every week during the flu season. In some seasons they also reported their social contacts.
 
 The package takes the questionnaire responses as they were collected and returns one cleaned table with a row per weekly report, from which it estimates incidence and identifies episodes of illness. It is intended for anyone who holds FluSurvey responses and wants routine surveillance outputs or a consistent starting point for research.

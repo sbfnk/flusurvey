@@ -1,6 +1,7 @@
 ##' Aggregate symptoms in symptom table to work out ILI etc.
 ##'
-##' @param symptoms 
+##' @param symptoms a data table of symptom reports
+##' @param ili.sudden.unknown currently has no effect
 ##' @return a data table with added columns
 ##' @author seb
 ##' @import data.table

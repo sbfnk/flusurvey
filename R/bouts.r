@@ -2,6 +2,7 @@
 ##'
 ##' @param x the data to extract bouts from
 ##' @param symptomatic.only whether to only include symptomatic periods
+##' @param as.data.frame currently has no effect
 ##' @return a data table of bouts of illness
 ##' @author seb
 ##' @import data.table
