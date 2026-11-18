@@ -1,8 +1,8 @@
-## These tests record the output as it stands, so that a change to it shows up
-## as a changed snapshot in review. A full serialised copy of each table runs to
-## many megabytes, so the snapshot holds the shape, the classes and one hash per
-## column instead: a change names the columns it touched. Contact ranges are
-## sampled at random, hence the seed before every extraction.
+## These tests record the current output, so a change to it appears as a changed
+## snapshot in review. A full serialised copy of each table would take many
+## megabytes, so the snapshot stores the dimensions, the column classes and one
+## hash per column. A change then shows which columns it touched. Contact ranges
+## are sampled at random, so we set the seed before every extraction.
 extract_seeded <- function(...) {
   set.seed(20150101)
   extract_data(simulated_data, years = 2013:2014, ...)
