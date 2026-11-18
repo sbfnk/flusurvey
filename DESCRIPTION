@@ -10,5 +10,7 @@ Description: This contains scripts for extracting, cleaning and maniulating
 License: GPL-2
 Imports:
     data.table
+Suggests:
+    testthat
 LazyData: true
 RoxygenNote: 7.2.3

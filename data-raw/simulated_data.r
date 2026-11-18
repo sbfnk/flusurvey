@@ -1,0 +1,560 @@
+## Simulated FluSurvey data for examples and tests.
+##
+## The script uses only the questionnaire definitions in the package
+## (`questions` and `options`) and the postcode lookup tables. It has no access
+## to survey responses and is written without reference to any summary of
+## them: every distribution below is an arbitrary choice that is merely
+## plausible enough for extract_data(), get_incidence() and bouts_of_illness()
+## to return sensible-looking results.
+##
+## The answers are first written as one CSV file per questionnaire and season
+## with the question codes as column names, which is the form read_data()
+## expects. read_data() then turns them into the list that extract_data() takes.
+##
+## Run from the root of the repository.
+
+library("data.table")
+pkgload::load_all(here::here(), quiet = TRUE)
+
+set.seed(20240101)
+
+seasons <- c(2013L, 2014L)
+n_participants <- 320L
+return_probability <- 0.7
+n_new_participants <- 80L
+
+hh_groups <- c("0.4", "5.18", "19.44", "45.64", "65+")
+contact_age_groups <- c("0-4", "5-18", "19-44", "45-64", "65+")
+
+## ---- helpers ---------------------------------------------------------------
+
+pick <- function(n, values, prob = NULL) {
+  values[sample.int(length(values), n, replace = TRUE, prob = prob)]
+}
+
+## checkbox questions: one 0/1 column per answer, at least one ticked. If
+## `exclusive` is given, that answer (e.g. "none") excludes all the others.
+checkboxes <- function(n, probs, exclusive = NULL) {
+  m <- matrix(as.integer(runif(n * length(probs)) < rep(probs, each = n)),
+              nrow = n)
+  if (!is.null(exclusive)) {
+    m[rowSums(m) == 0, exclusive] <- 1L
+    m[m[, exclusive] == 1L, -exclusive] <- 0L
+  } else {
+    none <- which(rowSums(m) == 0)
+    m[cbind(none, sample.int(ncol(m), length(none), replace = TRUE))] <- 1L
+  }
+  colnames(m) <- names(probs)
+  as.data.table(m)
+}
+
+date_string <- function(x) format(x, "%Y-%m-%d")
+
+## NA where a question is not asked
+when <- function(condition, value) ifelse(condition, value, NA)
+
+how_soon <- function() {
+  sample(0:7, 1, prob = c(0.3, 0.25, 0.15, 0.1, 0.05, 0.05, 0.05, 0.05))
+}
+
+## ---- participants ----------------------------------------------------------
+
+make_people <- function(ids) {
+  n <- length(ids)
+  group <- pick(n, c("child", "adult", "older"), c(0.15, 0.7, 0.15))
+  age <- integer(n)
+  age[group == "child"] <- sample(0:17, sum(group == "child"), replace = TRUE)
+  age[group == "adult"] <- sample(18:64, sum(group == "adult"), replace = TRUE)
+  age[group == "older"] <- sample(65:85, sum(group == "older"), replace = TRUE)
+  birth <- as.Date("2013-01-01") - age * 365.25 -
+    sample(0:364, n, replace = TRUE)
+
+  ## postcode districts that are in both lookup tables
+  postcodes <- intersect(as.character(urban_rural$postcode),
+                         as.character(regions$postcode))
+
+  hh_lambda <- list(
+    child = c(0.5, 0.9, 1.2, 0.3, 0.1),
+    adult = c(0.3, 0.5, 0.8, 0.4, 0.15),
+    older = c(0.05, 0.1, 0.3, 0.6, 0.5)
+  )
+  household <- t(vapply(group, function(g) rpois(5, hh_lambda[[g]]),
+                        integer(5), USE.NAMES = FALSE))
+
+  people <- data.table(
+    global_id = sprintf("sim%04d", ids),
+    age = age,
+    birthmonth = format(birth, "%Y-%m"),
+    gender = sample(0:1, n, replace = TRUE),
+    postcode = pick(n, postcodes),
+    work.postcode = pick(n, postcodes),
+    main.activity = ifelse(
+      age < 18, 3L,
+      ifelse(age < 65,
+             pick(n, c(0L, 1L, 2L, 4L, 5L, 8L),
+                  c(0.5, 0.2, 0.1, 0.07, 0.07, 0.06)),
+             7L)
+    ),
+    education = ifelse(age < 18, 5L, pick(n, 0:4, c(0.05, 0.25, 0.2, 0.3, 0.2))),
+    susceptibility = rgamma(n, shape = 4, rate = 4),
+    baseline.health = pmin(100, round(rnorm(n, 88, 6))),
+    vaccine.propensity = runif(n)
+  )
+  for (j in seq_along(hh_groups)) {
+    people[[paste0("nb.household.", hh_groups[j])]] <- household[, j]
+  }
+  people
+}
+
+## ---- background questionnaire ----------------------------------------------
+
+make_background <- function(people, join_date, season) {
+  n <- nrow(people)
+  working <- people$main.activity %in% c(0, 1, 2)
+  vaccinated <-
+    people$vaccine.propensity < ifelse(people$age >= 65, 0.7, 0.25)
+  vacc_reason <- checkboxes(
+    n, c(riskgroup = 0.3, protected = 0.5, protect.others = 0.3,
+         given.at.school = 0.05, doctor = 0.2, work.recommended = 0.15,
+         convenient = 0.2, free = 0.3, nomiss.work = 0.1, always = 0.2,
+         other = 0.05)
+  )
+  no_vacc_reason <- checkboxes(
+    n, c(notyet = 0.1, notoffered = 0.15, norisk = 0.3, natural = 0.1,
+         noteffective = 0.1, minor = 0.15, unlikely = 0.1, cause = 0.03,
+         side.effects = 0.05, dont.like = 0.1, unavailable = 0.05,
+         not.free = 0.05, no.reason = 0.1, doctor = 0.02, other = 0.05)
+  )
+  checks <- list(
+    frequent.contact = checkboxes(
+      n, c(children = 0.3, elderly = 0.2, patients = 0.1, people = 0.3,
+           none = 0.3), exclusive = 5),
+    risk = checkboxes(
+      n, c(none = 0.7, asthma = 0.1, diabetes = 0.04, lung = 0.02,
+           heart = 0.04, kidney = 0.01, immune = 0.02), exclusive = 1),
+    allergy = checkboxes(
+      n, c(hayfever = 0.2, dust = 0.1, animals = 0.08, other = 0.05,
+           none = 0.6), exclusive = 5),
+    diet = checkboxes(
+      n, c(none = 0.8, vegetarian = 0.1, vegan = 0.02, `low-calorie` = 0.05,
+           other = 0.03), exclusive = 1),
+    pets = checkboxes(
+      n, c(none = 0.5, dogs = 0.25, cats = 0.25, birds = 0.03, other = 0.07),
+      exclusive = 1),
+    howhear = checkboxes(
+      n, c(radio.tv = 0.2, paper.magazine = 0.15, internet = 0.3,
+           poster = 0.03, school.work = 0.1, bsa = 0.05, family.friends = 0.2,
+           other = 0.05))
+  )
+  education_levels <- c("no.education", "education.gcse", "education.alevels",
+                        "education.bsc", "education.msc", "education.stillin")
+  pregnant <- when(people$gender == 1 & people$age >= 18 & people$age < 45,
+                   pick(n, 0:2, c(0.12, 0.86, 0.02)))
+
+  res <- data.table(
+    global_id = people$global_id,
+    date = join_date,
+    self = pick(n, 0:2, c(0.85, 0.1, 0.05)),
+    gender = people$gender,
+    birthmonth = people$birthmonth,
+    postcode = people$postcode,
+    main.activity = people$main.activity,
+    work.postcode.option = when(working, 0L),
+    work.postcode = when(working, people$work.postcode),
+    occupation = when(working, pick(n, 0:5, c(0.3, 0.25, 0.1, 0.1, 0.1, 0.15))),
+    education = people$education,
+    children.school = pick(n, 0:6, c(0.6, 0.15, 0.12, 0.06, 0.03, 0.02, 0.02)),
+    transport = pick(n, 0:5, c(0.15, 0.05, 0.02, 0.45, 0.28, 0.05)),
+    howlong.transport = pick(n, 0:4, c(0.2, 0.3, 0.3, 0.15, 0.05)),
+    howoften.flulike = pick(n, 0:5, c(0.2, 0.4, 0.2, 0.05, 0.02, 0.13)),
+    vaccine.last.year = pick(n, 0:2, c(0.3, 0.65, 0.05)),
+    vaccine.this.year = ifelse(vaccinated, 0L, 1L),
+    date.vaccine.option = when(vaccinated, pick(n, 0:1, c(0.2, 0.8))),
+    date.vaccine = when(vaccinated,
+                        date_string(as.Date(paste0(season - 1, "-09-15")) +
+                                      sample(0:40, n, replace = TRUE))),
+    smoke = pick(n, 0:4, c(0.75, 0.08, 0.1, 0.05, 0.02)),
+    pregnant = pregnant,
+    pregnant.trimester = when(!is.na(pregnant) & pregnant == 0,
+                              sample(0:2, n, replace = TRUE)),
+    howhear.who = pick(n, 0:3),
+    activity.vigorous = pick(n, 0:3),
+    activity.moderate = pick(n, 0:3),
+    activity.winter = pick(n, 0:3)
+  )
+
+  for (group in hh_groups) {
+    nb <- people[[paste0("nb.household.", group)]]
+    res[[paste0("household.", group)]] <- as.integer(nb > 0)
+    res[[paste0("nb.household.", group)]] <- ifelse(nb > 0, nb, NA)
+  }
+  for (j in seq_along(education_levels)) {
+    res[[education_levels[j]]] <- as.integer(people$education == j - 1L)
+  }
+  for (prefix in names(checks)) {
+    for (nm in names(checks[[prefix]])) {
+      res[[paste(prefix, nm, sep = ".")]] <- checks[[prefix]][[nm]]
+    }
+  }
+  for (nm in names(vacc_reason)) {
+    res[[paste0("why.vaccine.", nm)]] <- when(vaccinated, vacc_reason[[nm]])
+  }
+  for (nm in names(no_vacc_reason)) {
+    res[[paste0("why.not.vaccine.", nm)]] <-
+      when(!vaccinated, no_vacc_reason[[nm]])
+  }
+  res
+}
+
+## ---- infections and symptom reports ----------------------------------------
+
+## Episodes of three kinds (influenza-like, common cold, gastrointestinal) over
+## the season. Influenza-like episodes follow an epidemic curve that peaks at a
+## different time in each season; the others occur at a constant rate.
+simulate_episodes <- function(days, peak, age, susceptibility) {
+  curve <- dnorm(as.numeric(days - peak), sd = 18) / dnorm(0, sd = 18)
+  child <- if (age < 18) 2 else 1
+  p_ili <- 0.007 * curve * susceptibility * child
+  p_cold <- 0.0015 * child
+  p_gi <- 0.0007
+  episodes <- list()
+  d <- 1L
+  while (d <= length(days)) {
+    u <- runif(1)
+    type <- NA_character_
+    if (u < p_ili[d]) {
+      type <- "ili"
+    } else if (u < p_ili[d] + p_cold) {
+      type <- "cold"
+    } else if (u < p_ili[d] + p_cold + p_gi) {
+      type <- "gi"
+    }
+    if (is.na(type)) {
+      d <- d + 1L
+      next
+    }
+    duration <- switch(type, ili = sample(4:10, 1), cold = sample(3:8, 1),
+                       gi = sample(1:4, 1))
+    episodes[[length(episodes) + 1L]] <-
+      list(type = type, start = days[d], end = days[d] + duration - 1L)
+    d <- d + duration + 1L
+  }
+  episodes
+}
+
+symptom_probabilities <- list(
+  ili = c(fever = 0.65, chills = 0.5, blocked.runny.nose = 0.5, sneezing = 0.3,
+          sore.throat = 0.6, cough = 0.85, shortness.breath = 0.25,
+          headache = 0.6, muscle.and.or.joint.pain = 0.6, chest.pain = 0.15,
+          tired = 0.8, loss.appetite = 0.5, phlegm = 0.35, watery.eyes = 0.2,
+          nausea = 0.1, vomiting = 0.03, diarrhoea = 0.05, stomach.ache = 0.05,
+          other.symptoms = 0.05),
+  cold = c(fever = 0.05, chills = 0.1, blocked.runny.nose = 0.9, sneezing = 0.7,
+           sore.throat = 0.6, cough = 0.5, shortness.breath = 0.03,
+           headache = 0.25, muscle.and.or.joint.pain = 0.15, chest.pain = 0.03,
+           tired = 0.3, loss.appetite = 0.1, phlegm = 0.3, watery.eyes = 0.3,
+           nausea = 0.02, vomiting = 0, diarrhoea = 0.02, stomach.ache = 0.02,
+           other.symptoms = 0.05),
+  gi = c(fever = 0.1, chills = 0.1, blocked.runny.nose = 0, sneezing = 0,
+         sore.throat = 0, cough = 0.02, shortness.breath = 0,
+         headache = 0.3, muscle.and.or.joint.pain = 0.2, chest.pain = 0,
+         tired = 0.5, loss.appetite = 0.6, phlegm = 0, watery.eyes = 0,
+         nausea = 0.8, vomiting = 0.7, diarrhoea = 0.8, stomach.ache = 0.7,
+         other.symptoms = 0.05)
+)
+symptom_names <- names(symptom_probabilities$ili)
+
+draw_symptoms <- function(type) {
+  p <- symptom_probabilities[[type]]
+  s <- as.integer(runif(length(p)) < p)
+  names(s) <- names(p)
+  ## an episode always involves at least one symptom
+  if (sum(s) == 0) s[which.max(p)] <- 1L
+  s
+}
+
+## Weekly report dates for one participant: some weeks are missed and
+## participants drop out at random.
+make_report_dates <- function(join_date, end_date) {
+  dates <- as.Date(character())
+  d <- join_date
+  while (d <= end_date) {
+    if (length(dates) == 0 || runif(1) > 0.1) dates <- c(dates, d)
+    if (runif(1) > 0.94) break
+    d <- d + 7L + sample(c(-1L, 0L, 1L), 1, prob = c(0.15, 0.7, 0.15))
+  }
+  unique(dates)
+}
+
+## The answers to the questions that are only asked at the first report of an
+## episode of symptoms
+first_report_answers <- function(row, e, profile) {
+  known_start <- runif(1) < 0.85
+  row$symptoms.start.option <- if (known_start) 0L else 1L
+  if (known_start) row$symptoms.start.date <- date_string(e$start)
+  sudden <- c(ili = 0.8, cold = 0.3, gi = 0.6)[[e$type]]
+  row$symptoms.suddenly <- if (runif(1) < sudden) 0L else 1L
+  if (profile[["fever"]] == 1L) {
+    row$fever.start.option <- 1L
+    row$fever.start.date <- date_string(e$start + sample(0:1, 1))
+    row$fever.suddenly <- if (runif(1) < 0.8) 0L else 1L
+    row$fever.temperature <- pick(1, 0:2, c(0.6, 0.35, 0.05))
+    if (row$fever.temperature == 0L) {
+      row$fever.temperature.value <-
+        pick(1, 1:5, c(0.1, 0.25, 0.45, 0.15, 0.05))
+    }
+  }
+
+  visit <- runif(1) < c(ili = 0.3, cold = 0.1, gi = 0.15)[[e$type]]
+  row$visit.medical.service.no <- as.integer(!visit)
+  row$visit.medical.service.gp <- as.integer(visit && runif(1) < 0.8)
+  row$visit.medical.service.ae <- as.integer(visit && runif(1) < 0.1)
+  row$visit.medical.service.hospital <- as.integer(visit && runif(1) < 0.05)
+  row$visit.medical.service.other <- as.integer(visit && runif(1) < 0.05)
+  row$visit.medical.service.appointment <- as.integer(visit && runif(1) < 0.3)
+  if (visit) {
+    row$visit.medical.service.howsoon.gp.receptionist <- how_soon()
+    row$visit.medical.service.howsoon.gp.doctor.nurse <- how_soon()
+    row$visit.medical.service.howsoon.nhs <- how_soon()
+    row$visit.medical.service.howsoon.other <- how_soon()
+  }
+  contact <- !visit && runif(1) < 0.15
+  row$contact.medical.service.no <- as.integer(!(visit || contact))
+  row$contact.medical.service.gp.receptionist <-
+    as.integer(contact && runif(1) < 0.4)
+  row$contact.medical.service.gp.doctor <- as.integer(contact && runif(1) < 0.3)
+  row$contact.medical.service.nhs <- as.integer(contact && runif(1) < 0.3)
+  row$contact.medical.service.npfs <- as.integer(contact && runif(1) < 0.1)
+  row$contact.medical.service.other <- as.integer(contact && runif(1) < 0.1)
+  if (contact) {
+    row$contact.medical.service.howsoon.gp.receptionist <- how_soon()
+    row$contact.medical.service.howsoon.gp.doctor.nurse <- how_soon()
+    row$contact.medical.service.howsoon.nhs <- how_soon()
+    row$contact.medical.service.howsoon.other <- how_soon()
+  }
+
+  meds <- runif(5) < c(0.6, 0.35, 0.05, 0.06, 0.07)
+  row$no.medication <- as.integer(!any(meds))
+  row$medication.painkillers <- as.integer(meds[1])
+  row$medication.cough <- as.integer(meds[2])
+  row$medication.antiviral <- as.integer(meds[3])
+  row$medication.antibiotic <- as.integer(meds[4])
+  row$medication.other <- as.integer(meds[5])
+  row$medication.dontknow <- as.integer(runif(1) < 0.02)
+  if (any(meds)) row$medication.howsoon <- how_soon()
+  row
+}
+
+make_symptom_rows <- function(person, dates, episodes) {
+  rows <- vector("list", length(dates))
+  current <- 0L
+  for (i in seq_along(dates)) {
+    d <- dates[i]
+    ## symptoms since the previous report (or today, for the first)
+    prev <- if (i == 1L) d else dates[i - 1L]
+    ep <- 0L
+    for (k in seq_along(episodes)) {
+      if (episodes[[k]]$start <= d && episodes[[k]]$end >= prev) {
+        ep <- k
+        break
+      }
+    }
+    row <- list(global_id = person$global_id, date = d)
+    row[symptom_names] <- 0L
+    health <- person$baseline.health + round(rnorm(1, 0, 3))
+    if (ep == 0L) {
+      row$no.symptoms <- 1L
+      current <- 0L
+    } else {
+      e <- episodes[[ep]]
+      first <- ep != current
+      current <- ep
+      row$no.symptoms <- 0L
+      if (first) {
+        episodes[[ep]]$profile <- draw_symptoms(e$type)
+      }
+      profile <- episodes[[ep]]$profile
+      row[names(profile)] <- as.list(profile)
+      row$same <- if (first) 1L else 0L
+      if (first) row <- first_report_answers(row, e, profile)
+
+      if (e$end <= d) {
+        row$symptoms.end.option <- 0L
+        row$symptoms.end.date <- date_string(e$end)
+      } else {
+        row$symptoms.end.option <- if (runif(1) < 0.8) 2L else 1L
+      }
+      ## occasional start dates after the report, for the cleaning to deal with
+      if (first && runif(1) < 0.02) {
+        row$symptoms.start.option <- 0L
+        row$symptoms.start.date <- date_string(d + sample(1:5, 1))
+      }
+
+      health <- health - round(runif(1, 10, 45))
+      row$alter.routine <- pick(1, 0:2, c(0.35, 0.3, 0.35))
+      if (row$alter.routine > 0L) {
+        row$still.altered <- if (e$end <= d) 1L else 0L
+        row$howlong.altered <-
+          sample(0:7, 1, prob = c(0.2, 0.2, 0.2, 0.1, 0.1, 0.1, 0.07, 0.03))
+      }
+      row$what.do.you.think <- switch(
+        e$type,
+        ili = pick(1, c(0L, 1L, 5L), c(0.6, 0.3, 0.1)),
+        cold = pick(1, c(1L, 2L, 5L, 0L), c(0.7, 0.1, 0.1, 0.1)),
+        gi = pick(1, c(3L, 4L, 5L), c(0.8, 0.1, 0.1))
+      )
+    }
+    row$health.score <- as.integer(max(0, min(100, health)))
+    rows[[i]] <- row
+  }
+  rbindlist(rows, fill = TRUE)
+}
+
+## ---- contact questionnaire ---------------------------------------------------
+
+make_contact_rows <- function(person, dates, background_row) {
+  hh <- unlist(background_row[, paste0("nb.household.", hh_groups),
+                              with = FALSE])
+  hh[is.na(hh)] <- 0
+  works <- person$main.activity %in% c(0, 1, 2) || person$age < 18
+  group_weights <- c(0.1, 0.2, 0.4, 0.2, 0.1)
+  settings <- c("home", "work", "other")
+  rows <- vector("list", length(dates))
+  for (i in seq_along(dates)) {
+    row <- list(global_id = person$global_id, date = dates[i])
+    for (j in seq_along(contact_age_groups)) {
+      conversational <- c(
+        home = rpois(1, hh[[j]] + 0.5),
+        work = rpois(1, (if (works) 6 else 0.5) * group_weights[j] + 0.5),
+        other = rpois(1, 3 * group_weights[j] + 0.5)
+      )
+      physical <- rbinom(3, conversational, 0.5)
+      for (s in seq_along(settings)) {
+        values <- list(conversational = conversational[[s]],
+                       physical = physical[s])
+        for (type in names(values)) {
+          value <- values[[type]]
+          ## large numbers are sometimes given as a range
+          if (value >= 5 && runif(1) < 0.3) {
+            value <- paste0(value, "-", value + sample(2:5, 1))
+          }
+          row[[paste(type, settings[s], contact_age_groups[j], sep = ".")]] <-
+            value
+        }
+      }
+    }
+    row$public.transport <- pick(1, 0:4, c(0.5, 0.2, 0.15, 0.1, 0.05))
+    row$enclosed.indoor.space <- pick(1, 0:4, c(0.3, 0.2, 0.2, 0.2, 0.1))
+    row$furthest.travelled <- pick(1, 0:5, c(0.2, 0.2, 0.2, 0.2, 0.15, 0.05))
+    rows[[i]] <- row
+  }
+  rbindlist(rows, fill = TRUE)
+}
+
+## ---- one season ----------------------------------------------------------------
+
+simulate_season <- function(people, season) {
+  start <- as.Date(paste0(season - 1, "-11-01"))
+  end <- as.Date(paste0(season, "-04-10"))
+  days <- seq(start, end, by = "day")
+  peak <- if (season == 2013L) as.Date("2013-01-06") else as.Date("2014-02-16")
+
+  n <- nrow(people)
+  ## Many participants join on the day the season is launched, and the rest
+  ## spread over the following weeks. merge_data() takes the date with the most
+  ## reports to define the season and fails if two dates tie, so the launch day
+  ## has to be the clear maximum.
+  join_dates <- start + 4L + ifelse(
+    runif(n) < 0.3, 0L,
+    ifelse(runif(n) < 0.7, sample(1:20, n, replace = TRUE),
+           sample(21:100, n, replace = TRUE))
+  )
+
+  background <- make_background(people, join_dates, season)
+
+  symptom <- vector("list", n)
+  contact <- vector("list", n)
+  for (i in seq_len(n)) {
+    person <- people[i]
+    dates <- make_report_dates(join_dates[i], end)
+    episodes <- simulate_episodes(days, peak, person$age, person$susceptibility)
+    symptom[[i]] <- make_symptom_rows(person, dates, episodes)
+    ## contacts are reported at the first two reports and now and again later
+    keep <- union(seq_len(min(2L, length(dates))),
+                  which(runif(length(dates)) < 0.15))
+    contact[[i]] <- make_contact_rows(person, dates[sort(keep)], background[i])
+  }
+
+  ## the order matters: merge_data() joins the last questionnaire onto the
+  ## earlier ones, so the symptom reports must come last
+  list(background = background,
+       contact = rbindlist(contact, fill = TRUE),
+       symptom = rbindlist(symptom, fill = TRUE))
+}
+
+## ---- write answers as CSV with question codes, then read them back -----------
+
+write_raw <- function(tables, season, dir) {
+  files <- list()
+  for (survey in names(tables)) {
+    dt <- copy(tables[[survey]])
+    seconds <- sample((8 * 3600):(21 * 3600 - 1), nrow(dt), replace = TRUE)
+    dt[, timestamp := format(as.POSIXct(date) + seconds,
+                             "%Y-%m-%d %H:%M:%S", tz = "UTC")]
+    dt[, date := NULL]
+    dt[, id := seq_len(.N)]
+
+    ## the question codes are the column names in the files read_data() expects
+    codes <- questions[[as.character(season)]][[survey]]
+    missing <- setdiff(codes, colnames(dt))
+    if (length(missing) > 0) {
+      stop("No simulated answers for: ", paste(missing, collapse = ", "),
+           " (", survey, ", ", season, ")")
+    }
+    ## read_data() drops columns without any answers and then cannot rename them
+    empty <- codes[vapply(codes, function(x) all(is.na(dt[[x]])), TRUE)]
+    if (length(empty) > 0) {
+      stop("No answers at all for: ", paste(empty, collapse = ", "),
+           " (", survey, ", ", season, ")")
+    }
+    out <- dt[, c("id", "global_id", "timestamp", codes), with = FALSE]
+    setnames(out, codes, names(codes))
+    ## read_data() turns columns that only hold 0 and 1 into factors
+    ## ("f"/"t"), which is wrong for counts
+    for (x in intersect(c(grep("^nb\\.", codes, value = TRUE),
+                          grep("^(conversational|physical)\\.", codes,
+                               value = TRUE)),
+                        codes)) {
+      values <- unique(na.omit(out[[names(codes)[codes == x]]]))
+      if (length(setdiff(values, c(0, 1))) == 0) {
+        stop("Counts in '", x, "' are only 0 and 1 (", survey, ", ", season, ")")
+      }
+    }
+    file <- file.path(dir, paste0(survey, "_", season - 2000, ".csv"))
+    write.csv(out, file, row.names = FALSE, na = "")
+    files[[survey]] <- file
+  }
+  files
+}
+
+dir <- tempfile("flusurvey_simulated")
+dir.create(dir)
+
+people <- make_people(seq_len(n_participants))
+next_id <- n_participants
+simulated_data <- list()
+for (season in seasons) {
+  tables <- simulate_season(people, season)
+  files <- write_raw(tables, season, dir)
+  simulated_data[[as.character(season)]] <-
+    read_data(files = files, year = season)
+
+  ## some participants return the next season, and some are new
+  returning <- people[runif(nrow(people)) < return_probability]
+  new <- make_people(next_id + seq_len(n_new_participants))
+  next_id <- next_id + n_new_participants
+  people <- rbind(returning, new)
+}
+
+save(simulated_data, file = here::here("data", "simulated_data.rda"),
+     compress = "xz")

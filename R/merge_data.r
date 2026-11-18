@@ -15,6 +15,12 @@
 ##' @param age.breaks a vector of limits of age groups (first age group starts at 0 years of age)
 ##' @return a rolling-joined data table
 ##' @author seb
+##' @examples
+##' dt <- merge_data(simulated_data[["2013"]])
+##' table(dt$ili)
+##'
+##' ## only remove each participant's first report
+##' merge_data(simulated_data[["2013"]], clean = "remove.first")
 ##' @import data.table
 ##' @importFrom lubridate month interval years
 ##' @importFrom plyr revalue

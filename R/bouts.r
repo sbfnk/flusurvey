@@ -4,6 +4,10 @@
 ##' @param symptomatic.only whether to only include symptomatic periods
 ##' @return a data table of bouts of illness
 ##' @author seb
+##' @examples
+##' dt <- extract_data(simulated_data, years = 2013:2014)
+##' bouts <- bouts_of_illness(dt)
+##' head(as.data.frame(bouts)[, c("participant_id", "season", "symptoms.start.date", "symptoms.end.date")])
 ##' @import data.table
 ##' @export
 bouts_of_illness <- function(x, symptomatic.only=TRUE, as.data.frame=TRUE)

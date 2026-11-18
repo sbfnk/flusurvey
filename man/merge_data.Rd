@@ -39,6 +39,13 @@ a rolling-joined data table
 \description{
 Clean and merge flusurvey data tables
 }
+\examples{
+dt <- merge_data(simulated_data[["2013"]])
+table(dt$ili)
+
+## only remove each participant's first report
+merge_data(simulated_data[["2013"]], clean = "remove.first")
+}
 \author{
 seb
 }

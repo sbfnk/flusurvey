@@ -23,6 +23,14 @@ a data.table (if \code{join} is TRUE) or a list of data.tables (if \code{join} i
 \description{
 This extracts flusurvey data for a given number of surveys and years (all by default).
 }
+\examples{
+dt <- extract_data(simulated_data, years = 2013:2014)
+table(dt$season)
+
+## without the contact questionnaire
+extract_data(simulated_data, years = 2013:2014,
+             surveys = c("background", "symptom"))
+}
 \author{
 seb
 }

@@ -8,6 +8,13 @@
 ##' @param ... parameters to be passed to merge_data, especially 'clean' (see documentation of \code{\link{merge_data}}, by default all cleaning will be performed, set 'clean' to NULL to get the raw data).
 ##' @return a data.table (if \code{join} is TRUE) or a list of data.tables (if \code{join} is FALSE) with the data
 ##' @author seb
+##' @examples
+##' dt <- extract_data(simulated_data, years = 2013:2014)
+##' table(dt$season)
+##'
+##' ## without the contact questionnaire
+##' extract_data(simulated_data, years = 2013:2014,
+##'              surveys = c("background", "symptom"))
 ##' @import data.table
 ##' @export
 extract_data <- function(data, surveys = "all", years = "all", join = TRUE, ...)

@@ -17,6 +17,11 @@ a data table of bouts of illness
 \description{
 Extract bouts of illness from a flusurvey data table
 }
+\examples{
+dt <- extract_data(simulated_data, years = 2013:2014)
+bouts <- bouts_of_illness(dt)
+head(as.data.frame(bouts)[, c("participant_id", "season", "symptoms.start.date", "symptoms.end.date")])
+}
 \author{
 seb
 }
