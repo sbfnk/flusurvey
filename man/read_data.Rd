@@ -7,7 +7,8 @@
 read_data(files, year, ...)
 }
 \arguments{
-\item{files}{a (named!) list of files. The names stand for the surveys (e.g., "symptom", "background", "contact", etc.)}
+\item{files}{a (named!) list of files. The names stand for the surveys
+(e.g., "symptom", "background", "contact", etc.)}
 
 \item{year}{the year from which the data come}
 
@@ -21,7 +22,7 @@ This reads different surveys and returns a list of data tables
 containing the surveys. It does minimal cleaning and conversion
 into R data formats. The csv files that should be provided can be
 obtained via SQL dump,  e.g.
-\copy pollster_results_intake to 'filename.csv' csv header
+\\copy pollster_results_intake to 'filename.csv' csv header
 }
 \details{
 and similarly for weekly surveys

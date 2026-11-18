@@ -1,0 +1,23 @@
+url: https://sbfnk.github.io/flusurvey/
+
+template:
+  bootstrap: 5
+
+reference:
+- title: Read and clean
+  contents:
+  - read_data
+  - extract_data
+  - merge_data
+- title: Case definitions, incidence and episodes
+  contents:
+  - aggregate_symptoms
+  - get_incidence
+  - bouts_of_illness
+- title: Bundled data
+  contents:
+  - questions
+  - options
+  - regions
+  - urban_rural
+  - simulated_data

@@ -7,21 +7,28 @@
 extract_data(data, surveys = "all", years = "all", join = TRUE, ...)
 }
 \arguments{
-\item{data}{either a (named) list of (annual, named) lists of surveys, or (much easier) a filename that contains said list.}
+\item{data}{either a (named) list of (annual, named) lists of surveys, or
+(much easier) a filename that contains said list.}
 
-\item{surveys}{the surveys to extract (e.g., "background", "symptom", "contact" or a combination thereof), "all" for all of surveys that can be found; note that any surveys that don't exist in all years will be dropped}
+\item{surveys}{the surveys to extract (e.g., "background", "symptom",
+"contact" or a combination thereof), "all" for all of surveys that can be
+found; note that any surveys that don't exist in all years will be dropped}
 
 \item{years}{the years to extract, "all" for all years}
 
 \item{join}{whether to join the data into one big data.table in the end}
 
-\item{...}{parameters to be passed to merge_data, especially 'clean' (see documentation of \code{\link{merge_data}}, by default all cleaning will be performed, set 'clean' to NULL to get the raw data).}
+\item{...}{parameters to be passed to merge_data, especially 'clean' (see
+documentation of \code{\link{merge_data}}, by default all cleaning will be
+performed, set 'clean' to NULL to get the raw data).}
 }
 \value{
-a data.table (if \code{join} is TRUE) or a list of data.tables (if \code{join} is FALSE) with the data
+a data.table (if \code{join} is TRUE) or a list of data.tables (if
+\code{join} is FALSE) with the data
 }
 \description{
-This extracts flusurvey data for a given number of surveys and years (all by default).
+This extracts flusurvey data for a given number of surveys and years (all by
+default).
 }
 \examples{
 dt <- extract_data(simulated_data, years = 2013:2014)

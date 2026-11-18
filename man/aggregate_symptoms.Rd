@@ -7,7 +7,9 @@
 aggregate_symptoms(symptoms, ili.sudden.unknown = 1)
 }
 \arguments{
-\item{symptoms}{}
+\item{symptoms}{a data table of symptom reports}
+
+\item{ili.sudden.unknown}{currently has no effect}
 }
 \value{
 a data table with added columns

@@ -15,23 +15,36 @@ merge_data(
 )
 }
 \arguments{
-\item{data}{the data to merge and clean, usually the result of \code{read_data}}
+\item{data}{the data to merge and clean, usually the result of
+\code{read_data}}
 
-\item{clean}{cleaning options, NULL for no cleaning, otherwise a vector of cleans to perform (by default all):
+\item{clean}{cleaning options, NULL for no cleaning, otherwise a vector of
+cleans to perform (by default all):
 - 'remove.first', whether to remove everyone's first report,
-- 'remove.bad.symptom.dates', whether to remove bad symptom dates: symptom start before date of first or end after end of last report, end of symptoms before start of symptoms, symptoms reported to have started or ended after date of report
+- 'remove.bad.symptom.dates', whether to remove bad symptom dates: symptom
+start before date of first or end after end of last report, end of symptoms
+before start of symptoms, symptoms reported to have started or ended after
+date of report
 - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 - 'limit.season', whether to limit a flu season to November -> April
 - 'remove.postcodes', whether to remove postcodes
-- 'n.reports', whether to exclude those with fewer than \code{min.reports} reports
-- 'unsuccessful.join', whether to exclude those with unsuccesful joins (e.g. if symptoms are reported without a background survey present; the web site should have prevented this, but doesn't appear to have done so)
-- 'only.symptoms', whether to exclude those that have no report without symptoms}
+- 'n.reports', whether to exclude those with fewer than \code{min.reports}
+reports
+- 'unsuccessful.join', whether to exclude those with unsuccesful joins (e.g.
+if symptoms are reported without a background survey present; the web site
+should have prevented this, but doesn't appear to have done so)
+- 'only.symptoms', whether to exclude those that have no report without
+symptoms}
 
-\item{min.reports}{minimum number of reports per user (ignored if 'min.reports' is not given as a cleaning option)}
+\item{min.reports}{minimum number of reports per user (ignored if
+'min.reports' is not given as a cleaning option)}
 
-\item{ranges}{what to do if a number of contacts is given as a range: sample from the range ("sample"), or apply a function, given as character string (e.g., "mean")}
+\item{ranges}{what to do if a number of contacts is given as a range: sample
+from the range ("sample"), or apply a function, given as character string
+(e.g., "mean")}
 
-\item{age.breaks}{a vector of limits of age groups (first age group starts at 0 years of age)}
+\item{age.breaks}{a vector of limits of age groups (first age group starts
+at 0 years of age)}
 }
 \value{
 a rolling-joined data table

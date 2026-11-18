@@ -10,6 +10,8 @@ bouts_of_illness(x, symptomatic.only = TRUE, as.data.frame = TRUE)
 \item{x}{the data to extract bouts from}
 
 \item{symptomatic.only}{whether to only include symptomatic periods}
+
+\item{as.data.frame}{currently has no effect}
 }
 \value{
 a data table of bouts of illness

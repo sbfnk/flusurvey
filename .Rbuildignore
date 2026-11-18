@@ -1,1 +1,10 @@
 ^data-raw$
+^\.github$
+^\.lintr$
+^codecov\.yml$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^analysis$
+^scripts$
+^LICENSE$
