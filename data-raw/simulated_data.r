@@ -451,6 +451,113 @@ make_contact_rows <- function(person, dates, background_row) {
   rbindlist(rows, fill = TRUE)
 }
 
+## ---- cases for regression tests -------------------------------------------
+
+## Set `col` in rows `i` of `dt`, keeping the type of the column
+set_value <- function(dt, i, col, value) {
+  if (is.character(dt[[col]])) value <- as.character(value)
+  set(dt, i, col, value)
+}
+
+## Make the reports in rows `i` of the symptom table symptomatic, with the
+## given answers to the questions on whether it is the same illness and on the
+## start of the symptoms
+make_symptomatic <- function(symptom, i, same, start_date = NA_character_) {
+  for (x in symptom_names) set(symptom, i, x, 0L)
+  set(symptom, i, "cough", 1L)
+  set(symptom, i, "tired", 1L)
+  set(symptom, i, "no.symptoms", 0L)
+  set(symptom, i, "same", same)
+  set(symptom, i, "symptoms.start.option", if (is.na(start_date)) 1L else 0L)
+  set(symptom, i, "symptoms.start.date", start_date)
+  set(symptom, i, "symptoms.end.option", 2L)
+}
+
+## Participants and reports that exercise behaviour the functions handle badly
+## or have to handle. They are few, and they are changed after the ordinary
+## answers have been simulated, so that the rest of the data stays plausible.
+## Participants are drawn without replacement so that each case is the only
+## unusual thing about its participants.
+add_edge_cases <- function(background, contact, symptom) {
+  ## participants with at least five reports and no symptoms, whose reports
+  ## can be changed one by one
+  symptom_free <- symptom[, .(n = .N, ill = any(no.symptoms == 0)),
+                          by = global_id][n >= 5 & !ill, global_id]
+  contact_counts <- contact[, .N, by = global_id]
+  ## participants with at least three contact reports
+  with_contacts <- contact_counts[N >= 3, global_id]
+  chosen <- sample(symptom_free, 8L)
+  without_background <- sample(contact_counts$global_id, 3L)
+  late_contact <- sample(setdiff(with_contacts, c(chosen, without_background)),
+                         3L)
+
+  ## health scores below 0 and above 100, outside the range of the scale
+  rows <- sample(setdiff(seq_len(nrow(symptom)),
+                         which(symptom$global_id %in% chosen)), 6L)
+  set(symptom, rows, "health.score", c(-5L, -20L, -1L, 101L, 120L, 150L))
+
+  ## an age band ticked as present in the household with no number given
+  ## (the band is `household.<group>` and the number `nb.household.<group>`)
+  present <- which(background$household.19.44 == 1L)
+  set(background, sample(present, 4L), "nb.household.19.44", NA_integer_)
+
+  ## the first symptomatic report of a participant says that the symptoms are
+  ## the same as in an earlier report ("yes", coded 0, or "dont_know", coded 2)
+  ## with no start date, though there is no earlier report with symptoms, and
+  ## a report without symptoms comes later in the season. This exercises how
+  ## bouts_of_illness() starts a bout when there is nothing to continue
+  for (k in 1:3) {
+    i <- which(symptom$global_id == chosen[k])
+    make_symptomatic(symptom, i[2], same = c(0L, 0L, 2L)[k])
+  }
+
+  ## a symptomatic report that follows another one and gives a start date
+  ## after the date of the previous report, with the symptoms reported as the
+  ## same illness. This exercises how bouts_of_illness() treats a start date
+  ## that cannot belong to the earlier report
+  for (k in 4:5) {
+    i <- which(symptom$global_id == chosen[k])
+    make_symptomatic(symptom, i[2], same = 1L,
+                     start_date = date_string(symptom$date[i[2]] - 3L))
+    make_symptomatic(symptom, i[3], same = 0L,
+                     start_date = date_string(symptom$date[i[2]] + 2L))
+  }
+
+  ## symptom start dates months or years before the report, which
+  ## bouts_of_illness() and get_incidence() take at face value
+  for (k in 6:8) {
+    i <- which(symptom$global_id == chosen[k])[2]
+    make_symptomatic(
+      symptom, i, same = 1L,
+      start_date = date_string(symptom$date[i] - c(90L, 400L, 1000L)[k - 5L])
+    )
+  }
+
+  ## contact reports with more physical than conversational contacts, though
+  ## a physical contact is also a conversational one
+  columns <- c("home", "work", "other")
+  for (k in 1:5) {
+    i <- sample(nrow(contact), 1L)
+    col_conversational <- paste("conversational", columns[k %% 3L + 1L],
+                                "19-44", sep = ".")
+    col_physical <- sub("^conversational", "physical", col_conversational)
+    set_value(contact, i, col_conversational, 1L)
+    set_value(contact, i, col_physical, 4L)
+  }
+
+  ## contact reports from participants with no background report, which
+  ## merge_data() has to join to nothing
+  background <- background[!global_id %in% without_background]
+
+  ## symptom reports before the first contact report of a participant: the
+  ## first two contact reports are dropped
+  drop <- contact[global_id %in% late_contact,
+                  .I[order(date)[1:2]], by = global_id]$V1
+  contact <- contact[-drop]
+
+  list(background = background, contact = contact, symptom = symptom)
+}
+
 ## ---- one season ----------------------------------------------------------------
 
 simulate_season <- function(people, season) {
@@ -487,9 +594,8 @@ simulate_season <- function(people, season) {
 
   ## the order matters: merge_data() joins the last questionnaire onto the
   ## earlier ones, so the symptom reports must come last
-  list(background = background,
-       contact = rbindlist(contact, fill = TRUE),
-       symptom = rbindlist(symptom, fill = TRUE))
+  add_edge_cases(background, rbindlist(contact, fill = TRUE),
+                 rbindlist(symptom, fill = TRUE))
 }
 
 ## ---- write answers as CSV with question codes, then read them back -----------
