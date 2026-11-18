@@ -45,7 +45,7 @@ raw <- read_data(
 )
 ```
 
-`scripts/convert_data.r` does this for a directory of files named `<questionnaire>_<yy>.csv` and saves all seasons as a single file, `flusurvey_raw_<first year>_<last year>.rds`, in the working directory. The examples below assume the file has been moved to `data/`. Keep it out of version control.
+`scripts/convert_data.r` does this for a directory of files named `<questionnaire>_<yy>.csv` and saves all seasons as a single file, `flusurvey_raw_<first year>_<last year>.rds`, in the working directory. The script is part of the repository and is not installed with the package: run it from a clone, after setting `dir` at its top to the directory that holds the files. The examples below assume the file has been moved to `data/`. Keep it out of version control.
 
 `extract_data()` takes that file, cleans each season with `merge_data()` and stacks the seasons into one table with a row per weekly report. A questionnaire that is missing from any of the requested seasons is dropped with a warning.
 
