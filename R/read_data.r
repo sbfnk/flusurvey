@@ -19,107 +19,124 @@
 ##' @importFrom stats na.omit
 ##' @importFrom utils read.csv
 ##' @export
-read_data <- function(files, year, ...) { # nolint: cyclocomp_linter.
+read_data <- function(files, year, ...) {
+  year <- as.character(year)
   res <- list()
   for (name in names(files)) {
-    dt <- data.table(read.csv(files[[name]], ...))
-
-    ## remove empty variables
-    fields <- copy(colnames(dt))
-    for (col in fields) {
-      if (all(is.na(dt[, get(col)])) || all(is.null(dt[, get(col)]))) {
-        dt[, paste(col) := NULL]
-      }
-    }
-
-    year <- as.character(year)
-
-    ## convert question name
-    setnames(
-      dt, names(flusurvey::questions[[year]][[name]]),
-      flusurvey::questions[[year]][[name]]
-    )
-
-    ## convert dates
-    if ("timestamp" %in% colnames(dt)) dt[, date := as.Date(timestamp)]
-
-    for (col in grep("date$", colnames(dt), value = TRUE)) {
-      if (is.character(dt[, get(col)]) || is.factor(dt[, get(col)])) {
-        dt[!nzchar(as.character(get(col))), paste(col) := NA_character_]
-        dt[get(col) == "None", paste(col) := NA_character_]
-        dt[, paste(col) := as.Date(
-          parse_date_time(
-            get(col),
-            orders = c("Ymd", "dmY", "Ymd HMS")
-          )
-        )]
-      }
-    }
-
-    ## convert options
-    for (option in intersect(colnames(dt), names(flusurvey::options))) {
-      dt[, paste(option) := factor(
-        get(option),
-        levels = names(flusurvey::options[[option]]),
-        labels = flusurvey::options[[option]]
-      )]
-    }
-
-    ## convert integer 0/1 to character t/f
-    for (col in colnames(dt)) {
-      if (length(na.omit(setdiff(unique(dt[[col]]), c(0, 1)))) == 0) {
-        dt[, paste(col) := factor(get(col), levels = 0:1, labels = c("f", "t"))]
-      }
-    }
-
-    ## remove year-specificity in column names
-    colnames(dt) <- sub(paste0("\\.", year, "$"), "", colnames(dt))
-
-    res[[name]] <- dt
+    res[[name]] <- read_survey(files[[name]], name, year, ...)
   }
 
-  ids_found <- TRUE
-  global_ids_present <- vapply(
-    res,
-    function(x) ("global_id" %in% colnames(x)),
-    TRUE
-  )
-
-  if (!all(global_ids_present)) {
-    ids_found <- FALSE
-    alternative_ids <- c("uid", "user_id")
-
-    i <- 0
-
-    while (!ids_found && i < length(alternative_ids)) {
-      i <- i + 1
-      ids_present <- vapply(
-        res,
-        function(x) (alternative_ids[i] %in% colnames(x)),
-        TRUE
-      )
-      if (all(ids_present)) {
-        ids_found <- TRUE
-        for (name in names(res)) {
-          if ("global_id" %in% colnames(res[[name]])) {
-            res[[name]][
-              ,
-              global_id := NULL
-            ]
-          }
-          setnames(res[[name]], alternative_ids[i], "global_id")
-        }
-      }
-    }
-  }
-
-  if (ids_found) {
+  res <- use_global_id(res)
+  if (all_have_global_id(res)) {
     for (name in names(res)) {
       setkey(res[[name]], global_id, date)
     }
-  } else {
-    warning("No global ID found. Won't be able to merge", call. = FALSE)
+  }
+  res
+}
+
+## Reads one survey file and converts it into R data formats.
+read_survey <- function(file, name, year, ...) {
+  dt <- data.table(read.csv(file, ...))
+  remove_empty_columns(dt)
+
+  ## convert question name
+  setnames(
+    dt, names(flusurvey::questions[[year]][[name]]),
+    flusurvey::questions[[year]][[name]]
+  )
+
+  convert_date_columns(dt)
+  convert_option_columns(dt)
+  convert_binary_columns(dt)
+
+  ## remove year-specificity in column names
+  colnames(dt) <- sub(paste0("\\.", year, "$"), "", colnames(dt))
+  dt
+}
+
+## Removes the columns without any answers, by reference.
+remove_empty_columns <- function(dt) {
+  fields <- copy(colnames(dt))
+  for (col in fields) {
+    if (all(is.na(dt[, get(col)])) || all(is.null(dt[, get(col)]))) {
+      dt[, paste(col) := NULL]
+    }
+  }
+  invisible(dt)
+}
+
+## Converts the timestamp and the columns holding dates into dates, by
+## reference.
+convert_date_columns <- function(dt) {
+  if ("timestamp" %in% colnames(dt)) dt[, date := as.Date(timestamp)]
+
+  for (col in grep("date$", colnames(dt), value = TRUE)) {
+    if (is.character(dt[, get(col)]) || is.factor(dt[, get(col)])) {
+      dt[!nzchar(as.character(get(col))), paste(col) := NA_character_]
+      dt[get(col) == "None", paste(col) := NA_character_]
+      dt[, paste(col) := as.Date(
+        parse_date_time(
+          get(col),
+          orders = c("Ymd", "dmY", "Ymd HMS")
+        )
+      )]
+    }
+  }
+  invisible(dt)
+}
+
+## Converts the answers to multiple choice questions into factors, by
+## reference.
+convert_option_columns <- function(dt) {
+  for (option in intersect(colnames(dt), names(flusurvey::options))) {
+    dt[, paste(option) := factor(
+      get(option),
+      levels = names(flusurvey::options[[option]]),
+      labels = flusurvey::options[[option]]
+    )]
+  }
+  invisible(dt)
+}
+
+## Converts integer 0/1 to character t/f, by reference.
+convert_binary_columns <- function(dt) {
+  for (col in colnames(dt)) {
+    if (length(na.omit(setdiff(unique(dt[[col]]), c(0, 1)))) == 0) {
+      dt[, paste(col) := factor(get(col), levels = 0:1, labels = c("f", "t"))]
+    }
+  }
+  invisible(dt)
+}
+
+all_have_global_id <- function(res) {
+  all(vapply(res, function(x) "global_id" %in% colnames(x), TRUE))
+}
+
+## Makes sure every survey has a column global_id, taking an alternative if
+## need be. Warns if there is none.
+use_global_id <- function(res) {
+  if (all_have_global_id(res)) {
+    return(res)
   }
 
+  for (alternative_id in c("uid", "user_id")) {
+    ids_present <- vapply(
+      res,
+      function(x) (alternative_id %in% colnames(x)),
+      TRUE
+    )
+    if (all(ids_present)) {
+      for (name in names(res)) {
+        if ("global_id" %in% colnames(res[[name]])) {
+          res[[name]][, global_id := NULL]
+        }
+        setnames(res[[name]], alternative_id, "global_id")
+      }
+      return(res)
+    }
+  }
+
+  warning("No global ID found. Won't be able to merge", call. = FALSE)
   res
 }
