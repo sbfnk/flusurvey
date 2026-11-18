@@ -474,8 +474,8 @@ make_symptomatic <- function(symptom, i, same, start_date = NA_character_) {
 }
 
 ## Participants and reports that exercise behaviour the functions handle badly
-## or have to handle. They are few, and they are changed after the ordinary
-## answers have been simulated, so that the rest of the data stays plausible.
+## or have to handle. They are few. They are changed after the ordinary
+## answers have been simulated, to keep the rest of the data plausible.
 ## Participants are drawn without replacement so that each case is the only
 ## unusual thing about its participants.
 add_edge_cases <- function(background, contact, symptom) {
