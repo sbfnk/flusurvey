@@ -309,7 +309,7 @@ make_report_dates <- function(join_date, end_date) {
   unique(dates)
 }
 
-## The ans to the questions that are only asked at the first report of an
+## The answers to the questions that are only asked at the first report of an
 ## episode of symptoms
 first_report_answers <- function(ans, e, symptom_profile) {
   known_start <- runif(1) < 0.85
