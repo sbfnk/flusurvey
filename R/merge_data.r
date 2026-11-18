@@ -395,7 +395,7 @@ merge_data <- function(
     }
   }
 
-  res <- res[nzchar(as.character(global_id))]
+  res <- res[nzchar(as.character(global_id), keepNA = TRUE)]
 
   res[, day.of.week := (data.table::wday(date) - 2) %% 7 + 1]
   res[, month := data.table::month(date)]
