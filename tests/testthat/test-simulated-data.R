@@ -47,7 +47,7 @@ test_that("the order of surveys does not change the merged table", {
 
 test_that("merge_data gives the same table whatever the order", {
   reports <- simulated_data[["2013"]]
-  ## contact ranges are sampled, so fix the seed for each call
+  ## contact ranges are sampled; set the seed before each call
   set.seed(1)
   shuffled <- merge_data(reports[c("symptom", "contact", "background")],
                          clean = NULL)
