@@ -53,7 +53,7 @@ merge_data <- function( # nolint: cyclocomp_linter.
   clean <- match.arg(clean, several.ok = TRUE)
   for (name in names(data)) {
     ## only keep last report per day
-    dt <- copy(data.table::data.table(data[[name]]))
+    dt <- copy(data.table(data[[name]]))
     dt <- dt[!duplicated(dt[, list(global_id, date)], fromLast = TRUE)]
 
     if ("limit.season" %in% clean) {
@@ -76,7 +76,7 @@ merge_data <- function( # nolint: cyclocomp_linter.
     }
 
     ## clean symptoms data
-    if (name == "symptom") {
+    if (name == "symptom") { # nolint: if_switch_linter.
       dt <- aggregate_symptoms(dt)
       ## calculate min.reports, max.reports, nReports
       dt[, nReports := .N, by = global_id]
@@ -146,7 +146,7 @@ merge_data <- function( # nolint: cyclocomp_linter.
         dt[, birthyear := gsub("-.*$", "", birthyear)]
         dt[, birthdate := as.Date(paste0(birthyear, "-01-01"))]
       }
-      dt[, age := lubridate::interval(birthdate, date) %/% lubridate::years(1)]
+      dt[, age := interval(birthdate, date) %/% years(1)]
       ## remove negative ages
       dt[age < 0, birthdate := NA]
       dt[age < 0, age := NA]
@@ -207,7 +207,7 @@ merge_data <- function( # nolint: cyclocomp_linter.
           paste0(col_prefix, urban_rural_names)
         )
         dt <- merge(dt, urban_rural_data, by = col, all.x = TRUE)
-        dt[, paste0(col_prefix, "country") := factor(plyr::revalue(
+        dt[, paste0(col_prefix, "country") := factor(revalue(
           x = get(paste0(col_prefix, "country")),
           replace = c(
             "W" = "wales",
@@ -397,8 +397,8 @@ merge_data <- function( # nolint: cyclocomp_linter.
 
   res <- res[nzchar(as.character(global_id), keepNA = TRUE)]
 
-  res[, day.of.week := (data.table::wday(date) - 2) %% 7 + 1]
-  res[, month := data.table::month(date)]
+  res[, day.of.week := (wday(date) - 2) %% 7 + 1]
+  res[, month := month(date)]
 
   if ("unsuccessful.join" %in% clean) {
     id_cols <- grep("\\.id$", colnames(res), value = TRUE)

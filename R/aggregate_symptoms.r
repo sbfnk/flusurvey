@@ -7,7 +7,7 @@
 ##' @import data.table
 ##' @export
 aggregate_symptoms <- function(symptoms, ili.sudden.unknown = 1) {
-  dt <- copy(data.table::data.table(symptoms))
+  dt <- copy(data.table(symptoms))
   ## calculate ili
   if (any(grepl("\\.(suddenly|quickly)$", colnames(dt)))) {
     dt[, suddenly := NA_character_]

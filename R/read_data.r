@@ -48,7 +48,7 @@ read_data <- function(files, year, ...) { # nolint: cyclocomp_linter.
         dt[!nzchar(as.character(get(col))), paste(col) := NA_character_]
         dt[get(col) == "None", paste(col) := NA_character_]
         dt[, paste(col) := as.Date(
-          lubridate::parse_date_time(
+          parse_date_time(
             get(col),
             orders = c("Ymd", "dmY", "Ymd HMS")
           )
