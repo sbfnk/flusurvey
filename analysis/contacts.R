@@ -29,7 +29,7 @@ dt_contacts <- extract_data(
 bouts <- bouts_of_illness(dt)
 bouts <- bouts[!is.na(symptoms.end.date)]
 bouts <- bouts[,
-  list(global_id, ili.self, symptoms.start.date, symptoms.end.date)
+  list(global_id, ili.self, resp.symptoms, symptoms.start.date, symptoms.end.date)
 ]
 
 ## create big data set of all contacts with all symptom data
@@ -50,11 +50,13 @@ contacts_symptoms <- contacts_symptoms[
 contacts_symptoms <- contacts_symptoms[,
   list(
     current_symptoms = any(current_symptoms),
-    current_ili = any(ili.self == "t" & current_symptoms, na.rm = TRUE)
+    current_ili = any(ili.self == "t" & current_symptoms, na.rm = TRUE),
+    current_ari = any(resp.symptoms == "t" & current_symptoms, na.rm = TRUE)
   ), by = list(global_id, date)
 ]
 
 contacts_symptoms[, current_ili := fifelse(current_ili, "ILI", "no ILI")]
+contacts_symptoms[, current_ari := fifelse(current_ari, "ARI", "no ARI")]
 contacts_symptoms[,
   current_symptoms := fifelse(current_symptoms, "symptoms", "no symptoms")
 ]
