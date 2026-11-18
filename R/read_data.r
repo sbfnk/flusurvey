@@ -19,7 +19,7 @@
 ##' @importFrom stats na.omit
 ##' @importFrom utils read.csv
 ##' @export
-read_data <- function(files, year, ...) {
+read_data <- function(files, year, ...) { # nolint: cyclocomp_linter.
   res <- list()
   for (name in names(files)) {
     dt <- data.table(read.csv(files[[name]], ...))

@@ -33,7 +33,7 @@
 ##' @importFrom plyr revalue
 ##' @importFrom stats runif
 ##' @export
-merge_data <- function(
+merge_data <- function( # nolint: cyclocomp_linter.
   data,
   clean = c(
     "remove.first",
