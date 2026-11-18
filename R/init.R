@@ -1,3 +1,3 @@
 .onAttach <- function(libname, pkgname) {
-  options(lubridate.week.start=1)
+  options(lubridate.week.start = 1)
 }

@@ -15,6 +15,8 @@ Imports:
     data.table,
     here,
     lubridate,
-    plyr
+    plyr,
+    stats,
+    utils
 LazyData: true
 Config/roxygen2/version: 8.0.0
