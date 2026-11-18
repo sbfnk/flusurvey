@@ -171,3 +171,13 @@ test_that("read_data warns when the surveys share no id", {
   utils::write.csv(raw, files$symptom, row.names = FALSE, na = "")
   expect_warning(read_data(files, 2013), "No global ID")
 })
+
+test_that("bouts_of_illness handles missing values in no.symptoms", {
+  set.seed(1)
+  dt <- extract_data(simulated_data, years = 2013:2014)
+  invisible(capture.output(complete <- bouts_of_illness(data.table::copy(dt))))
+  expect_identical(dim(complete), c(217L, 259L))
+  dt[sample(.N, 300), no.symptoms := NA]
+  invisible(capture.output(res <- bouts_of_illness(dt)))
+  expect_identical(dim(res), c(205L, 259L))
+})
