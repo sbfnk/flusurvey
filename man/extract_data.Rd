@@ -12,7 +12,10 @@ extract_data(data, surveys = "all", years = "all", join = TRUE, ...)
 
 \item{surveys}{the surveys to extract (e.g., "background", "symptom",
 "contact" or a combination thereof), "all" for all of surveys that can be
-found; note that any surveys that don't exist in all years will be dropped}
+found; note that any surveys that don't exist in all years will be dropped.
+The order given does not matter: the surveys are joined in a fixed order
+(see \code{\link{merge_data}}), with one row per report of the last survey
+in the order background, contact, symptom}
 
 \item{years}{the years to extract, "all" for all years}
 
