@@ -6,7 +6,7 @@
 \usage{
 merge_data(
   data,
-  clean = c("remove.first", "remove.bad.symptom.dates", "remove.bad.health.score",
+  clean = c("remove.first", "remove.bad.symptom.dates", "remove.bad.health.scores",
     "limit.season", "remove.postcodes", "n.reports", "unsuccessful.join",
     "only.symptoms"),
   min.reports = 3,
