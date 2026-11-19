@@ -36,6 +36,35 @@ test_that("get_incidence returns incidence for both seasons", {
   expect_gt(nrow(by_age), 0)
 })
 
+test_that("get_incidence keeps periods without new cases", {
+  reports <- function(id, dates, symptomatic, same, start, end) {
+    data.table::data.table(
+      participant_id = id, global_id = paste0("p", id), season = "2012/13",
+      symptom.id = seq_along(dates), date = as.Date(dates),
+      no.symptoms = factor(ifelse(symptomatic, "f", "t"),
+                           levels = c("f", "t")),
+      same = factor(same, levels = c("yes", "no", "dont_know")),
+      symptoms.start.date = as.Date(start), symptoms.end.date = as.Date(end)
+    )
+  }
+  weeks <- c("2013-01-07", "2013-01-14", "2013-01-21", "2013-01-28")
+  d <- rbind(
+    reports(1, weeks, c(FALSE, TRUE, FALSE, FALSE), c(NA, "no", NA, NA),
+            c(NA, "2013-01-13", NA, NA), NA),
+    reports(2, weeks, FALSE, NA, NA, NA)
+  )
+  d[, ili := data.table::fifelse(no.symptoms == "f", "t", "f")]
+  d[, c("min.date", "max.date") := list(min(date), max(date)),
+    by = global_id]
+  res <- get_incidence(d)
+  expect_equal(nrow(res), 4)
+  expect_equal(res$N, rep(2, 4))
+  expect_equal(sum(res$ili), 1)
+  res_reports <- get_incidence(d, denominator = "reports")
+  expect_equal(nrow(res_reports), 4)
+  expect_equal(sum(res_reports$ili), 1)
+})
+
 test_that("bouts_of_illness returns bouts of illness", {
   dt <- extract_data(simulated_data, years = 2013:2014)
   invisible(capture.output(res <- bouts_of_illness(dt)))
