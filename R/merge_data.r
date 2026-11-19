@@ -28,7 +28,7 @@
 ##' at 0 years of age)
 ##' @param max.band.count the largest number of people accepted in a single age
 ##' band of the household. Larger counts are treated as typing errors and set to
-##' missing, which makes \code{nb.household} missing too. A band that is ticked
+##' missing. \code{nb.household} is then missing too. A band that is ticked
 ##' as present without a number counts as one person, and a household with no
 ##' band ticked gets a missing \code{nb.household}. Whether the counts include
 ##' the participant depends on the questionnaire wording, which is not recorded
@@ -325,7 +325,7 @@ merge_data <- function( # nolint: cyclocomp_linter.
         .SDcols = hh_columns
       ]
       if (length(indicator_cols) > 0) {
-        ## a household has at least one member, so no band ticked is missing
+        ## no band ticked gives a missing count, as a household has at least one member
         dt[
           rowSums(dt[, lapply(.SD, `%in%`, "t"), .SDcols = indicator_cols]) == 0,
           nb.household := NA_real_
