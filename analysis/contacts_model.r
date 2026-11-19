@@ -36,7 +36,7 @@ dt_back_contacts <- contacts %>%
     mutate(season_month = month(date) - 6,
            month_name = as.character(month(date, label=TRUE, abbr=FALSE))) %>%
     mutate(season_month = if_else(season_month > 0, season_month, season_month + 12)) %>%
-    mutate(weekday=(day.of.week %in% 1:5))
+    mutate(weekday=(contact.day.of.week %in% 1:5))
 
 colnames(dt_back_contacts) <- gsub("\\.", "_", colnames(dt_back_contacts))
 

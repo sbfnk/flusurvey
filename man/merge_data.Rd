@@ -6,7 +6,7 @@
 \usage{
 merge_data(
   data,
-  clean = c("remove.first", "remove.bad.symptom.dates", "remove.bad.health.score",
+  clean = c("remove.first", "remove.bad.symptom.dates", "remove.bad.health.scores",
     "limit.season", "remove.postcodes", "n.reports", "unsuccessful.join",
     "only.symptoms"),
   min.reports = 3,
@@ -53,7 +53,11 @@ from the range ("sample"), or apply a function, given as character string
 at 0 years of age)}
 }
 \value{
-a rolling-joined data table
+a rolling-joined data table. \code{day.of.week} (1 for Monday to 7
+for Sunday) is that of the report date. If the contact survey is included,
+\code{contact.date} is the day the contacts describe (the day before the
+report) and \code{contact.day.of.week} is its day of the week. Use these
+rather than \code{day.of.week} when analysing contacts.
 }
 \description{
 Clean and merge flusurvey data tables
