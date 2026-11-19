@@ -5,8 +5,8 @@
 ##' reports describe the previous day, which is the day before the report
 ##' \code{date}. A contact report with no symptom report on that day, or from
 ##' a participant without symptom data, gets a missing status rather than
-##' "no symptoms". Reported illness dates determine whether symptoms were
-##' present on the contact day; an unknown date can leave the status missing.
+##' "no symptoms". The reported illness dates indicate whether symptoms were
+##' present on the contact day. An unknown date can leave the status missing.
 ##'
 ##' Read the symptom data with a \code{clean} argument in
 ##' \code{\link{extract_data}} that cannot drop symptom reports. The default
@@ -24,7 +24,7 @@
 ##' @return the contact reports with added columns \code{current_symptoms}
 ##' ("symptoms" or "no symptoms"), \code{current_ili} ("ILI" or "no ILI") and
 ##' \code{current_ari} ("ARI" or "no ARI"), each missing where there is no
-##' symptom report on the day or where the status cannot be determined
+##' symptom report on that day or the status cannot be determined
 ##' @examples
 ##' contacts <- extract_data(
 ##'   simulated_data, years = 2013:2014, surveys = c("background", "contact")
