@@ -26,6 +26,13 @@
 ##' (e.g., "mean")
 ##' @param age.breaks a vector of limits of age groups (first age group starts
 ##' at 0 years of age)
+##' @param max.band.count the largest number of people accepted in a single age
+##' band of the household. Larger counts are treated as typing errors and set to
+##' missing, which makes \code{nb.household} missing too. A band that is ticked
+##' as present without a number counts as one person, and a household with no
+##' band ticked gets a missing \code{nb.household}. Whether the counts include
+##' the participant depends on the questionnaire wording, which is not recorded
+##' in this package.
 ##' @return a rolling-joined data table
 ##' @author seb
 ##' @examples
@@ -53,7 +60,8 @@ merge_data <- function( # nolint: cyclocomp_linter.
   ),
   min.reports = 3,
   ranges = "sample",
-  age.breaks = c(18, 45, 65)
+  age.breaks = c(18, 45, 65),
+  max.band.count = 10
 ) {
   dt_list <- list()
   clean <- match.arg(clean, several.ok = TRUE)
@@ -301,15 +309,28 @@ merge_data <- function( # nolint: cyclocomp_linter.
 
       ## household members
       hh_columns <- grep("^nb.household\\.", value = TRUE, colnames(dt))
+      indicator_cols <- intersect(
+        sub("nb.", "", hh_columns, fixed = TRUE), colnames(dt)
+      )
       for (col in hh_columns) {
         indicator_col <- sub("nb.", "", col, fixed = TRUE)
         if (indicator_col %in% colnames(dt)) {
           dt[get(indicator_col) == "f", paste(col) := 0]
+          ## ticked as present without a number: at least one person
+          dt[get(indicator_col) == "t" & is.na(get(col)), paste(col) := 1]
         }
+        dt[get(col) > max.band.count, paste(col) := NA]
       }
       dt[, nb.household := rowSums(.SD),
         .SDcols = hh_columns
       ]
+      if (length(indicator_cols) > 0) {
+        ## a household has at least one member, so no band ticked is missing
+        dt[
+          rowSums(dt[, lapply(.SD, `%in%`, "t"), .SDcols = indicator_cols]) == 0,
+          nb.household := NA_real_
+        ]
+      }
       dt[, nb.household.children := rowSums(.SD),
         .SDcols = c("nb.household.0.4", "nb.household.5.18")
       ]

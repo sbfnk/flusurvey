@@ -11,7 +11,8 @@ merge_data(
     "only.symptoms"),
   min.reports = 3,
   ranges = "sample",
-  age.breaks = c(18, 45, 65)
+  age.breaks = c(18, 45, 65),
+  max.band.count = 10
 )
 }
 \arguments{
@@ -45,6 +46,14 @@ from the range ("sample"), or apply a function, given as character string
 
 \item{age.breaks}{a vector of limits of age groups (first age group starts
 at 0 years of age)}
+
+\item{max.band.count}{the largest number of people accepted in a single age
+band of the household. Larger counts are treated as typing errors and set to
+missing, which makes \code{nb.household} missing too. A band that is ticked
+as present without a number counts as one person, and a household with no
+band ticked gets a missing \code{nb.household}. Whether the counts include
+the participant depends on the questionnaire wording, which is not recorded
+in this package.}
 }
 \value{
 a rolling-joined data table
