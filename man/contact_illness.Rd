@@ -12,21 +12,24 @@ contact_illness(contacts, symptoms)
 
 \item{symptoms}{a data table of symptom reports, as returned by
 \code{\link{extract_data}}, with columns \code{global_id}, \code{date},
-\code{no.symptoms}, \code{ili.self} and \code{resp.symptoms}}
+\code{no.symptoms}, \code{ili.self}, \code{resp.symptoms},
+\code{symptoms.start.date}, \code{symptoms.end.date} and
+\code{symptoms.end.option}}
 }
 \value{
 the contact reports with added columns \code{current_symptoms}
 ("symptoms" or "no symptoms"), \code{current_ili} ("ILI" or "no ILI") and
 \code{current_ari} ("ARI" or "no ARI"), each missing where there is no
-symptom report on the day
+symptom report on the day or where the status cannot be determined
 }
 \description{
 Looks up, for each contact report, the symptom report filed by the same
 participant on the day the contacts describe, \code{contact.date}. Contact
-reports describe the previous day, so this is the day before the report
+reports describe the previous day, which is the day before the report
 \code{date}. A contact report with no symptom report on that day, or from
 a participant without symptom data, gets a missing status rather than
-"no symptoms".
+"no symptoms". Reported illness dates determine whether symptoms were
+present on the contact day; an unknown date can leave the status missing.
 }
 \details{
 Read the symptom data with a \code{clean} argument in
