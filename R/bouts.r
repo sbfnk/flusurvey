@@ -29,7 +29,7 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
     dt <- merge(dt, baselines, by = c("participant_id", "season"), all.x = TRUE)
   }
 
-  ## the lags below assume reports are ordered within participant and season
+  ## the lags below need reports ordered by date within participant and season
   setorderv(dt, c("participant_id", "season", "date"))
   dt[, id := seq_len(.N)]
 
