@@ -9,9 +9,12 @@ library("ggplot2")
 library("data.table")
 library("here")
 
+## bouts are built from the symptom survey alone: joining other surveys drops
+## symptom reports that precede a participant's first contact report
 dt <- extract_data(
   "data/flusurvey_raw_2012_2020.rds",
-  years = 2012:2013
+  years = 2012:2013,
+  surveys = "symptom"
 )
 
 dt_back_contacts <- extract_data(
