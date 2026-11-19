@@ -312,9 +312,9 @@ convert_household_counts <- function(dt) {
 }
 
 ## Set missing household counts to zero. In the 2009/10 and 2010/11 seasons the
-## background questionnaire asks only for the number of household members in
-## each age band, and a blank answer means that nobody in the household is in
-## that band. The counts are modified by reference.
+## background questionnaire only asks for the number of household members in
+## each age band, and a blank answer means nobody in the household is in that
+## band. Modifies the counts by reference.
 fill_household_counts <- function(dt) {
   for (nb.name in grep("^nb\\.", colnames(dt), value = TRUE)) {
     dt[is.na(get(nb.name)), paste(nb.name) := 0]
