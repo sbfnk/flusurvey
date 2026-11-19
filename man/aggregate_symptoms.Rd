@@ -9,7 +9,11 @@ aggregate_symptoms(symptoms, ili.sudden.unknown = 1)
 \arguments{
 \item{symptoms}{a data table of symptom reports}
 
-\item{ili.sudden.unknown}{currently has no effect}
+\item{ili.sudden.unknown}{how to treat reports where sudden onset is unknown,
+i.e. answered "dont_know" or not at all, with no fever question to settle
+it. \code{1} (the default) counts onset as sudden, so such reports can be ILI;
+\code{0} counts it as not sudden, so they are not ILI; \code{NA} leaves onset, \code{ili}
+and \code{ili.fever} missing.}
 }
 \value{
 a data table with added columns
