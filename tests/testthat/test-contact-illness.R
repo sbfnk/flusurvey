@@ -71,7 +71,7 @@ test_that("contact_illness uses symptom reports that cleaning removes", {
   contacts[, contact.date := date]
   symptoms <- extract_data(
     simulated_data, years = 2013:2014, surveys = "symptom",
-    clean = "unsuccessful.join"
+    clean = c("unsuccessful.join", "remove.bad.symptom.dates")
   )
   cleaned <- extract_data(
     simulated_data, years = 2013:2014, surveys = "symptom"
@@ -84,4 +84,27 @@ test_that("contact_illness uses symptom reports that cleaning removes", {
     sum(!is.na(res$current_symptoms)),
     sum(!is.na(res_cleaned$current_symptoms))
   )
+})
+
+test_that("contact analysis cleans invalid dates without dropping reports", {
+  expressions <- parse(test_path("..", "..", "analysis", "contacts.R"))
+  assignment <- expressions[[which(vapply(expressions, function(x) {
+    is.call(x) && identical(x[[1]], as.name("<-")) &&
+      identical(x[[2]], as.name("dt_symptoms"))
+  }, logical(1)))]]
+  clean <- eval(assignment[[3]][["clean"]])
+  day <- as.Date("2013-01-07")
+  reports <- data.table::data.table(
+    global_id = "a", date = day, no.symptoms = "f", ili.self = "t",
+    resp.symptoms = "t", symptoms.start.date = day - 1,
+    symptoms.end.date = day + 2, symptoms.end.option = "date"
+  )
+  symptoms <- extract_data(list(`2013` = list(symptom = reports)),
+                           surveys = "symptom", clean = clean)
+  expect_equal(nrow(symptoms), 1)
+  res <- contact_illness(data.table::data.table(global_id = "a",
+                                                contact.date = day), symptoms)
+  expect_true(is.na(res$current_symptoms))
+  expect_true(is.na(res$current_ili))
+  expect_true(is.na(res$current_ari))
 })

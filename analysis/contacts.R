@@ -28,7 +28,7 @@ dt_symptoms <- extract_data(
   "data/flusurvey_raw_2012_2020.rds",
   years = 2012:2013,
   surveys = "symptom",
-  clean = "unsuccessful.join"
+  clean = c("unsuccessful.join", "remove.bad.symptom.dates")
 )
 
 contacts <- contact_illness(dt_back_contacts, dt_symptoms)

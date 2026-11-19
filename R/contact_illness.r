@@ -12,8 +12,9 @@
 ##' \code{\link{extract_data}} that cannot drop symptom reports. The default
 ##' cleaning steps (e.g., \code{"remove.first"}) can remove a symptom report,
 ##' and the status of a contact report from the same day then cannot be
-##' determined. Passing only \code{clean = "unsuccessful.join"} skips the
-##' other steps and, when a single survey is read, drops no symptom reports.
+##' determined. Use \code{clean = c("unsuccessful.join",
+##' "remove.bad.symptom.dates")} to clear invalid symptom dates without
+##' dropping reports when a single survey is read.
 ##' @param contacts a data table of contact reports with columns
 ##' \code{global_id} and \code{contact.date}
 ##' @param symptoms a data table of symptom reports, as returned by
@@ -31,7 +32,7 @@
 ##' )
 ##' symptoms <- extract_data(
 ##'   simulated_data, years = 2013:2014, surveys = "symptom",
-##'   clean = "unsuccessful.join"
+##'   clean = c("unsuccessful.join", "remove.bad.symptom.dates")
 ##' )
 ##' table(contact_illness(contacts, symptoms)$current_symptoms, useNA = "ifany")
 ##' @import data.table
