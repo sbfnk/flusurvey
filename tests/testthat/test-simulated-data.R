@@ -67,3 +67,13 @@ test_that("merge_data stops on surveys it cannot order", {
     "only once"
   )
 })
+
+test_that("extract_data drops surveys it cannot merge when extracting all", {
+  data <- simulated_data["2013"]
+  data[["2013"]]$vaccine <- data[["2013"]]$background
+  ## contact ranges are sampled; set the seed before each call
+  set.seed(1)
+  expect_warning(dt <- extract_data(data, years = 2013), "'vaccine'")
+  set.seed(1)
+  expect_equal(dt, extract_data(simulated_data["2013"], years = 2013))
+})

@@ -6,7 +6,8 @@
 ##' (much easier) a filename that contains said list.
 ##' @param surveys the surveys to extract (e.g., "background", "symptom",
 ##' "contact" or a combination thereof), "all" for all of surveys that can be
-##' found; note that any surveys that don't exist in all years will be dropped.
+##' found that \code{merge_data} can join (others are dropped with a warning);
+##' note that any surveys that don't exist in all years will be dropped.
 ##' The order given does not matter. The surveys are always joined in the order
 ##' background, contact, symptom (see \code{\link{merge_data}}), with one row
 ##' per report of the last survey in that order.
@@ -45,6 +46,16 @@ extract_data <- function(
 
   if ("all" %in% surveys) {
     surveys <- Reduce(union, sapply(data, names))
+    ## merge_data can only order these surveys
+    unsupported <- setdiff(surveys, c("background", "contact", "symptom"))
+    if (length(unsupported) > 0) {
+      warning(
+        "Not extracting ", toString(paste0("'", unsupported, "'")),
+        ", which cannot be merged.",
+        call. = FALSE
+      )
+      surveys <- setdiff(surveys, unsupported)
+    }
   }
 
   ## check that all the surveys/years exist
