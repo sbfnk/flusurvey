@@ -20,8 +20,9 @@ merge_data(
 contact, symptom), regardless of their order in \code{data}. The last one
 present drives a rolling join. The result has one row per report of that
 survey (the symptom reports, if present), each taking the latest report of
-the other surveys on or before its date. Any other survey name gives an
-error.
+the other surveys on or before its date. When an earlier survey has several
+reports on the same day, its last report is used. Any other survey name
+gives an error.
 
 Joining the contact and symptom surveys gives a warning. The join pairs
 each symptom report with the latest earlier contact report, however long

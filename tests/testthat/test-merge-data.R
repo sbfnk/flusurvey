@@ -29,3 +29,19 @@ test_that("merge_data skips every cleaning step for clean = NULL", {
     nrow(raw)
   )
 })
+
+test_that("the driving survey retains same-day reports through joins", {
+  data <- lapply(simulated_data[["2013"]], data.table::copy)
+  for (name in c("background", "contact", "symptom")) {
+    data[[name]] <- data.table::rbindlist(list(data[[name]][1], data[[name]][1]))
+  }
+  for (surveys in list("background", c("background", "contact"),
+                       c("background", "contact", "symptom"))) {
+    if (length(surveys) == 3) {
+      expect_warning(result <- merge_data(data[surveys], clean = NULL))
+    } else {
+      result <- merge_data(data[surveys], clean = NULL)
+    }
+    expect_equal(nrow(result), 2)
+  }
+})

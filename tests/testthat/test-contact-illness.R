@@ -33,6 +33,28 @@ test_that("same-day reports combine statuses independently of row order", {
   expect_equal(forward$current_ari, c("ARI", NA, "no ARI"))
 })
 
+test_that("extraction preserves same-day symptom reports for contact illness", {
+  day <- as.Date("2013-01-07")
+  reports <- data.table::data.table(
+    global_id = "a", date = day, no.symptoms = c("f", "t"),
+    ili.self = c("t", "f"),
+    symptoms.start.date = day, symptoms.end.date = as.Date(NA),
+    symptoms.end.option = "still_ill", fever = c("t", "f"),
+    cough = c("t", "f")
+  )
+  symptoms <- extract_data(
+    list(`2013` = list(symptom = reports)), surveys = "symptom",
+    clean = c("unsuccessful.join", "remove.bad.symptom.dates")
+  )
+  expect_equal(nrow(symptoms), 2)
+  res <- contact_illness(data.table::data.table(global_id = "a",
+                                                contact.date = day), symptoms)
+  expect_equal(res$current_symptoms, "symptoms")
+  expect_equal(res$current_ili, "ILI")
+  expect_equal(res$current_ili_self, "ILI")
+  expect_equal(res$current_ari, "ARI")
+})
+
 test_that("contact_illness takes status from the symptom report of the contact day", {
   contacts <- data.table::data.table(
     global_id = c("a", "a", "b", "c"),

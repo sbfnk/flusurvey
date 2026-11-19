@@ -5,8 +5,9 @@
 ##' contact, symptom), regardless of their order in \code{data}. The last one
 ##' present drives a rolling join. The result has one row per report of that
 ##' survey (the symptom reports, if present), each taking the latest report of
-##' the other surveys on or before its date. Any other survey name gives an
-##' error.
+##' the other surveys on or before its date. When an earlier survey has several
+##' reports on the same day, its last report is used. Any other survey name
+##' gives an error.
 ##'
 ##' Joining the contact and symptom surveys gives a warning. The join pairs
 ##' each symptom report with the latest earlier contact report, however long
@@ -107,9 +108,11 @@ merge_data <- function(
     clean <- match.arg(clean, several.ok = TRUE)
   }
   for (name in names(data)) {
-    ## only keep last report per day
     dt <- copy(data.table(data[[name]]))
-    dt <- dt[!duplicated(dt[, list(global_id, date)], fromLast = TRUE)]
+    if (name != tail(names(data), 1)) {
+      ## Earlier surveys supply one match per day to the rolling join.
+      dt <- dt[!duplicated(dt[, list(global_id, date)], fromLast = TRUE)]
+    }
 
     if ("limit.season" %in% clean) {
       dt <- limit_to_season(dt)
