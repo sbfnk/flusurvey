@@ -43,7 +43,7 @@
 ##' @importFrom plyr revalue
 ##' @importFrom stats runif
 ##' @export
-merge_data <- function( # nolint: cyclocomp_linter.
+merge_data <- function(
   data,
   clean = c(
     "remove.first",
@@ -67,332 +67,15 @@ merge_data <- function( # nolint: cyclocomp_linter.
     dt <- dt[!duplicated(dt[, list(global_id, date)], fromLast = TRUE)]
 
     if ("limit.season" %in% clean) {
-      ## figure out date with most reports, this defines the season
-      reports <- dt[, .N, date]
-      max_date <- reports[N == max(N), date]
-      ## season begins on 1 November before the maximum date
-      if (lubridate::month(max_date) >= 11) {
-        season_start <- as.Date(paste(year(max_date), 11, 1, sep = "-"))
-      } else {
-        season_start <- as.Date(paste(year(max_date) - 1, 11, 1, sep = "-"))
-      }
-      ## season ends on 1 April after the maximum date
-      if (lubridate::month(max_date) <= 4) {
-        season_end <- as.Date(paste(year(max_date), 4, 1, sep = "-"))
-      } else {
-        season_end <- as.Date(paste(year(max_date) + 1, 4, 1, sep = "-"))
-      }
-      dt <- dt[date >= season_start & date <= season_end]
+      dt <- limit_to_season(dt)
     }
 
-    ## clean symptoms data
-    if (name == "symptom") { # nolint: if_switch_linter.
-      dt <- aggregate_symptoms(dt)
-      ## calculate min.reports, max.reports, nReports
-      dt[, nReports := .N, by = global_id]
-      if ("n.reports" %in% clean) {
-        dt <- dt[nReports >= min.reports]
-      }
-
-      dt[, min.date := min(date), by = global_id]
-      dt[, max.date := max(date), by = global_id]
-
-      ## remove first survey completed by everyone
-      if ("remove.first" %in% clean) {
-        dt <- dt[duplicated(global_id)]
-      }
-
-      if ("remove.bad.symptom.dates" %in% clean) {
-        ## remove end date before start date
-        if (length(
-          intersect(c("symptoms.start.date", "symptoms.end.date"), colnames(dt))
-        ) == 2) {
-          dt[
-            !is.na(symptoms.end.date) & !is.na(symptoms.start.date) &
-              symptoms.end.date < symptoms.start.date,
-            c("symptoms.start.date", "symptoms.end.date") := list(
-              as.Date(NA_character_),
-              as.Date(NA_character_)
-            )
-          ]
-        }
-        ## remove start date after reporting date
-        if ("symptoms.start.date" %in% colnames(dt)) {
-          dt[
-            !is.na(symptoms.start.date) & symptoms.start.date > date,
-            symptoms.start.date := as.Date(NA_character_)
-          ]
-        }
-        ## remove end date after reporting date
-        if ("symptoms.end.date" %in% colnames(dt)) {
-          dt[
-            !is.na(symptoms.end.date) & symptoms.end.date > date,
-            symptoms.end.date := as.Date(NA_character_)
-          ]
-        }
-      }
-
-      if ("remove.bad.health.scores" %in% clean) {
-        dt <- dt[
-          health.score < 0 | health.score > 100,
-          health.score := NA_real_
-        ]
-      }
-
-      if ("only.symptoms" %in% clean) {
-        no.symptoms <-
-          dt[, list(no.symptoms.reports = sum(no.symptoms == "t")),
-            by = global_id
-          ]
-        dt <- merge(dt, no.symptoms, by = "global_id", all.x = TRUE)
-        dt <- dt[no.symptoms.reports > 0]
-        dt[, no.symptoms.reports := NULL]
-      }
-    } else if (name == "background") {
-      ## calculate birthdates, age and agegroup
-      if ("birthmonth" %in% colnames(dt)) {
-        dt[, birthdate := as.Date(paste0(birthmonth, "-01"))]
-      } else {
-        dt[, birthyear := gsub("-.*$", "", birthyear)]
-        dt[, birthdate := as.Date(paste0(birthyear, "-01-01"))]
-      }
-      dt[, age := interval(birthdate, date) %/% years(1)]
-      ## remove negative ages
-      dt[age < 0, birthdate := NA]
-      dt[age < 0, age := NA]
-
-      dt[, agegroup := cut(
-        age,
-        breaks = c(0, age.breaks, max(age, na.rm = TRUE)),
-        include.lowest = TRUE, right = TRUE
-      )]
-      dt[grep("^\\(65,", agegroup), agegroup := "(65,)"]
-      dt[, agegroup := factor(agegroup)]
-
-      for (
-        household.column in grep("^nb\\.household", colnames(dt), value = TRUE)
-      ) {
-        if (is.factor(dt[, get(household.column)])) {
-          dt[
-            ,
-            paste(household.column) :=
-              as.integer(as.character(get(household.column)))
-          ]
-        }
-      }
-
-      ## calculate auxiliary variables: living with children,
-      ## using public transport
-      if ("household.0.4" %in% colnames(dt)) {
-        dt[
-          ,
-          living.with.children :=
-            as.integer((household.0.4 == "t" | household.5.18 == "t"))
-        ]
-      } else {
-        for (nb.name in grep("^nb\\.", colnames(dt), value = TRUE)) {
-          dt[is.null(get(nb.name)), paste(nb.name) := 0]
-        }
-        dt[
-          ,
-          living.with.children :=
-            as.integer((nb.household.0.4 > 0 | nb.household.5.18 > 0))
-        ]
-      }
-
-      ## clean postcodes and add regional and urban/rural information
-      urban_rural_data <- copy(urban_rural)
-      urban_rural_names <- colnames(urban_rural_data)
-      regions_data <- copy(regions)
-      regions_data[region == "M99999999", region := "Isle of Man"]
-      regions_names <- colnames(regions_data)
-      for (col in grep("postcode$", colnames(dt), value = TRUE)) {
-        ## clean postcode
-        dt[, paste(col) := toupper(sub("[[:blank:]]+$", "", get(col)))]
-        dt[!nzchar(as.character(get(col))), paste(col) := NA]
-        ## set settlement type and country information
-        col_prefix <- sub("postcode$", "", col)
-        setnames(
-          urban_rural_data, seq_along(urban_rural_names),
-          paste0(col_prefix, urban_rural_names)
-        )
-        dt <- merge(dt, urban_rural_data, by = col, all.x = TRUE)
-        dt[, paste0(col_prefix, "country") := factor(revalue(
-          x = get(paste0(col_prefix, "country")),
-          replace = c(
-            "W" = "wales",
-            "N" = "northern_ireland",
-            "S" = "scotland",
-            "E" = "england"
-          ),
-          warn_missing = FALSE
-        ))]
-        ## set regional information
-        setnames(
-          regions_data, seq_along(regions_names),
-          paste0(col_prefix, regions_names)
-        )
-        dt <- merge(dt, regions_data, by = col, all.x = TRUE)
-        dt[, paste0(col_prefix, "region") := factor(tolower(gsub(
-          " ", "_",
-          get(paste0(col_prefix, "region")),
-          fixed = TRUE
-        )))]
-
-        ## set urban/rural information
-        ## England and Wales
-        dt[
-          country %in% c("england", "wales") &
-            get(paste0(col_prefix, "settlement.type")) %in% c(1, 5),
-          paste0(col_prefix, "urban.rural") := 1
-        ]
-        dt[
-          country %in% c("england", "wales") &
-            get(paste0(col_prefix, "settlement.type")) %in% c(2, 3, 4, 6, 7, 8),
-          paste0(col_prefix, "urban.rural") := 0
-        ]
-        ## Scotland
-        dt[
-          country == "scotland" &
-            get(paste0(col_prefix, "settlement.type")) %in% c(1, 2),
-          paste0(col_prefix, "urban.rural") := 1
-        ]
-        dt[
-          country == "scotland" &
-            get(paste0(col_prefix, "settlement.type")) %in% c(3, 4, 5, 6, 7),
-          paste0(col_prefix, "urban.rural") := 0
-        ]
-
-        ## Northern Ireland
-        dt[
-          country == "northern_ireland" &
-            get(paste0(col_prefix, "settlement.type")) %in% c(1, 2, 3, 4),
-          paste0(col_prefix, "urban.rural") := 1
-        ]
-        dt[
-          country == "northern_ireland" &
-            get(paste0(col_prefix, "settlement.type")) %in% c(5, 6, 7),
-          paste0(col_prefix, "urban.rural") := 0
-        ]
-
-        dt[, paste0(col_prefix, "urban.rural") := factor(
-          get(paste0(col_prefix, "urban.rural")),
-          levels = c(0, 1),
-          labels = c("rural", "urban")
-        )]
-      }
-
-      ## highest education level
-      dt[, highest.education := NA_character_]
-      edu_columns <-
-        grep("^(no\\.)?education(\\.|$)", colnames(dt), value = TRUE)
-      for (col in edu_columns) {
-        dt[get(col) == "t", highest.education := col]
-      }
-      dt[, highest.education := factor(highest.education,
-        levels = c(
-          "no.education", "education.gcse",
-          "education.alevels", "education.bsc",
-          "education.msc", "education.stillin"
-        )
-      )]
-      if ("education" %in% colnames(dt)) {
-        dt[
-          is.na(highest.education) & !is.na(education),
-          highest.education := education + 1L
-        ]
-      }
-
-      ## household members
-      hh_columns <- grep("^nb.household\\.", value = TRUE, colnames(dt))
-      for (col in hh_columns) {
-        indicator_col <- sub("nb.", "", col, fixed = TRUE)
-        if (indicator_col %in% colnames(dt)) {
-          dt[get(indicator_col) == "f", paste(col) := 0]
-        }
-      }
-      dt[, nb.household := rowSums(.SD),
-        .SDcols = hh_columns
-      ]
-      dt[, nb.household.children := rowSums(.SD),
-        .SDcols = c("nb.household.0.4", "nb.household.5.18")
-      ]
-    } else if (name == "contact") {
-      ## loop over conversational/physical variables, check for dashes,  remove
-      ## text
-      types <- c("conversational", "physical")
-      contact_columns <-
-        grep(paste0("^", "(", paste(types, collapse = "|"), ")\\."),
-          value = TRUE, colnames(dt)
-        )
-      settings <-
-        unique(sub("^.*\\.([^.]*)\\..*$", "\\1", contact_columns))
-      agegroups <-
-        unique(sub("^.*\\.[^.]*\\.([^.]*)$", "\\1", contact_columns))
-
-      for (column in contact_columns) {
-        dt[, paste(column) := as.character(get(column))]
-        dt[get(column) == "NULL", paste(column) := NA_character_]
-        if (ranges == "sample") {
-          dt[
-            grepl("-", get(column), fixed = TRUE),
-            paste(column) := as.character(as.integer(runif(
-              .N,
-              as.integer(sub("-.*$", "", get(column))),
-              as.integer(sub("^.*-", "", get(column))) + 1
-            )))
-          ]
-        } else {
-          ## apply a function
-          dt[
-            grepl("-", get(column), fixed = TRUE),
-            paste(column) := as.character(as.integer(do.call(
-              ranges,
-              list(c(
-                as.integer(sub("-.*$", "", get(column))),
-                as.integer(sub("^.*-", "", get(column))) + 1
-              ))
-            )))
-          ]
-        }
-        dt[, paste(column) := as.integer(gsub("[^0-9]", "", get(column)))]
-      }
-
-      columns <- list()
-      for (type in types) {
-        type_columns <-
-          grep(paste0("^", type), contact_columns, value = TRUE)
-        columns[[type]] <- type_columns
-        for (setting in settings) {
-          setting_columns <-
-            grep(paste0("^", type, "\\.", setting), contact_columns,
-              value = TRUE
-            )
-          columns[[paste(type, setting, sep = ".")]] <- setting_columns
-        }
-        for (agegroup in agegroups) {
-          agegroup_columns <-
-            grep(paste0("^", type, "\\.[^.]*\\.", agegroup),
-              contact_columns,
-              value = TRUE
-            )
-          columns[[paste(type, agegroup, sep = ".")]] <- agegroup_columns
-        }
-      }
-
-      for (column_name in names(columns)) {
-        dt[,
-          paste(column_name) := as.integer(rowSums(.SD, na.rm = TRUE)) *
-            ifelse(rowSums(is.na(.SD)) == ncol(.SD), NA, 1L),
-          .SDcols = columns[[column_name]]
-        ]
-      }
-
-      ## the survey asks about the previous day: the contacts belong to the
-      ## day before the report
-      dt[, contact.date := date - 1]
-      dt[, contact.day.of.week := (wday(contact.date) - 2) %% 7 + 1]
-    }
+    dt <- switch(name,
+      symptom = clean_symptom(dt, clean, min.reports),
+      background = clean_background(dt, age.breaks),
+      contact = clean_contact(dt, ranges),
+      dt
+    )
 
     if ("id" %in% colnames(dt)) {
       setnames(dt, "id", paste(name, "id", sep = "."))
@@ -402,24 +85,11 @@ merge_data <- function( # nolint: cyclocomp_linter.
     setkey(dt, global_id, date)
     dt_list[[name]] <- dt
   }
-  ## join
-  res <- dt_list[[length(dt_list)]]
-  if (length(dt_list) > 1) {
-    for (i in rev(seq_len(length(dt_list) - 1))) {
-      res <- dt_list[[i]][res, roll = TRUE]
-    }
-  }
 
-  res <- res[nzchar(as.character(global_id), keepNA = TRUE)]
-
-  res[, day.of.week := (wday(date) - 2) %% 7 + 1]
-  res[, month := month(date)]
+  res <- join_surveys(dt_list)
 
   if ("unsuccessful.join" %in% clean) {
-    id_cols <- grep("\\.id$", colnames(res), value = TRUE)
-    for (col in id_cols) {
-      res <- res[!is.na(get(col))]
-    }
+    res <- remove_unsuccessful_joins(res)
   }
 
   setkey(res, date, global_id)
@@ -431,18 +101,436 @@ merge_data <- function( # nolint: cyclocomp_linter.
     ]
   }
 
+  ## the columns to convert are picked from the last survey cleaned
+  convert_logical_columns(res, dt)
+}
+
+## Keep the reports from the season that contains the date with most reports.
+limit_to_season <- function(dt) {
+  ## figure out date with most reports, this defines the season
+  reports <- dt[, .N, date]
+  max_date <- reports[N == max(N), date]
+  ## season begins on 1 November before the maximum date
+  if (lubridate::month(max_date) >= 11) {
+    season_start <- as.Date(paste(year(max_date), 11, 1, sep = "-"))
+  } else {
+    season_start <- as.Date(paste(year(max_date) - 1, 11, 1, sep = "-"))
+  }
+  ## season ends on 1 April after the maximum date
+  if (lubridate::month(max_date) <= 4) {
+    season_end <- as.Date(paste(year(max_date), 4, 1, sep = "-"))
+  } else {
+    season_end <- as.Date(paste(year(max_date) + 1, 4, 1, sep = "-"))
+  }
+  dt[date >= season_start & date <= season_end]
+}
+
+## Joins the surveys, each onto the one before it, by the closest earlier date.
+join_surveys <- function(dt_list) {
+  res <- dt_list[[length(dt_list)]]
+  if (length(dt_list) > 1) {
+    for (i in rev(seq_len(length(dt_list) - 1))) {
+      res <- dt_list[[i]][res, roll = TRUE]
+    }
+  }
+
+  res <- res[nzchar(as.character(global_id), keepNA = TRUE)]
+
+  res[, day.of.week := (wday(date) - 2) %% 7 + 1]
+  res[, month := month(date)]
+  res
+}
+
+## Drops the rows in which any of the surveys is missing.
+remove_unsuccessful_joins <- function(res) {
+  id_cols <- grep("\\.id$", colnames(res), value = TRUE)
+  for (col in id_cols) {
+    res <- res[!is.na(get(col))]
+  }
+  res
+}
+
+## Turns the character columns of `reference` that only hold "t" and "f" into
+## factors in `res`.
+convert_logical_columns <- function(res, reference) {
   char_columns <-
     which(
-      vapply(colnames(res), function(x) class(dt[[x]]), "") == "character",
+      vapply(colnames(res), function(x) class(reference[[x]]), "") ==
+        "character",
       TRUE
     )
 
   tf <-
     names(char_columns)[vapply(names(char_columns), function(x) {
-      length(setdiff(c("t", "f"), setdiff(unique(dt[[x]]), NA_character_))) == 0
+      length(setdiff(
+        c("t", "f"), setdiff(unique(reference[[x]]), NA_character_)
+      )) == 0
     }, TRUE)]
 
   for (column in tf) res[, paste(column) := factor(get(column))]
 
   res
+}
+
+## ---- symptom survey ---------------------------------------------------------
+
+clean_symptom <- function(dt, clean, min.reports) {
+  dt <- aggregate_symptoms(dt)
+  ## calculate min.reports, max.reports, nReports
+  dt[, nReports := .N, by = global_id]
+  if ("n.reports" %in% clean) {
+    dt <- dt[nReports >= min.reports]
+  }
+
+  dt[, min.date := min(date), by = global_id]
+  dt[, max.date := max(date), by = global_id]
+
+  ## remove first survey completed by everyone
+  if ("remove.first" %in% clean) {
+    dt <- dt[duplicated(global_id)]
+  }
+
+  if ("remove.bad.symptom.dates" %in% clean) {
+    remove_bad_symptom_dates(dt)
+  }
+
+  if ("remove.bad.health.scores" %in% clean) {
+    dt <- remove_bad_health_scores(dt)
+  }
+
+  if ("only.symptoms" %in% clean) {
+    dt <- keep_symptom_free_reporters(dt)
+  }
+  dt
+}
+
+## Sets symptom dates that cannot be right to missing, by reference.
+remove_bad_symptom_dates <- function(dt) {
+  ## remove end date before start date
+  if (length(
+    intersect(c("symptoms.start.date", "symptoms.end.date"), colnames(dt))
+  ) == 2) {
+    dt[
+      !is.na(symptoms.end.date) & !is.na(symptoms.start.date) &
+        symptoms.end.date < symptoms.start.date,
+      c("symptoms.start.date", "symptoms.end.date") := list(
+        as.Date(NA_character_),
+        as.Date(NA_character_)
+      )
+    ]
+  }
+  ## remove start date after reporting date
+  if ("symptoms.start.date" %in% colnames(dt)) {
+    dt[
+      !is.na(symptoms.start.date) & symptoms.start.date > date,
+      symptoms.start.date := as.Date(NA_character_)
+    ]
+  }
+  ## remove end date after reporting date
+  if ("symptoms.end.date" %in% colnames(dt)) {
+    dt[
+      !is.na(symptoms.end.date) & symptoms.end.date > date,
+      symptoms.end.date := as.Date(NA_character_)
+    ]
+  }
+  invisible(dt)
+}
+
+remove_bad_health_scores <- function(dt) {
+  dt[
+    health.score < 0 | health.score > 100,
+    health.score := NA_real_
+  ]
+}
+
+## Keeps the participants with at least one report without symptoms.
+keep_symptom_free_reporters <- function(dt) {
+  no.symptoms <-
+    dt[, list(no.symptoms.reports = sum(no.symptoms == "t")),
+      by = global_id
+    ]
+  dt <- merge(dt, no.symptoms, by = "global_id", all.x = TRUE)
+  dt <- dt[no.symptoms.reports > 0]
+  dt[, no.symptoms.reports := NULL]
+  dt
+}
+
+## ---- background survey ------------------------------------------------------
+
+clean_background <- function(dt, age.breaks) {
+  dt <- add_age(dt, age.breaks)
+  convert_household_counts(dt)
+  add_living_with_children(dt)
+  dt <- add_postcode_regions(dt)
+  add_highest_education(dt)
+  add_household_members(dt)
+  dt
+}
+
+## calculate birthdates, age and agegroup
+add_age <- function(dt, age.breaks) {
+  if ("birthmonth" %in% colnames(dt)) {
+    dt[, birthdate := as.Date(paste0(birthmonth, "-01"))]
+  } else {
+    dt[, birthyear := gsub("-.*$", "", birthyear)]
+    dt[, birthdate := as.Date(paste0(birthyear, "-01-01"))]
+  }
+  dt[, age := interval(birthdate, date) %/% years(1)]
+  ## remove negative ages
+  dt[age < 0, birthdate := NA]
+  dt[age < 0, age := NA]
+
+  dt[, agegroup := cut(
+    age,
+    breaks = c(0, age.breaks, max(age, na.rm = TRUE)),
+    include.lowest = TRUE, right = TRUE
+  )]
+  dt[grep("^\\(65,", agegroup), agegroup := "(65,)"]
+  dt[, agegroup := factor(agegroup)]
+  dt
+}
+
+convert_household_counts <- function(dt) {
+  for (
+    household.column in grep("^nb\\.household", colnames(dt), value = TRUE)
+  ) {
+    if (is.factor(dt[, get(household.column)])) {
+      dt[
+        ,
+        paste(household.column) :=
+          as.integer(as.character(get(household.column)))
+      ]
+    }
+  }
+  invisible(dt)
+}
+
+## calculate auxiliary variable: living with children
+add_living_with_children <- function(dt) {
+  if ("household.0.4" %in% colnames(dt)) {
+    dt[
+      ,
+      living.with.children :=
+        as.integer((household.0.4 == "t" | household.5.18 == "t"))
+    ]
+  } else {
+    for (nb.name in grep("^nb\\.", colnames(dt), value = TRUE)) {
+      dt[is.null(get(nb.name)), paste(nb.name) := 0]
+    }
+    dt[
+      ,
+      living.with.children :=
+        as.integer((nb.household.0.4 > 0 | nb.household.5.18 > 0))
+    ]
+  }
+  invisible(dt)
+}
+
+## clean postcodes and add regional and urban/rural information
+add_postcode_regions <- function(dt) {
+  urban_rural_data <- copy(urban_rural)
+  urban_rural_names <- colnames(urban_rural_data)
+  regions_data <- copy(regions)
+  regions_data[region == "M99999999", region := "Isle of Man"]
+  regions_names <- colnames(regions_data)
+  for (col in grep("postcode$", colnames(dt), value = TRUE)) {
+    ## clean postcode
+    dt[, paste(col) := toupper(sub("[[:blank:]]+$", "", get(col)))]
+    dt[!nzchar(as.character(get(col))), paste(col) := NA]
+    ## set settlement type and country information
+    col_prefix <- sub("postcode$", "", col)
+    setnames(
+      urban_rural_data, seq_along(urban_rural_names),
+      paste0(col_prefix, urban_rural_names)
+    )
+    dt <- merge(dt, urban_rural_data, by = col, all.x = TRUE)
+    dt[, paste0(col_prefix, "country") := factor(revalue(
+      x = get(paste0(col_prefix, "country")),
+      replace = c(
+        "W" = "wales",
+        "N" = "northern_ireland",
+        "S" = "scotland",
+        "E" = "england"
+      ),
+      warn_missing = FALSE
+    ))]
+    ## set regional information
+    setnames(
+      regions_data, seq_along(regions_names),
+      paste0(col_prefix, regions_names)
+    )
+    dt <- merge(dt, regions_data, by = col, all.x = TRUE)
+    dt[, paste0(col_prefix, "region") := factor(tolower(gsub(
+      " ", "_",
+      get(paste0(col_prefix, "region")),
+      fixed = TRUE
+    )))]
+
+    add_urban_rural(dt, col_prefix)
+  }
+  dt
+}
+
+## Classifies settlements as urban or rural; the codes depend on the country.
+add_urban_rural <- function(dt, col_prefix) {
+  settlement_type <- paste0(col_prefix, "settlement.type")
+  urban_rural_col <- paste0(col_prefix, "urban.rural")
+  ## the urban and rural settlement types of each country
+  settlement_types <- list(
+    list(c("england", "wales"), c(1, 5), c(2, 3, 4, 6, 7, 8)),
+    list("scotland", c(1, 2), c(3, 4, 5, 6, 7)),
+    list("northern_ireland", c(1, 2, 3, 4), c(5, 6, 7))
+  )
+  for (types in settlement_types) {
+    dt[
+      country %in% types[[1]] & get(settlement_type) %in% types[[2]],
+      paste(urban_rural_col) := 1
+    ]
+    dt[
+      country %in% types[[1]] & get(settlement_type) %in% types[[3]],
+      paste(urban_rural_col) := 0
+    ]
+  }
+
+  dt[, paste(urban_rural_col) := factor(
+    get(urban_rural_col),
+    levels = c(0, 1),
+    labels = c("rural", "urban")
+  )]
+  invisible(dt)
+}
+
+## highest education level
+add_highest_education <- function(dt) {
+  dt[, highest.education := NA_character_]
+  edu_columns <-
+    grep("^(no\\.)?education(\\.|$)", colnames(dt), value = TRUE)
+  for (col in edu_columns) {
+    dt[get(col) == "t", highest.education := col]
+  }
+  dt[, highest.education := factor(highest.education,
+    levels = c(
+      "no.education", "education.gcse",
+      "education.alevels", "education.bsc",
+      "education.msc", "education.stillin"
+    )
+  )]
+  if ("education" %in% colnames(dt)) {
+    dt[
+      is.na(highest.education) & !is.na(education),
+      highest.education := education + 1L
+    ]
+  }
+  invisible(dt)
+}
+
+## household members
+add_household_members <- function(dt) {
+  hh_columns <- grep("^nb.household\\.", value = TRUE, colnames(dt))
+  for (col in hh_columns) {
+    indicator_col <- sub("nb.", "", col, fixed = TRUE)
+    if (indicator_col %in% colnames(dt)) {
+      dt[get(indicator_col) == "f", paste(col) := 0]
+    }
+  }
+  dt[, nb.household := rowSums(.SD),
+    .SDcols = hh_columns
+  ]
+  dt[, nb.household.children := rowSums(.SD),
+    .SDcols = c("nb.household.0.4", "nb.household.5.18")
+  ]
+  invisible(dt)
+}
+
+## ---- contact survey ---------------------------------------------------------
+
+clean_contact <- function(dt, ranges) {
+  ## loop over conversational/physical variables, check for dashes, remove text
+  types <- c("conversational", "physical")
+  contact_columns <-
+    grep(paste0("^", "(", paste(types, collapse = "|"), ")\\."),
+      value = TRUE, colnames(dt)
+    )
+
+  for (column in contact_columns) {
+    resolve_contact_ranges(dt, column, ranges)
+  }
+  add_contact_totals(dt, types, contact_columns)
+
+  ## the survey asks about the previous day, so contacts date from the day
+  ## before the report
+  dt[, contact.date := date - 1]
+  dt[, contact.day.of.week := (wday(contact.date) - 2) %% 7 + 1]
+  dt
+}
+
+## Turns the answers of one contact column into integers; a range such as
+## "5-10" is replaced by a sample from it or by a summary of it.
+resolve_contact_ranges <- function(dt, column, ranges) {
+  dt[, paste(column) := as.character(get(column))]
+  dt[get(column) == "NULL", paste(column) := NA_character_]
+  if (ranges == "sample") {
+    dt[
+      grepl("-", get(column), fixed = TRUE),
+      paste(column) := as.character(as.integer(runif(
+        .N,
+        as.integer(sub("-.*$", "", get(column))),
+        as.integer(sub("^.*-", "", get(column))) + 1
+      )))
+    ]
+  } else {
+    ## apply a function
+    dt[
+      grepl("-", get(column), fixed = TRUE),
+      paste(column) := as.character(as.integer(do.call(
+        ranges,
+        list(c(
+          as.integer(sub("-.*$", "", get(column))),
+          as.integer(sub("^.*-", "", get(column))) + 1
+        ))
+      )))
+    ]
+  }
+  dt[, paste(column) := as.integer(gsub("[^0-9]", "", get(column)))]
+  invisible(dt)
+}
+
+## Adds the number of contacts by type, by type and setting, and by type and
+## age group.
+add_contact_totals <- function(dt, types, contact_columns) {
+  settings <-
+    unique(sub("^.*\\.([^.]*)\\..*$", "\\1", contact_columns))
+  agegroups <-
+    unique(sub("^.*\\.[^.]*\\.([^.]*)$", "\\1", contact_columns))
+
+  columns <- list()
+  for (type in types) {
+    type_columns <-
+      grep(paste0("^", type), contact_columns, value = TRUE)
+    columns[[type]] <- type_columns
+    for (setting in settings) {
+      setting_columns <-
+        grep(paste0("^", type, "\\.", setting), contact_columns,
+          value = TRUE
+        )
+      columns[[paste(type, setting, sep = ".")]] <- setting_columns
+    }
+    for (agegroup in agegroups) {
+      agegroup_columns <-
+        grep(paste0("^", type, "\\.[^.]*\\.", agegroup),
+          contact_columns,
+          value = TRUE
+        )
+      columns[[paste(type, agegroup, sep = ".")]] <- agegroup_columns
+    }
+  }
+
+  for (column_name in names(columns)) {
+    dt[,
+      paste(column_name) := as.integer(rowSums(.SD, na.rm = TRUE)) *
+        ifelse(rowSums(is.na(.SD)) == ncol(.SD), NA, 1L),
+      .SDcols = columns[[column_name]]
+    ]
+  }
+  invisible(dt)
 }
