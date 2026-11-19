@@ -59,3 +59,14 @@ test_that("minimum symptom reports counts reporting days", {
   unfiltered <- merge_data(list(symptom = reports), clean = NULL)
   expect_equal(unfiltered[global_id == "a", nReports], rep(1L, 3))
 })
+
+test_that("remove.first removes all reports on each first reporting day", {
+  report <- data.table::copy(simulated_data[["2013"]][["symptom"]][1])
+  reports <- data.table::rbindlist(rep(list(report), 5))
+  reports[, global_id := c("a", "a", "a", "b", "b")]
+  reports[, date := date + c(7, 0, 0, 0, 0)]
+
+  result <- merge_data(list(symptom = reports), clean = "remove.first")
+  expect_equal(as.character(result$global_id), "a")
+  expect_equal(result$date, reports$date[1])
+})

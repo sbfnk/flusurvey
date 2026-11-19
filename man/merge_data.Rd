@@ -36,7 +36,7 @@ episode with \code{\link{flag_ill_contacts}}.}
 
 \item{clean}{cleaning options, NULL for no cleaning, otherwise a vector of
 cleans to perform (by default all):
-- 'remove.first', whether to remove everyone's first report,
+- 'remove.first', whether to remove reports from the first reporting day,
 - 'remove.bad.symptom.dates', whether to remove bad symptom dates: symptom
 start before date of first or end after end of last report, end of symptoms
 before start of symptoms, symptoms reported to have started or ended after
@@ -76,7 +76,7 @@ Clean and merge flusurvey data tables
 dt <- merge_data(simulated_data[["2013"]])
 table(dt$ili)
 
-## only remove each participant's first report
+## only remove each participant's first reporting day
 merge_data(simulated_data[["2013"]], clean = "remove.first")
 }
 \author{
