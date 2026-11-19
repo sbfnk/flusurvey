@@ -3,6 +3,7 @@
 utils::globalVariables(c(
   "N",
   "age",
+  "agegroup",
   "birthdate",
   "birthmonth",
   "birthyear",

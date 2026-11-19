@@ -16,6 +16,15 @@ test_that("extract_data returns a non-empty table with default cleaning", {
   expect_true(any(dt$ili == "t", na.rm = TRUE))
 })
 
+test_that("extract_data accepts the default years = 'all'", {
+  all_years <- extract_data(simulated_data)
+  expect_setequal(unique(all_years$season), c("2012/13", "2013/14"))
+  expect_equal(
+    extract_data(simulated_data, years = "all", surveys = "background"),
+    extract_data(simulated_data, years = 2013:2014, surveys = "background")
+  )
+})
+
 test_that("get_incidence returns incidence for both seasons", {
   dt <- extract_data(simulated_data, years = 2013:2014)
   incidence <- get_incidence(dt, incidence.columns = "ili",
@@ -42,6 +51,24 @@ test_that("missing household counts are set to 0", {
   fill_household_counts(dt)
   expect_identical(dt$nb.household.0.4, c(1L, 0L, 0L))
   expect_identical(dt$nb.household.5.18, c(0L, 0L, 2L))
+})
+
+test_that("health scores outside 0 to 100 are removed by default", {
+  raw <- unlist(lapply(simulated_data, function(season) {
+    season$symptom$health.score
+  }))
+  expect_true(any(raw < 0 | raw > 100, na.rm = TRUE))
+  dt <- extract_data(simulated_data, years = 2013:2014)
+  expect_true(all(dt$health.score >= 0 & dt$health.score <= 100, na.rm = TRUE))
+})
+
+test_that("remove.bad.health.scores is accepted by name", {
+  dt <- extract_data(simulated_data, years = 2013:2014,
+                     clean = "remove.bad.health.scores")
+  expect_true(all(dt$health.score >= 0 & dt$health.score <= 100, na.rm = TRUE))
+  dt <- extract_data(simulated_data, years = 2013:2014,
+                     clean = "remove.first")
+  expect_true(any(dt$health.score < 0 | dt$health.score > 100, na.rm = TRUE))
 })
 
 test_that("merge_data dates contact reports by the day they describe", {
