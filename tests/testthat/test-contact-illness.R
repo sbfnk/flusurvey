@@ -1,3 +1,17 @@
+test_that("contact illness keeps derived and self-reported ILI separate", {
+  day <- as.Date("2013-01-07")
+  contacts <- data.table::data.table(global_id = letters[1:4], contact.date = day)
+  symptoms <- data.table::data.table(
+    global_id = letters[1:4], date = day, no.symptoms = "f",
+    ili = c("f", "t", NA, "t"), ili.self = c("t", "f", "t", NA),
+    resp.symptoms = "t", symptoms.start.date = day,
+    symptoms.end.date = as.Date(NA), symptoms.end.option = "still_ill"
+  )
+  res <- contact_illness(contacts, symptoms)
+  expect_equal(res$current_ili, c("no ILI", "ILI", NA, "ILI"))
+  expect_equal(res$current_ili_self, c("ILI", "no ILI", "ILI", NA))
+})
+
 test_that("contact_illness takes status from the symptom report of the contact day", {
   contacts <- data.table::data.table(
     global_id = c("a", "a", "b", "c"),
@@ -10,6 +24,7 @@ test_that("contact_illness takes status from the symptom report of the contact d
     symptoms.start.date = as.Date("2013-01-01"),
     symptoms.end.date = as.Date(NA), symptoms.end.option = "still_ill",
     no.symptoms = factor(c("f", "t", "t"), levels = c("f", "t")),
+    ili = factor(c("t", "f", "f"), levels = c("f", "t")),
     ili.self = factor(c("t", "f", "f"), levels = c("f", "t")),
     resp.symptoms = factor(c("t", "f", "f"), levels = c("f", "t"))
   )
@@ -29,7 +44,7 @@ test_that("contact_illness does not match missing participant IDs or dates", {
   symptoms <- data.table::data.table(
     global_id = c("a", NA, NA, "a"),
     date = as.Date(c(NA, "2013-01-01", NA, "2013-01-01")),
-    no.symptoms = "f", ili.self = "t", resp.symptoms = "t",
+    no.symptoms = "f", ili = "t", ili.self = "t", resp.symptoms = "t",
     symptoms.start.date = as.Date("2013-01-01"),
     symptoms.end.date = as.Date(NA), symptoms.end.option = "still_ill"
   )
@@ -49,7 +64,7 @@ test_that("contact illness uses illness dates and distinguishes unknown dates", 
   contacts <- data.table::data.table(global_id = letters[1:7], contact.date = day)
   symptoms <- data.table::data.table(
     global_id = letters[1:7], date = day, no.symptoms = "f",
-    ili.self = "t", resp.symptoms = "t",
+    ili = "t", ili.self = "t", resp.symptoms = "t",
     symptoms.start.date = day + c(-5, 0, -5, -5, NA, -5, 1),
     symptoms.end.date = day + c(-4, 0, NA, NA, 0, NA, 2),
     symptoms.end.option = c("date", "date", "still_ill", "dont_know",
@@ -99,7 +114,7 @@ test_that("contact analysis cleans invalid dates without dropping reports", {
   }
   day <- as.Date("2013-01-07")
   reports <- data.table::data.table(
-    global_id = "a", date = day, no.symptoms = "f", ili.self = "t",
+    global_id = "a", date = day, no.symptoms = "f", ili = "t", ili.self = "t",
     resp.symptoms = "t", symptoms.start.date = day - 1,
     symptoms.end.date = day + 2, symptoms.end.option = "date"
   )

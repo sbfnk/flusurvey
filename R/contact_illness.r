@@ -19,12 +19,13 @@
 ##' \code{global_id} and \code{contact.date}
 ##' @param symptoms a data table of symptom reports, as returned by
 ##' \code{\link{extract_data}}, with columns \code{global_id}, \code{date},
-##' \code{no.symptoms}, \code{ili.self}, \code{resp.symptoms},
+##' \code{no.symptoms}, \code{ili}, \code{ili.self}, \code{resp.symptoms},
 ##' \code{symptoms.start.date}, \code{symptoms.end.date} and
 ##' \code{symptoms.end.option}
 ##' @return the contact reports with added columns \code{current_symptoms}
-##' ("symptoms" or "no symptoms"), \code{current_ili} ("ILI" or "no ILI") and
-##' \code{current_ari} ("ARI" or "no ARI"), each missing where there is no
+##' ("symptoms" or "no symptoms"), \code{current_ili} for derived ILI,
+##' \code{current_ili_self} for self-reported ILI (both "ILI" or "no ILI"),
+##' and \code{current_ari} ("ARI" or "no ARI"), each missing where there is no
 ##' symptom report on that day or the status cannot be determined
 ##' @examples
 ##' contacts <- extract_data(
@@ -57,6 +58,9 @@ contact_illness <- function(contacts, symptoms) {
         on_day, "symptoms", "no symptoms"
       ),
       current_ili = fifelse(
+        on_day & ili == "t", "ILI", "no ILI"
+      ),
+      current_ili_self = fifelse(
         on_day & ili.self == "t", "ILI", "no ILI"
       ),
       current_ari = fifelse(
