@@ -25,9 +25,9 @@
 ##' from the range ("sample"), or apply a function, given as character string
 ##' (e.g., "mean")
 ##' @param age.breaks a vector of the highest age (in whole years) in each age
-##' group except the last, which is open-ended (first age group starts at 0
-##' years of age). The default gives the groups 0-18, 19-44, 45-64 and 65+,
-##' which line up with the age bands of the contact questions.
+##' group except the last (first age group starts at 0 years of age). The last
+##' group is open-ended. The default gives the groups 0-18, 19-44, 45-64 and
+##' 65+, matching the age bands of the contact questions.
 ##' @return a rolling-joined data table
 ##' @author seb
 ##' @examples
@@ -159,8 +159,8 @@ merge_data <- function( # nolint: cyclocomp_linter.
       dt[age < 0, birthdate := NA]
       dt[age < 0, age := NA]
 
-      ## ages are whole years, so a group's upper limit is inclusive and the
-      ## next group starts one year later, matching the contact age bands
+      ## ages are whole years. Each group includes its upper limit and the next
+      ## group starts one year later, as in the contact age bands
       agegroup_labels <- paste0(
         c(0, age.breaks + 1), "-", c(age.breaks, "")
       )
