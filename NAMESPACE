@@ -3,6 +3,7 @@
 export(aggregate_symptoms)
 export(bouts_of_illness)
 export(extract_data)
+export(flag_ill_contacts)
 export(get_incidence)
 export(merge_data)
 export(read_data)
