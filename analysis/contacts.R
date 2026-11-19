@@ -23,12 +23,6 @@ dt_back_contacts <- extract_data(
   surveys = c("background", "contact")
 )
 
-dt_contacts <- extract_data(
-  "data/flusurvey_raw_2012_2020.rds",
-  years = 2012:2013,
-  surveys = "contact"
-)
-
 bouts <- bouts_of_illness(dt)
 bouts <- bouts[!is.na(symptoms.end.date)]
 bouts <- bouts[,
@@ -75,7 +69,7 @@ dir.create(here("figures"), showWarnings = FALSE)
 
 for (type in c("conversational", "physical")) {
   ## describe contact data
-  max_people <- dt_contacts |>
+  max_people <- contacts |>
     group_by(participant_id, season) |>
     summarise(n = n(), .groups = "drop") |>
     group_by(participant_id) |>
@@ -88,7 +82,7 @@ for (type in c("conversational", "physical")) {
     pull(participant_id)
 
   p <- ggplot(
-    dt_contacts |>
+    contacts |>
     filter(participant_id %in% max_people),
     aes_string(x = "date", y = type, group = "season")
   ) +
@@ -109,7 +103,7 @@ for (type in c("conversational", "physical")) {
     base_aspect_ratio = 2
   )
 
-  means <- dt_contacts |>
+  means <- contacts |>
     group_by(participant_id) |>
     mutate(
       mean = mean(.data[[type]]),
@@ -568,7 +562,7 @@ for (type in c("conversational", "physical")) {
   save_plot(here("figures", paste0(type, "_region_setting.png")), p)
 }
 
-means <- dt_contacts |>
+means <- contacts |>
   group_by(participant_id) |>
   mutate(
     mean.physical = mean(physical),
