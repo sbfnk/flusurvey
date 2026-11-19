@@ -124,9 +124,9 @@ merge_data <- function( # nolint: cyclocomp_linter.
             symptoms.start.date := as.Date(NA_character_)
           ]
         }
-        ## remove start date before the first report or too long before the
-        ## report that gives it, as it would otherwise stretch a bout of illness
-        ## over all intervening reports
+        ## remove start dates before the first report or too long before the
+        ## report that gives them, because they would otherwise stretch a bout
+        ## of illness over all intervening reports
         if ("symptoms.start.date" %in% colnames(dt)) {
           dt[
             !is.na(symptoms.start.date) &
