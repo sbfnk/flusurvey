@@ -106,13 +106,14 @@ get_incidence <- function(
            last = max(get(columns[["max.date"]]))),
       by = season
     ]
-    periods <- period_start[, {
-      if (aggregation == "year") {
-        list(period = unique(first))
+    periods <- period_start[,
+      list(period = if (aggregation == "year") {
+        unique(first)
       } else {
-        list(period = seq(first, last, by = aggregation))
-      }
-    }, by = season]
+        seq(first, last, by = aggregation)
+      }),
+      by = season
+    ]
     setnames(periods, "period", aggregation)
     active_reports <- lapply(unique(
       periods[, get(aggregation)]
@@ -147,10 +148,10 @@ get_incidence <- function(
     )
   }
   for (incidence_column in incidence.columns) {
-    if (!incidence_column %in% colnames(incidence)) {
-      incidence[, paste(incidence_column) := 0]
-    } else {
+    if (incidence_column %in% colnames(incidence)) {
       incidence[is.na(get(incidence_column)), paste(incidence_column) := 0]
+    } else {
+      incidence[, paste(incidence_column) := 0]
     }
   }
 
