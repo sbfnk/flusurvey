@@ -56,7 +56,8 @@ merge_data <- function( # nolint: cyclocomp_linter.
   age.breaks = c(18, 45, 65)
 ) {
   dt_list <- list()
-  ## match.arg() maps NULL to the first choice, hence the check for "no cleaning" beforehand
+  ## match.arg() maps NULL to the first choice, so check for an empty
+  ## `clean` beforehand
   if (length(clean) == 0) {
     clean <- character(0)
   } else {
