@@ -48,7 +48,7 @@ merge_data <- function( # nolint: cyclocomp_linter.
   clean = c(
     "remove.first",
     "remove.bad.symptom.dates",
-    "remove.bad.health.score",
+    "remove.bad.health.scores",
     "limit.season",
     "remove.postcodes",
     "n.reports",
