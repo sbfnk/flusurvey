@@ -2,9 +2,9 @@
 ##'
 ##' @param symptoms a data table of symptom reports
 ##' @param ili.sudden.unknown how to treat reports where it is not known whether
-##'   the symptoms started suddenly: `1` counts them as sudden, `0` as not
-##'   sudden, and `NA` leaves them unknown, so that `ili` is missing for any
-##'   report that has the symptoms of ILI but an unknown onset.
+##'   the symptoms started suddenly: `1` counts them as sudden and `0` as not
+##'   sudden. `NA` leaves them unknown, and `ili` is then missing for any
+##'   report with the symptoms of ILI but an unknown onset.
 ##' @return a data table with added columns
 ##' @author seb
 ##' @import data.table
