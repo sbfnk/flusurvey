@@ -23,8 +23,8 @@ test_that("contact_illness uses symptom reports that cleaning removes", {
   contacts <- extract_data(
     simulated_data, years = 2013:2014, surveys = c("background", "contact")
   )
-  ## the simulated symptom reports fall on the contact report dates, so look
-  ## them up on those dates
+  ## simulated symptom reports fall on the contact report dates, so use
+  ## those dates for the lookup
   contacts[, contact.date := date]
   symptoms <- extract_data(
     simulated_data, years = 2013:2014, surveys = "symptom",

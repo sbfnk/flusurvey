@@ -2,7 +2,7 @@
 ##'
 ##' Looks up, for each contact report, the symptom report filed by the same
 ##' participant on the day the contacts describe, \code{contact.date}. Contact
-##' reports describe the previous day, so this is the day before the report
+##' reports describe the previous day, which is the day before the report
 ##' \code{date}. A contact report with no symptom report on that day, or from
 ##' a participant without symptom data, gets a missing status rather than
 ##' "no symptoms".
