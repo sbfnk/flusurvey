@@ -10,7 +10,7 @@ test_that("merge_data with default cleaning gives the pinned table", {
       dim = c(2898L, 243L), key = c("date", "global_id"),
       classes = c(character = 3L, Date = 8L, factor = 163L, integer = 64L,
                   numeric = 5L),
-      missing = 171448, numeric_total = 7578810, factor_levels = 471L,
+      missing = 171724, numeric_total = 7578587, factor_levels = 471L,
       factor_codes = 450741, names_checksum = 928461132
     )
   )
@@ -25,7 +25,7 @@ test_that("merge_data with only the first reports removed gives the pinned table
       dim = c(3068L, 245L), key = c("date", "global_id"),
       classes = c(character = 5L, Date = 8L, factor = 163L, integer = 64L,
                   numeric = 5L),
-      missing = 185641, numeric_total = 8035196, factor_levels = 471L,
+      missing = 185923, numeric_total = 8035331, factor_levels = 471L,
       factor_codes = 474407, names_checksum = 938163011
     )
   )
@@ -41,7 +41,7 @@ test_that("merge_data with a function for ranges gives the pinned table", {
       dim = c(3325L, 245L), key = c("date", "global_id"),
       classes = c(character = 5L, Date = 8L, factor = 158L, integer = 69L,
                   numeric = 5L),
-      missing = 205707, numeric_total = 8829829, factor_levels = 461L,
+      missing = 205912, numeric_total = 8829997, factor_levels = 461L,
       factor_codes = 492193, names_checksum = 945860811
     )
   )
@@ -56,7 +56,7 @@ test_that("extract_data gives the pinned table for both seasons", {
       dim = c(5734L, 253L), key = "global_id",
       classes = c(character = 7L, Date = 8L, factor = 166L, integer = 67L,
                   numeric = 5L),
-      missing = 387628, numeric_total = 2591232, factor_levels = 477L,
+      missing = 388087, numeric_total = 2590813, factor_levels = 477L,
       factor_codes = 875082, names_checksum = 997430436
     )
   )
@@ -73,7 +73,7 @@ test_that("extract_data without joining returns one table per season", {
       dim = c(2932L, 82L), key = c("date", "global_id"),
       classes = c(character = 1L, Date = 6L, factor = 69L, integer = 5L,
                   numeric = 1L),
-      missing = 124990, numeric_total = 5259319, factor_levels = 209L,
+      missing = 124995, numeric_total = 5258973, factor_levels = 209L,
       factor_codes = 95322, names_checksum = 113647443
     )
   )
