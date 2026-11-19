@@ -90,8 +90,7 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
     new.bout := TRUE
   ]
   dt[, previous.symptoms.end.date := NULL]
-  ## a start date after the previous report cannot belong to the illness
-  ## that report described
+  ## a start date after the previous report date means a new illness
   dt[, previous.date := c(as.Date(NA), date[-.N]),
     by = list(participant_id, season)
   ]
