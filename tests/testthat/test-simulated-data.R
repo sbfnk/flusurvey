@@ -39,7 +39,7 @@ test_that("merge_data dates contact reports by the day they describe", {
   expect_true(all(c("contact.date", "contact.day.of.week") %in% colnames(dt)))
   has_contact <- !is.na(dt$contact.date)
   expect_true(any(has_contact))
-  ## the survey asks about the previous day, so the contact day is before the
+  ## the survey asks about the previous day: the contact day precedes the
   ## date of the (possibly rolled-forward) report
   expect_true(all(dt$contact.date[has_contact] < dt$date[has_contact]))
   ## Monday is 1 and Sunday 7, as for day.of.week

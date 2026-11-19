@@ -33,7 +33,7 @@ bouts <- bouts[,
 ]
 
 ## create big data set of all contacts with all symptom data; contacts are
-## reported for the day before the report, so illness is taken on that day
+## reported for the day before the report, and illness is taken on that day
 contacts_symptoms <- merge(
   dt_back_contacts[, list(global_id, date, contact.date)], bouts,
   by = "global_id", all.x = TRUE, allow.cartesian = TRUE
