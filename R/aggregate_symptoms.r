@@ -3,14 +3,15 @@
 onset_sudden <- function(dt, unknown) {
   suddenly <- rep(NA_character_, nrow(dt))
   if ("symptoms.suddenly" %in% colnames(dt)) {
-    suddenly[dt$symptoms.suddenly %in% "yes"] <- "t"
-    suddenly[dt$symptoms.suddenly %in% "no"] <- "f"
+    suddenly[which(dt$symptoms.suddenly == "yes")] <- "t"
+    suddenly[which(dt$symptoms.suddenly == "no")] <- "f"
   }
   for (fever.onset in intersect(c("fever.quickly", "fever.suddenly"),
                                 colnames(dt))) {
     answer <- dt[[fever.onset]]
-    suddenly[(is.na(suddenly) | suddenly == "f") & answer %in% "yes"] <- "t"
-    suddenly[is.na(suddenly) & answer %in% "no"] <- "f"
+    not.yet <- is.na(suddenly) | suddenly == "f"
+    suddenly[which(not.yet & answer == "yes")] <- "t"
+    suddenly[which(is.na(suddenly) & answer == "no")] <- "f"
   }
   if (!is.na(unknown)) {
     suddenly[is.na(suddenly)] <- ifelse(unknown == 1, "t", "f")
