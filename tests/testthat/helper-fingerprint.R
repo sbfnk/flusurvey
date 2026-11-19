@@ -5,7 +5,7 @@ fingerprint <- function(dt) {
   is_fct <- vapply(dt, is.factor, TRUE)
   names_string <- paste(colnames(dt), collapse = " ")
   class_table <- table(vapply(dt, function(x) class(x)[1], ""))
-  ## Order the names without regard to case or locale, which table() does not
+  ## Sort the names ignoring case and locale; table() sorts by locale
   class_table <- class_table[order(tolower(names(class_table)),
                                    method = "radix")]
   list(
