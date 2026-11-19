@@ -1,11 +1,11 @@
 ##' Aggregate symptoms in symptom table to work out ILI etc.
 ##'
 ##' @param symptoms a data table of symptom reports
-##' @param ili.sudden.unknown how to treat reports where sudden onset is unknown,
-##'   i.e. answered "dont_know" or not at all, with no fever question to settle
-##'   it. `1` (the default) counts onset as sudden, which allows such reports to
-##'   be ILI. `0` counts onset as not sudden, which rules ILI out. `NA` leaves
-##'   onset, `ili` and `ili.fever` missing.
+##' @param ili.sudden.unknown how to treat reports where sudden onset is
+##'   unknown, i.e. answered "dont_know" or not at all, with no fever question
+##'   to settle it. `1` (the default) counts onset as sudden, which allows such
+##'   reports to be ILI. `0` counts onset as not sudden, which rules ILI out.
+##'   `NA` leaves onset, `ili` and `ili.fever` missing.
 ##' @return a data table with added columns
 ##' @author seb
 ##' @import data.table
