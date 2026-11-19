@@ -33,3 +33,21 @@ test_that("bouts_of_illness returns bouts of illness", {
   expect_gt(nrow(res), 0)
   expect_false(anyNA(res$symptoms.start.date))
 })
+
+test_that("health scores outside 0 to 100 are removed by default", {
+  raw <- unlist(lapply(simulated_data, function(season) {
+    season$symptom$health.score
+  }))
+  expect_true(any(raw < 0 | raw > 100, na.rm = TRUE))
+  dt <- extract_data(simulated_data, years = 2013:2014)
+  expect_true(all(dt$health.score >= 0 & dt$health.score <= 100, na.rm = TRUE))
+})
+
+test_that("remove.bad.health.scores is accepted by name", {
+  dt <- extract_data(simulated_data, years = 2013:2014,
+                     clean = "remove.bad.health.scores")
+  expect_true(all(dt$health.score >= 0 & dt$health.score <= 100, na.rm = TRUE))
+  dt <- extract_data(simulated_data, years = 2013:2014,
+                     clean = "remove.first")
+  expect_true(any(dt$health.score < 0 | dt$health.score > 100, na.rm = TRUE))
+})
