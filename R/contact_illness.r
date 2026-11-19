@@ -14,7 +14,7 @@
 ##' and the status of a contact report from the same day then cannot be
 ##' determined. Use \code{clean = c("unsuccessful.join",
 ##' "remove.bad.symptom.dates")} to clear invalid symptom dates without
-##' dropping reports when a single survey is read.
+##' dropping reports when reading a single survey.
 ##' @param contacts a data table of contact reports with columns
 ##' \code{global_id} and \code{contact.date}
 ##' @param symptoms a data table of symptom reports, as returned by
