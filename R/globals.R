@@ -3,10 +3,13 @@
 utils::globalVariables(c(
   "N",
   "age",
+  "agegroup",
   "birthdate",
   "birthmonth",
   "birthyear",
   "bout",
+  "contact.date",
+  "contact.day.of.week",
   "country",
   "day.of.week",
   "education",
