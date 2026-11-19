@@ -7,6 +7,8 @@ utils::globalVariables(c(
   "birthmonth",
   "birthyear",
   "bout",
+  "contact.date",
+  "contact.day.of.week",
   "country",
   "current_ari",
   "current_ili",
