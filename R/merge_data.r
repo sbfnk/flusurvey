@@ -430,7 +430,8 @@ merge_data <- function( # nolint: cyclocomp_linter.
 
   tf <-
     names(char_columns)[vapply(names(char_columns), function(x) {
-      length(setdiff(c("t", "f"), setdiff(unique(res[[x]]), NA_character_))) == 0
+      values <- setdiff(unique(res[[x]]), NA_character_)
+      length(setdiff(c("t", "f"), values)) == 0
     }, TRUE)]
 
   for (column in tf) res[, paste(column) := factor(get(column))]
