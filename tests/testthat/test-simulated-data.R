@@ -36,11 +36,94 @@ test_that("get_incidence returns incidence for both seasons", {
   expect_gt(nrow(by_age), 0)
 })
 
+test_that("get_incidence keeps periods without new cases", {
+  reports <- function(id, dates, symptomatic, same, start, end) {
+    data.table::data.table(
+      participant_id = id, global_id = paste0("p", id), season = "2012/13",
+      symptom.id = seq_along(dates), date = as.Date(dates),
+      no.symptoms = factor(ifelse(symptomatic, "f", "t"),
+                           levels = c("f", "t")),
+      same = factor(same, levels = c("yes", "no", "dont_know")),
+      symptoms.start.date = as.Date(start), symptoms.end.date = as.Date(end)
+    )
+  }
+  weeks <- c("2013-01-07", "2013-01-14", "2013-01-21", "2013-01-28")
+  d <- rbind(
+    reports(1, weeks, c(FALSE, TRUE, FALSE, FALSE), c(NA, "no", NA, NA),
+            c(NA, "2013-01-13", NA, NA), NA),
+    reports(2, weeks, FALSE, NA, NA, NA)
+  )
+  d[, ili := data.table::fifelse(no.symptoms == "f", "t", "f")]
+  d[, c("min.date", "max.date") := list(min(date), max(date)),
+    by = global_id]
+  res <- get_incidence(d)
+  expect_equal(nrow(res), 4)
+  expect_equal(res$N, rep(2, 4))
+  expect_equal(sum(res$ili), 1)
+  res_reports <- get_incidence(d, denominator = "reports")
+  expect_equal(nrow(res_reports), 4)
+  expect_equal(sum(res_reports$ili), 1)
+})
+
 test_that("bouts_of_illness returns bouts of illness", {
   dt <- extract_data(simulated_data, years = 2013:2014)
   invisible(capture.output(res <- bouts_of_illness(dt)))
   expect_gt(nrow(res), 0)
   expect_false(anyNA(res$symptoms.start.date))
+})
+
+test_that("missing household counts are set to 0", {
+  dt <- data.table::data.table(
+    nb.household.0.4 = c(1L, NA, NA),
+    nb.household.5.18 = c(NA, NA, 2L)
+  )
+  fill_household_counts(dt)
+  expect_identical(dt$nb.household.0.4, c(1L, 0L, 0L))
+  expect_identical(dt$nb.household.5.18, c(0L, 0L, 2L))
+})
+
+test_that("the order of surveys does not change the merged table", {
+  forward <- extract_data(
+    simulated_data, years = 2013, surveys = c("background", "symptom")
+  )
+  backward <- extract_data(
+    simulated_data, years = 2013, surveys = c("symptom", "background")
+  )
+  expect_gt(nrow(backward), 0)
+  expect_equal(backward, forward)
+})
+
+test_that("merge_data gives the same table whatever the order", {
+  reports <- simulated_data[["2013"]]
+  ## contact ranges are sampled; set the seed before each call
+  set.seed(1)
+  shuffled <- merge_data(reports[c("symptom", "contact", "background")],
+                         clean = NULL)
+  set.seed(1)
+  ordered <- merge_data(reports[c("background", "contact", "symptom")],
+                        clean = NULL)
+  expect_equal(shuffled, ordered)
+})
+
+test_that("merge_data stops on surveys it cannot order", {
+  reports <- simulated_data[["2013"]]
+  other <- reports["symptom"]
+  names(other) <- "other"
+  expect_error(merge_data(c(reports["background"], other)), "Unknown survey")
+  expect_error(
+    merge_data(reports[c("background", "background")]),
+    "only once"
+  )
+})
+
+test_that("extract_data drops surveys it cannot merge when extracting all", {
+  data <- simulated_data["2013"]
+  data[["2013"]]$vaccine <- data[["2013"]]$background
+  ## contact ranges are sampled; set the seed before each call
+  set.seed(1)
+  expect_warning(dt <- extract_data(data, years = 2013), "'vaccine'")
+  set.seed(1)
+  expect_equal(dt, extract_data(simulated_data["2013"], years = 2013))
 })
 
 test_that("health scores outside 0 to 100 are removed by default", {
@@ -80,4 +163,15 @@ test_that("merge_data dates contact reports by the day they describe", {
   )[day.of.week == 1 & !is.na(contact.date) & contact.date == date - 1]
   expect_gt(nrow(monday), 0)
   expect_true(all(monday$contact.day.of.week == 7))
+})
+
+test_that("aggregate_symptoms treats unknown onset as set by ili.sudden.unknown", {
+  symptoms <- data.frame(
+    symptoms.suddenly = c("yes", "no", NA),
+    fever = "t", cough = "t", tired = "f"
+  )
+  ili <- function(...) aggregate_symptoms(symptoms, ...)$ili
+  expect_equal(ili(), c("t", "f", "t"))
+  expect_equal(ili(ili.sudden.unknown = 0), c("t", "f", "f"))
+  expect_equal(ili(ili.sudden.unknown = NA), c("t", "f", NA))
 })

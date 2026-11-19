@@ -1,7 +1,12 @@
 ##' Clean and merge flusurvey data tables
 ##'
 ##' @param data the data to merge and clean, usually the result of
-##' \code{read_data}
+##' \code{read_data}. The surveys are joined in a fixed order (background,
+##' contact, symptom), regardless of their order in \code{data}. The last one
+##' present drives a rolling join. The result has one row per report of that
+##' survey (the symptom reports, if present), each taking the latest report of
+##' the other surveys on or before its date. Any other survey name gives an
+##' error.
 ##' @param clean cleaning options, NULL for no cleaning, otherwise a vector of
 ##' cleans to perform (by default all):
 ##' - 'remove.first', whether to remove everyone's first report,
@@ -64,6 +69,20 @@ merge_data <- function(
   ranges = "sample",
   age.breaks = c(18, 45, 65)
 ) {
+  survey_order <- c("background", "contact", "symptom")
+  if (!all(names(data) %in% survey_order)) {
+    stop(
+      "Unknown survey(s) ",
+      toString(paste0("'", setdiff(names(data), survey_order), "'")),
+      "; expected some of ", toString(paste0("'", survey_order, "'")), ".",
+      call. = FALSE
+    )
+  }
+  if (anyDuplicated(names(data))) {
+    stop("Each survey can be given only once.", call. = FALSE)
+  }
+  ## put the surveys in order first: the last table drives the rolling join
+  data <- data[intersect(survey_order, names(data))]
   dt_list <- list()
   ## Check for an empty `clean` first, because match.arg() maps NULL to
   ## the first choice
@@ -112,8 +131,9 @@ merge_data <- function(
     ]
   }
 
-  ## the columns to convert are picked from the last survey cleaned
-  convert_logical_columns(res, dt)
+  ## take the columns to convert from the joined table, because a t/f column
+  ## can appear in an earlier survey only
+  convert_logical_columns(res, res)
 }
 
 ## Keep the reports from the season that contains the date with most reports.
@@ -327,6 +347,17 @@ convert_household_counts <- function(dt) {
   invisible(dt)
 }
 
+## Set missing household counts to zero. In the 2009/10 and 2010/11 seasons the
+## background questionnaire only asks for the number of household members in
+## each age band, and a blank answer means nobody in the household is in that
+## band. Modifies the counts by reference.
+fill_household_counts <- function(dt) {
+  for (nb.name in grep("^nb\\.", colnames(dt), value = TRUE)) {
+    dt[is.na(get(nb.name)), paste(nb.name) := 0]
+  }
+  invisible(dt)
+}
+
 ## calculate auxiliary variable: living with children
 add_living_with_children <- function(dt) {
   if ("household.0.4" %in% colnames(dt)) {
@@ -336,9 +367,7 @@ add_living_with_children <- function(dt) {
         as.integer((household.0.4 == "t" | household.5.18 == "t"))
     ]
   } else {
-    for (nb.name in grep("^nb\\.", colnames(dt), value = TRUE)) {
-      dt[is.null(get(nb.name)), paste(nb.name) := 0]
-    }
+    fill_household_counts(dt)
     dt[
       ,
       living.with.children :=
