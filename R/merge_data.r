@@ -1,9 +1,9 @@
 ##' Set missing household counts to zero
 ##'
-##' In the 2009/10 and 2010/11 seasons the background questionnaire only asks
-##' for the number of household members in each age band, and a blank answer is
-##' taken to mean that nobody in the household belongs to that band. Counts
-##' are modified by reference.
+##' In the 2009/10 and 2010/11 seasons the background questionnaire asks only
+##' for the number of household members in each age band. A blank answer means
+##' that nobody in the household is in that band. The counts are modified by
+##' reference.
 ##'
 ##' @param dt a data table with `nb.*` household count columns
 ##' @return `dt`, invisibly
