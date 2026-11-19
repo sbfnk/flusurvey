@@ -60,7 +60,7 @@ merge_data <- function( # nolint: cyclocomp_linter.
   age.breaks = c(18, 45, 65)
 ) {
   survey_order <- c("background", "contact", "symptom")
-  if (any(!names(data) %in% survey_order)) {
+  if (!all(names(data) %in% survey_order)) {
     stop(
       "Unknown survey(s) ",
       toString(paste0("'", setdiff(names(data), survey_order), "'")),
