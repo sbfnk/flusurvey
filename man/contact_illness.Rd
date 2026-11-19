@@ -27,10 +27,13 @@ that day, or from a participant without symptom data, gets a missing
 status rather than "no symptoms".
 }
 \details{
-The symptom data should be read without the cleaning steps that drop
-reports (e.g., \code{clean = "unsuccessful.join"} in
-\code{\link{extract_data}}), as otherwise the status of contact reports
-whose same-day symptom report was removed cannot be determined.
+The symptom data should be read with a \code{clean} argument in
+\code{\link{extract_data}} that cannot drop symptom reports, and not with
+the default cleaning steps (e.g., \code{"remove.first"}), because the
+status of a contact report whose same-day symptom report was removed
+cannot then be determined. Passing only \code{clean = "unsuccessful.join"}
+skips the other steps and, when a single survey is read, drops no
+symptom reports.
 }
 \examples{
 contacts <- extract_data(

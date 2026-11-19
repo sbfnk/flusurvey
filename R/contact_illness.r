@@ -5,10 +5,13 @@
 ##' that day, or from a participant without symptom data, gets a missing
 ##' status rather than "no symptoms".
 ##'
-##' The symptom data should be read without the cleaning steps that drop
-##' reports (e.g., \code{clean = "unsuccessful.join"} in
-##' \code{\link{extract_data}}), because the status of a contact report
-##' whose same-day symptom report was removed cannot then be determined.
+##' The symptom data should be read with a \code{clean} argument in
+##' \code{\link{extract_data}} that cannot drop symptom reports, and not with
+##' the default cleaning steps (e.g., \code{"remove.first"}), because the
+##' status of a contact report whose same-day symptom report was removed
+##' cannot then be determined. Passing only \code{clean = "unsuccessful.join"}
+##' skips the other steps and, when a single survey is read, drops no
+##' symptom reports.
 ##' @param contacts a data table of contact reports with columns
 ##' \code{global_id} and \code{date}
 ##' @param symptoms a data table of symptom reports, as returned by
