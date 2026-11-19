@@ -6,9 +6,10 @@
 ##' cleans to perform (by default all):
 ##' - 'remove.first', whether to remove everyone's first report,
 ##' - 'remove.bad.symptom.dates', whether to remove bad symptom dates: symptom
-##' start before date of first or end after end of last report, end of symptoms
-##' before start of symptoms, symptoms reported to have started or ended after
-##' date of report
+##' start before the date of the participant's first report in the season or
+##' more than \code{max.symptom.days} days before the report that gives it, end
+##' of symptoms before start of symptoms, symptoms reported to have started or
+##' ended after date of report. Bad start dates are set to missing.
 ##' - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 ##' - 'limit.season', whether to limit a flu season to November -> April
 ##' - 'remove.postcodes', whether to remove postcodes
@@ -21,6 +22,9 @@
 ##' symptoms
 ##' @param min.reports minimum number of reports per user (ignored if
 ##' 'min.reports' is not given as a cleaning option)
+##' @param max.symptom.days maximum number of days a symptom start date can be
+##' before the report that gives it (ignored if 'remove.bad.symptom.dates' is
+##' not given as a cleaning option); use \code{Inf} for no limit
 ##' @param ranges what to do if a number of contacts is given as a range: sample
 ##' from the range ("sample"), or apply a function, given as character string
 ##' (e.g., "mean")
@@ -52,6 +56,7 @@ merge_data <- function( # nolint: cyclocomp_linter.
     "only.symptoms"
   ),
   min.reports = 3,
+  max.symptom.days = 28,
   ranges = "sample",
   age.breaks = c(18, 45, 65)
 ) {
@@ -116,6 +121,17 @@ merge_data <- function( # nolint: cyclocomp_linter.
         if ("symptoms.start.date" %in% colnames(dt)) {
           dt[
             !is.na(symptoms.start.date) & symptoms.start.date > date,
+            symptoms.start.date := as.Date(NA_character_)
+          ]
+        }
+        ## remove start date before the first report or too long before the
+        ## report that gives it, as it would otherwise stretch a bout of illness
+        ## over all intervening reports
+        if ("symptoms.start.date" %in% colnames(dt)) {
+          dt[
+            !is.na(symptoms.start.date) &
+              (symptoms.start.date < min.date |
+                 as.numeric(date - symptoms.start.date) > max.symptom.days),
             symptoms.start.date := as.Date(NA_character_)
           ]
         }
