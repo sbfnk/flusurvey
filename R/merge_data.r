@@ -13,7 +13,7 @@
 ##' before it was filed, and a contact report describes one day whereas a
 ##' symptom report describes the week before it. With
 ##' 'unsuccessful.join' the symptom reports without an earlier contact report
-##' are dropped, which shortens episodes of illness. To link the two, extract
+##' are dropped, shortening episodes of illness. To link the two, extract
 ##' the symptom and contact surveys separately, get the episodes with
 ##' \code{\link{bouts_of_illness}} and flag the contact reports made during an
 ##' episode with \code{\link{flag_ill_contacts}}.

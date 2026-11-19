@@ -1,10 +1,11 @@
 ##' Flag contact reports made on a day of illness
 ##'
-##' A contact report describes the contacts of one day, so whether the
-##' participant was ill on that day comes from their episodes of illness, not
-##' from joining the contact and symptom surveys by report date (see
-##' \code{\link{merge_data}}). This matches the contact day of each contact
-##' report against the start and end dates of the participant's episodes.
+##' A contact report describes the contacts of one day. Whether the
+##' participant was ill on that day comes from their episodes of illness
+##' rather than from joining the contact and symptom surveys by report date
+##' (see \code{\link{merge_data}}). The function matches the contact day of
+##' each contact report against the start and end dates of the episodes of
+##' the participant.
 ##'
 ##' @param contacts a data table of contact reports, usually from
 ##' \code{extract_data(..., surveys = "contact")} or with the background
