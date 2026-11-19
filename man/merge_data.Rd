@@ -11,7 +11,7 @@ merge_data(
     "only.symptoms"),
   min.reports = 3,
   ranges = "sample",
-  age.breaks = c(18, 45, 65)
+  age.breaks = c(18, 44, 64)
 )
 }
 \arguments{
@@ -43,8 +43,10 @@ symptoms}
 from the range ("sample"), or apply a function, given as character string
 (e.g., "mean")}
 
-\item{age.breaks}{a vector of limits of age groups (first age group starts
-at 0 years of age)}
+\item{age.breaks}{a vector of the highest age (in whole years) in each age
+group except the last, which is open-ended (first age group starts at 0
+years of age). The default gives the groups 0-18, 19-44, 45-64 and 65+,
+which line up with the age bands of the contact questions.}
 }
 \value{
 a rolling-joined data table

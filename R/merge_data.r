@@ -24,8 +24,10 @@
 ##' @param ranges what to do if a number of contacts is given as a range: sample
 ##' from the range ("sample"), or apply a function, given as character string
 ##' (e.g., "mean")
-##' @param age.breaks a vector of limits of age groups (first age group starts
-##' at 0 years of age)
+##' @param age.breaks a vector of the highest age (in whole years) in each age
+##' group except the last, which is open-ended (first age group starts at 0
+##' years of age). The default gives the groups 0-18, 19-44, 45-64 and 65+,
+##' which line up with the age bands of the contact questions.
 ##' @return a rolling-joined data table
 ##' @author seb
 ##' @examples
@@ -53,7 +55,7 @@ merge_data <- function( # nolint: cyclocomp_linter.
   ),
   min.reports = 3,
   ranges = "sample",
-  age.breaks = c(18, 45, 65)
+  age.breaks = c(18, 44, 64)
 ) {
   dt_list <- list()
   clean <- match.arg(clean, several.ok = TRUE)
@@ -157,13 +159,18 @@ merge_data <- function( # nolint: cyclocomp_linter.
       dt[age < 0, birthdate := NA]
       dt[age < 0, age := NA]
 
+      ## ages are whole years, so a group's upper limit is inclusive and the
+      ## next group starts one year later, matching the contact age bands
+      agegroup_labels <- paste0(
+        c(0, age.breaks + 1), "-", c(age.breaks, "")
+      )
+      agegroup_labels[length(agegroup_labels)] <-
+        paste0(max(age.breaks) + 1, "+")
       dt[, agegroup := cut(
         age,
-        breaks = c(0, age.breaks, max(age, na.rm = TRUE)),
-        include.lowest = TRUE, right = TRUE
+        breaks = c(-Inf, age.breaks, Inf),
+        labels = agegroup_labels
       )]
-      dt[grep("^\\(65,", agegroup), agegroup := "(65,)"]
-      dt[, agegroup := factor(agegroup)]
 
       for (
         household.column in grep("^nb\\.household", colnames(dt), value = TRUE)
