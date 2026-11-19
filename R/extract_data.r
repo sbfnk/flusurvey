@@ -39,7 +39,7 @@ extract_data <- function(
   if ("all" %in% years) {
     years <- names(data)
   }
-  ## names(data) are character, but the season label needs numeric years
+  ## The season label needs integer years, but names(data) is character
   years <- as.integer(years)
 
   if ("all" %in% surveys) {
