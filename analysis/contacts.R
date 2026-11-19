@@ -9,9 +9,12 @@ library("ggplot2")
 library("data.table")
 library("here")
 
+## episodes come from the symptom survey alone: joining it to the contact
+## survey pairs unrelated reports and drops symptom reports
 dt <- extract_data(
   "data/flusurvey_raw_2012_2020.rds",
-  years = 2012:2013
+  years = 2012:2013,
+  surveys = c("background", "symptom")
 )
 
 dt_back_contacts <- extract_data(
