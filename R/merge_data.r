@@ -126,8 +126,9 @@ merge_data <- function(
     ]
   }
 
-  ## the columns to convert are picked from the last survey cleaned
-  convert_logical_columns(res, dt)
+  ## take the columns to convert from the joined table, because a t/f column
+  ## can appear in an earlier survey only
+  convert_logical_columns(res, res)
 }
 
 ## Keep the reports from the season that contains the date with most reports.
