@@ -238,8 +238,8 @@ remove_bad_symptom_dates <- function(dt, max.symptom.days) {
     ]
   }
   ## remove start dates before the first report or too long before the
-  ## report that gives them, because they would otherwise stretch a bout
-  ## of illness over all intervening reports
+  ## report that gives them, as they would extend an episode of illness
+  ## over all intervening reports
   if ("symptoms.start.date" %in% colnames(dt)) {
     dt[
       !is.na(symptoms.start.date) &
