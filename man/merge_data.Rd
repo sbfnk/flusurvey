@@ -18,10 +18,21 @@ merge_data(
 \arguments{
 \item{data}{the data to merge and clean, usually the result of
 \code{read_data}. The surveys are joined in a fixed order (background,
-contact, symptom), whatever their order in \code{data}. The last of those
+contact, symptom), regardless of their order in \code{data}. The last one
 present drives a rolling join. The result has one row per report of that
 survey (the symptom reports, if present), each taking the latest report of
-the other surveys on or before its date. Other names give an error.}
+the other surveys on or before its date. Any other survey name gives an
+error.
+
+Joining the contact and symptom surveys gives a warning. The join pairs
+each symptom report with the latest earlier contact report, however long
+before it was filed, and a contact report describes one day whereas a
+symptom report describes the week before it. With
+'unsuccessful.join' the symptom reports without an earlier contact report
+are dropped, which shortens episodes of illness. To link the two, extract
+the symptom and contact surveys separately, get the episodes with
+\code{\link{bouts_of_illness}} and flag the contact reports made during an
+episode with \code{\link{flag_ill_contacts}}.}
 
 \item{clean}{cleaning options, NULL for no cleaning, otherwise a vector of
 cleans to perform (by default all):
