@@ -68,8 +68,8 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
     first.no.symptoms == 0 & part.symptom.id == min(part.symptom.id),
     new.bout := TRUE
   ]
-  ## a participant's first symptomatic report always starts a bout, as `same`
-  ## cannot refer to an earlier report that is not symptomatic
+  ## the first symptomatic report of a participant always starts a bout,
+  ## because `same` cannot refer to an earlier report without symptoms
   dt[
     no.symptoms == "f",
     new.bout := new.bout | seq_len(.N) == 1L,
