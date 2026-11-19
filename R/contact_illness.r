@@ -35,6 +35,7 @@
 ##' @export
 contact_illness <- function(contacts, symptoms) {
   symptoms <- data.table(symptoms)
+  symptoms <- symptoms[!is.na(global_id) & !is.na(date)]
   last_of_day <- !duplicated(
     symptoms[, list(global_id, date)],
     fromLast = TRUE

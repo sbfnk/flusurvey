@@ -19,6 +19,27 @@ test_that("contact_illness takes status from the symptom report of the contact d
   expect_equal(res$current_ari, c("ARI", NA, "no ARI", NA))
 })
 
+test_that("contact_illness does not match missing participant IDs or dates", {
+  contacts <- data.table::data.table(
+    global_id = c("a", NA, NA, "a"),
+    contact.date = as.Date(c(NA, "2013-01-01", NA, "2013-01-01"))
+  )
+  symptoms <- data.table::data.table(
+    global_id = c("a", NA, NA, "a"),
+    date = as.Date(c(NA, "2013-01-01", NA, "2013-01-01")),
+    no.symptoms = "f", ili.self = "t", resp.symptoms = "t"
+  )
+  res <- contact_illness(contacts, symptoms)
+  matched <- !is.na(res$global_id) & !is.na(res$contact.date)
+  expect_equal(nrow(res), nrow(contacts))
+  expect_true(all(is.na(res$current_symptoms[!matched])))
+  expect_true(all(is.na(res$current_ili[!matched])))
+  expect_true(all(is.na(res$current_ari[!matched])))
+  expect_equal(res$current_symptoms[matched], "symptoms")
+  expect_equal(res$current_ili[matched], "ILI")
+  expect_equal(res$current_ari[matched], "ARI")
+})
+
 test_that("contact_illness uses symptom reports that cleaning removes", {
   contacts <- extract_data(
     simulated_data, years = 2013:2014, surveys = c("background", "contact")
