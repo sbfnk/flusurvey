@@ -1,3 +1,23 @@
+## Whether onset was sudden ("t"/"f"), from the symptom question and then the
+## fever questions, with unknown onset set by `unknown` (NA leaves it missing)
+onset_sudden <- function(dt, unknown) {
+  suddenly <- rep(NA_character_, nrow(dt))
+  if ("symptoms.suddenly" %in% colnames(dt)) {
+    suddenly[dt$symptoms.suddenly %in% "yes"] <- "t"
+    suddenly[dt$symptoms.suddenly %in% "no"] <- "f"
+  }
+  for (fever.onset in intersect(c("fever.quickly", "fever.suddenly"),
+                                colnames(dt))) {
+    answer <- dt[[fever.onset]]
+    suddenly[(is.na(suddenly) | suddenly == "f") & answer %in% "yes"] <- "t"
+    suddenly[is.na(suddenly) & answer %in% "no"] <- "f"
+  }
+  if (!is.na(unknown)) {
+    suddenly[is.na(suddenly)] <- ifelse(unknown == 1, "t", "f")
+  }
+  suddenly
+}
+
 ##' Aggregate symptoms in symptom table to work out ILI etc.
 ##'
 ##' @param symptoms a data table of symptom reports
@@ -14,28 +34,7 @@ aggregate_symptoms <- function(symptoms, ili.sudden.unknown = 1) {
   dt <- copy(data.table(symptoms))
   ## calculate ili
   if (any(grepl("\\.(suddenly|quickly)$", colnames(dt)))) {
-    dt[, suddenly := NA_character_]
-    if ("symptoms.suddenly" %in% colnames(dt)) {
-      dt[symptoms.suddenly == "yes", suddenly := "t"]
-      dt[symptoms.suddenly == "no", suddenly := "f"]
-    }
-    if ("fever.quickly" %in% colnames(dt)) {
-      dt[
-        (is.na(suddenly) | suddenly == "f") & fever.quickly == "yes",
-        suddenly := "t"
-      ]
-      dt[is.na(suddenly) & fever.quickly == "no", suddenly := "f"]
-    }
-    if ("fever.suddenly" %in% colnames(dt)) {
-      dt[
-        (is.na(suddenly) | suddenly == "f") & fever.suddenly == "yes",
-        suddenly := "t"
-      ]
-      dt[is.na(suddenly) & fever.suddenly == "no", suddenly := "f"]
-    }
-    if (!is.na(ili.sudden.unknown)) {
-      dt[is.na(suddenly), suddenly := ifelse(ili.sudden.unknown == 1, "t", "f")]
-    }
+    dt[, suddenly := onset_sudden(dt, ili.sudden.unknown)]
   } else {
     dt[, suddenly := "t"]
   }
