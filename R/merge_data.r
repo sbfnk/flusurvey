@@ -29,9 +29,9 @@
 ##' @param max.band.count the largest number of people accepted in a single age
 ##' band of the household. There is no limit by default, as households in
 ##' institutions such as care homes can be large. Larger counts are set to
-##' missing, and \code{nb.household} is then missing too. The counts include the
-##' participant. A band that is ticked as present without a number counts as one
-##' person, and a household with no band ticked gets a missing
+##' missing. \code{nb.household} is then missing too. The counts include the
+##' participant. A band ticked as present without a number counts as one
+##' person. A household with no band ticked gets a missing
 ##' \code{nb.household}.
 ##' @return a rolling-joined data table. \code{day.of.week} (1 for Monday to 7
 ##' for Sunday) is that of the report date. If the contact survey is included,
