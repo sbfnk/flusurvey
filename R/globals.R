@@ -3,6 +3,7 @@
 utils::globalVariables(c(
   "N",
   "age",
+  "agegroup",
   "birthdate",
   "birthmonth",
   "birthyear",
@@ -20,6 +21,7 @@ utils::globalVariables(c(
   "fever.suddenly",
   "fever.temperature.range",
   "first.no.symptoms",
+  "flag.row",
   "general.symptoms",
   "gi",
   "global_id",
@@ -28,6 +30,7 @@ utils::globalVariables(c(
   "household.0.4",
   "household.5.18",
   "id",
+  "ill",
   "ili",
   "ili.fever",
   "ili.self",

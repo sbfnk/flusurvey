@@ -15,6 +15,7 @@ reference:
   - get_incidence
   - bouts_of_illness
   - contact_illness
+  - flag_ill_contacts
 - title: Bundled data
   contents:
   - questions
