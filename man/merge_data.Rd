@@ -17,7 +17,11 @@ merge_data(
 }
 \arguments{
 \item{data}{the data to merge and clean, usually the result of
-\code{read_data}}
+\code{read_data}. The surveys are joined in a fixed order (background,
+contact, symptom), whatever their order in \code{data}. The last of those
+present drives a rolling join. The result has one row per report of that
+survey (the symptom reports, if present), each taking the latest report of
+the other surveys on or before its date. Other names give an error.}
 
 \item{clean}{cleaning options, NULL for no cleaning, otherwise a vector of
 cleans to perform (by default all):
