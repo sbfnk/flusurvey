@@ -6,7 +6,11 @@
 ##' (much easier) a filename that contains said list.
 ##' @param surveys the surveys to extract (e.g., "background", "symptom",
 ##' "contact" or a combination thereof), "all" for all of surveys that can be
-##' found; note that any surveys that don't exist in all years will be dropped
+##' found and joinable by \code{merge_data} (others are dropped with a warning);
+##' surveys that don't exist in all years are dropped too.
+##' The order given does not matter. The surveys are always joined in the order
+##' background, contact, symptom (see \code{\link{merge_data}}), with one row
+##' per report of the last survey in that order.
 ##' @param years the years to extract, "all" for all years
 ##' @param join whether to join the data into one big data.table in the end
 ##' @param ... parameters to be passed to merge_data, especially 'clean' (see
@@ -44,6 +48,16 @@ extract_data <- function(
 
   if ("all" %in% surveys) {
     surveys <- Reduce(union, sapply(data, names))
+    ## merge_data can only order these surveys
+    unsupported <- setdiff(surveys, c("background", "contact", "symptom"))
+    if (length(unsupported) > 0) {
+      warning(
+        "Not extracting ", toString(paste0("'", unsupported, "'")),
+        ", which cannot be merged.",
+        call. = FALSE
+      )
+      surveys <- setdiff(surveys, unsupported)
+    }
   }
 
   years <- drop_missing_years(data, years)

@@ -53,6 +53,50 @@ test_that("missing household counts are set to 0", {
   expect_identical(dt$nb.household.5.18, c(0L, 0L, 2L))
 })
 
+test_that("the order of surveys does not change the merged table", {
+  forward <- extract_data(
+    simulated_data, years = 2013, surveys = c("background", "symptom")
+  )
+  backward <- extract_data(
+    simulated_data, years = 2013, surveys = c("symptom", "background")
+  )
+  expect_gt(nrow(backward), 0)
+  expect_equal(backward, forward)
+})
+
+test_that("merge_data gives the same table whatever the order", {
+  reports <- simulated_data[["2013"]]
+  ## contact ranges are sampled; set the seed before each call
+  set.seed(1)
+  shuffled <- merge_data(reports[c("symptom", "contact", "background")],
+                         clean = NULL)
+  set.seed(1)
+  ordered <- merge_data(reports[c("background", "contact", "symptom")],
+                        clean = NULL)
+  expect_equal(shuffled, ordered)
+})
+
+test_that("merge_data stops on surveys it cannot order", {
+  reports <- simulated_data[["2013"]]
+  other <- reports["symptom"]
+  names(other) <- "other"
+  expect_error(merge_data(c(reports["background"], other)), "Unknown survey")
+  expect_error(
+    merge_data(reports[c("background", "background")]),
+    "only once"
+  )
+})
+
+test_that("extract_data drops surveys it cannot merge when extracting all", {
+  data <- simulated_data["2013"]
+  data[["2013"]]$vaccine <- data[["2013"]]$background
+  ## contact ranges are sampled; set the seed before each call
+  set.seed(1)
+  expect_warning(dt <- extract_data(data, years = 2013), "'vaccine'")
+  set.seed(1)
+  expect_equal(dt, extract_data(simulated_data["2013"], years = 2013))
+})
+
 test_that("health scores outside 0 to 100 are removed by default", {
   raw <- unlist(lapply(simulated_data, function(season) {
     season$symptom$health.score
