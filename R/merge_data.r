@@ -35,7 +35,7 @@
 ##' should have prevented this, but doesn't appear to have done so)
 ##' - 'only.symptoms', whether to exclude those that have no report without
 ##' symptoms
-##' @param min.reports minimum number of symptom reporting days per user
+##' @param min.reports minimum number of symptom reporting days per participant
 ##' (ignored if 'min.reports' is not given as a cleaning option)
 ##' @param ranges what to do if a number of contacts is given as a range: sample
 ##' from the range ("sample"), or apply a function, given as character string
