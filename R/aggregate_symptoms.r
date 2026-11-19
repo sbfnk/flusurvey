@@ -1,5 +1,5 @@
-## Whether onset was sudden ("t"/"f"), from the symptom question and then the
-## fever questions, with unknown onset set by `unknown` (NA leaves it missing)
+## Derive whether onset was sudden ("t"/"f") from the symptom question, then
+## the fever questions. Unknown onset is set by `unknown`; NA leaves it missing.
 onset_sudden <- function(dt, unknown) {
   suddenly <- rep(NA_character_, nrow(dt))
   if ("symptoms.suddenly" %in% colnames(dt)) {
