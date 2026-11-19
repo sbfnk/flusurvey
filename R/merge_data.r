@@ -1,3 +1,21 @@
+##' Set missing household counts to zero
+##'
+##' In the 2009/10 and 2010/11 seasons the background questionnaire only asks
+##' for the number of household members in each age band, and a blank answer is
+##' taken to mean that nobody in the household belongs to that band. Counts
+##' are modified by reference.
+##'
+##' @param dt a data table with `nb.*` household count columns
+##' @return `dt`, invisibly
+##' @keywords internal
+##' @noRd
+fill_household_counts <- function(dt) {
+  for (nb.name in grep("^nb\\.", colnames(dt), value = TRUE)) {
+    dt[is.na(get(nb.name)), paste(nb.name) := 0]
+  }
+  invisible(dt)
+}
+
 ##' Clean and merge flusurvey data tables
 ##'
 ##' @param data the data to merge and clean, usually the result of
@@ -186,9 +204,7 @@ merge_data <- function( # nolint: cyclocomp_linter.
             as.integer((household.0.4 == "t" | household.5.18 == "t"))
         ]
       } else {
-        for (nb.name in grep("^nb\\.", colnames(dt), value = TRUE)) {
-          dt[is.null(get(nb.name)), paste(nb.name) := 0]
-        }
+        fill_household_counts(dt)
         dt[
           ,
           living.with.children :=
