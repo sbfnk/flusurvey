@@ -32,16 +32,17 @@ bouts <- bouts[,
   list(global_id, ili.self, resp.symptoms, symptoms.start.date, symptoms.end.date)
 ]
 
-## create big data set of all contacts with all symptom data
+## create big data set of all contacts with all symptom data; contacts are
+## reported for the day before the report, so illness is taken on that day
 contacts_symptoms <- merge(
-  dt_back_contacts[, list(global_id, date)], bouts, by = "global_id",
-  all.x = TRUE, allow.cartesian = TRUE
+  dt_back_contacts[, list(global_id, date, contact.date)], bouts,
+  by = "global_id", all.x = TRUE, allow.cartesian = TRUE
 )
 contacts_symptoms <- contacts_symptoms[
   is.na(symptoms.start.date), current_symptoms := FALSE
 ]
 contacts_symptoms <- contacts_symptoms[
-  date >= symptoms.start.date & date <= symptoms.end.date,
+  contact.date >= symptoms.start.date & contact.date <= symptoms.end.date,
   current_symptoms := TRUE
 ]
 contacts_symptoms <- contacts_symptoms[
@@ -52,7 +53,7 @@ contacts_symptoms <- contacts_symptoms[,
     current_symptoms = any(current_symptoms),
     current_ili = any(ili.self == "t" & current_symptoms, na.rm = TRUE),
     current_ari = any(resp.symptoms == "t" & current_symptoms, na.rm = TRUE)
-  ), by = list(global_id, date)
+  ), by = list(global_id, date, contact.date)
 ]
 
 contacts_symptoms[, current_ili := fifelse(current_ili, "ILI", "no ILI")]
@@ -62,7 +63,7 @@ contacts_symptoms[,
 ]
 
 contacts <- merge(
-  dt_back_contacts, contacts_symptoms, by = c("global_id", "date")
+  dt_back_contacts, contacts_symptoms, by = c("global_id", "date", "contact.date")
 )
 
 saveRDS(contacts, here("outputs", "contacts.rds"))

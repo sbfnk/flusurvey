@@ -33,3 +33,24 @@ test_that("bouts_of_illness returns bouts of illness", {
   expect_gt(nrow(res), 0)
   expect_false(anyNA(res$symptoms.start.date))
 })
+
+test_that("merge_data dates contact reports by the day they describe", {
+  dt <- merge_data(simulated_data[["2013"]])
+  expect_true(all(c("contact.date", "contact.day.of.week") %in% colnames(dt)))
+  has_contact <- !is.na(dt$contact.date)
+  expect_true(any(has_contact))
+  ## the survey asks about the previous day, so the contact day is before the
+  ## date of the (possibly rolled-forward) report
+  expect_true(all(dt$contact.date[has_contact] < dt$date[has_contact]))
+  ## Monday is 1 and Sunday 7, as for day.of.week
+  expect_equal(
+    dt$contact.day.of.week[has_contact],
+    as.integer(format(dt$contact.date[has_contact], "%u"))
+  )
+  ## a contact report filed on Monday describes a Sunday
+  monday <- merge_data(
+    simulated_data[["2013"]], clean = NULL
+  )[day.of.week == 1 & !is.na(contact.date) & contact.date == date - 1]
+  expect_gt(nrow(monday), 0)
+  expect_true(all(monday$contact.day.of.week == 7))
+})
