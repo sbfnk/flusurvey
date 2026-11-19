@@ -1,0 +1,29 @@
+make_reports <- function(id, dates, symptomatic, same, start, end) {
+  data.table::data.table(
+    participant_id = id, global_id = paste0("p", id), season = "2012/13",
+    symptom.id = seq_along(dates), date = as.Date(dates),
+    no.symptoms = factor(ifelse(symptomatic, "f", "t"), levels = c("f", "t")),
+    same = factor(same, levels = c("yes", "no", "dont_know")),
+    symptoms.start.date = as.Date(start), symptoms.end.date = as.Date(end)
+  )
+}
+
+test_that("a first symptomatic report starts a bout whatever `same` says", {
+  for (same in list("yes", "dont_know", NA_character_)) {
+    x <- make_reports(
+      1, c("2013-01-03", "2013-01-10"), c(TRUE, FALSE),
+      c(same, NA), c(NA, NA), c(NA, NA)
+    )
+    out <- suppressMessages(capture.output(res <- bouts_of_illness(x)))
+    expect_equal(nrow(res), 1L)
+  }
+})
+
+test_that("a continuing report does not start a second bout", {
+  x <- make_reports(
+    1, c("2013-01-03", "2013-01-10"), c(TRUE, TRUE),
+    c("yes", "yes"), c(NA, NA), c(NA, NA)
+  )
+  capture.output(res <- bouts_of_illness(x))
+  expect_equal(nrow(res), 1L)
+})

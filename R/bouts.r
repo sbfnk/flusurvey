@@ -68,6 +68,13 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
     first.no.symptoms == 0 & part.symptom.id == min(part.symptom.id),
     new.bout := TRUE
   ]
+  ## a participant's first symptomatic report always starts a bout, as `same`
+  ## cannot refer to an earlier report that is not symptomatic
+  dt[
+    no.symptoms == "f",
+    new.bout := new.bout | seq_len(.N) == 1L,
+    by = list(participant_id, season)
+  ]
   dt[is.na(new.bout), new.bout := FALSE]
   dt[, previous.no.symptoms := factor(
     c(NA_character_, as.character(no.symptoms[-.N])),
