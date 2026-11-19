@@ -1,7 +1,10 @@
 ##' Aggregate symptoms in symptom table to work out ILI etc.
 ##'
 ##' @param symptoms a data table of symptom reports
-##' @param ili.sudden.unknown currently has no effect
+##' @param ili.sudden.unknown how to treat reports where it is not known whether
+##'   the symptoms started suddenly: `1` counts them as sudden, `0` as not
+##'   sudden, and `NA` leaves them unknown, so that `ili` is missing for any
+##'   report that has the symptoms of ILI but an unknown onset.
 ##' @return a data table with added columns
 ##' @author seb
 ##' @import data.table
@@ -28,6 +31,9 @@ aggregate_symptoms <- function(symptoms, ili.sudden.unknown = 1) {
         suddenly := "t"
       ]
       dt[is.na(suddenly) & fever.suddenly == "no", suddenly := "f"]
+    }
+    if (!is.na(ili.sudden.unknown)) {
+      dt[is.na(suddenly), suddenly := ifelse(ili.sudden.unknown == 1, "t", "f")]
     }
   } else {
     dt[, suddenly := "t"]
