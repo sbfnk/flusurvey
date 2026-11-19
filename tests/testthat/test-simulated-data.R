@@ -16,6 +16,15 @@ test_that("extract_data returns a non-empty table with default cleaning", {
   expect_true(any(dt$ili == "t", na.rm = TRUE))
 })
 
+test_that("extract_data accepts the default years = 'all'", {
+  all_years <- extract_data(simulated_data)
+  expect_setequal(unique(all_years$season), c("2012/13", "2013/14"))
+  expect_equal(
+    extract_data(simulated_data, years = "all", surveys = "background"),
+    extract_data(simulated_data, years = 2013:2014, surveys = "background")
+  )
+})
+
 test_that("get_incidence returns incidence for both seasons", {
   dt <- extract_data(simulated_data, years = 2013:2014)
   incidence <- get_incidence(dt, incidence.columns = "ili",
