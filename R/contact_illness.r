@@ -6,9 +6,9 @@
 ##' \code{date}. A contact report with no symptom report on that day, or from
 ##' a participant without symptom data, gets a missing status rather than
 ##' "no symptoms". The reported illness dates indicate whether symptoms were
-##' present on the contact day. When several reports match, each status is
-##' positive if any report is positive, missing if none is positive and at
-##' least one is unknown, and negative otherwise.
+##' present on the contact day. If several reports match, a status is positive
+##' if any report is positive. Otherwise it is missing if any report is
+##' unknown, and negative if all reports are negative.
 ##'
 ##' Read the symptom data with a \code{clean} argument in
 ##' \code{\link{extract_data}} that cannot drop symptom reports. The default
