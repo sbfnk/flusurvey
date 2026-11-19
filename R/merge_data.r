@@ -325,11 +325,10 @@ merge_data <- function( # nolint: cyclocomp_linter.
         .SDcols = hh_columns
       ]
       if (length(indicator_cols) > 0) {
-        ## no band ticked gives a missing count, as a household has at least one member
-        dt[
-          rowSums(dt[, lapply(.SD, `%in%`, "t"), .SDcols = indicator_cols]) == 0,
-          nb.household := NA_real_
-        ]
+        ## no band ticked gives a missing count, as a household has at
+        ## least one member
+        ticked <- dt[, lapply(.SD, `%in%`, "t"), .SDcols = indicator_cols]
+        dt[rowSums(ticked) == 0, nb.household := NA_real_]
       }
       dt[, nb.household.children := rowSums(.SD),
         .SDcols = c("nb.household.0.4", "nb.household.5.18")
