@@ -7,8 +7,8 @@
 ##'
 ##' The symptom data should be read without the cleaning steps that drop
 ##' reports (e.g., \code{clean = "unsuccessful.join"} in
-##' \code{\link{extract_data}}), as otherwise the status of contact reports
-##' whose same-day symptom report was removed cannot be determined.
+##' \code{\link{extract_data}}), because the status of a contact report
+##' whose same-day symptom report was removed cannot then be determined.
 ##' @param contacts a data table of contact reports with columns
 ##' \code{global_id} and \code{date}
 ##' @param symptoms a data table of symptom reports, as returned by
