@@ -1,8 +1,9 @@
-test_that("contact_illness takes status from the same-day symptom report", {
+test_that("contact_illness takes status from the symptom report of the contact day", {
   contacts <- data.table::data.table(
     global_id = c("a", "a", "b", "c"),
-    date = as.Date("2013-01-01") + c(0, 1, 0, 0)
+    date = as.Date("2013-01-02") + c(0, 1, 0, 0)
   )
+  contacts[, contact.date := date - 1]
   symptoms <- data.table::data.table(
     global_id = c("a", "a", "b"),
     date = as.Date("2013-01-01") + c(0, 5, 0),
@@ -12,7 +13,7 @@ test_that("contact_illness takes status from the same-day symptom report", {
   )
   res <- contact_illness(contacts, symptoms)
   expect_equal(nrow(res), 4)
-  data.table::setkey(res, global_id, date)
+  data.table::setkey(res, global_id, contact.date)
   expect_equal(res$current_symptoms, c("symptoms", NA, "no symptoms", NA))
   expect_equal(res$current_ili, c("ILI", NA, "no ILI", NA))
   expect_equal(res$current_ari, c("ARI", NA, "no ARI", NA))
@@ -22,6 +23,9 @@ test_that("contact_illness uses symptom reports that cleaning removes", {
   contacts <- extract_data(
     simulated_data, years = 2013:2014, surveys = c("background", "contact")
   )
+  ## the simulated symptom reports fall on the contact report dates, so look
+  ## them up on those dates
+  contacts[, contact.date := date]
   symptoms <- extract_data(
     simulated_data, years = 2013:2014, surveys = "symptom",
     clean = "unsuccessful.join"

@@ -1,9 +1,11 @@
 ##' Illness status of contact reports
 ##'
 ##' Looks up, for each contact report, the symptom report filed by the same
-##' participant on the same day. A contact report with no symptom report on
-##' that day, or from a participant without symptom data, gets a missing
-##' status rather than "no symptoms".
+##' participant on the day the contacts describe, \code{contact.date}. Contact
+##' reports describe the previous day, so this is the day before the report
+##' \code{date}. A contact report with no symptom report on that day, or from
+##' a participant without symptom data, gets a missing status rather than
+##' "no symptoms".
 ##'
 ##' Read the symptom data with a \code{clean} argument in
 ##' \code{\link{extract_data}} that cannot drop symptom reports. The default
@@ -12,7 +14,7 @@
 ##' determined. Passing only \code{clean = "unsuccessful.join"} skips the
 ##' other steps and, when a single survey is read, drops no symptom reports.
 ##' @param contacts a data table of contact reports with columns
-##' \code{global_id} and \code{date}
+##' \code{global_id} and \code{contact.date}
 ##' @param symptoms a data table of symptom reports, as returned by
 ##' \code{\link{extract_data}}, with columns \code{global_id}, \code{date},
 ##' \code{no.symptoms}, \code{ili.self} and \code{resp.symptoms}
@@ -52,7 +54,9 @@ contact_illness <- function(contacts, symptoms) {
       )
     )
   ]
+  setnames(status, "date", "contact.date")
   merge(
-    data.table(contacts), status, by = c("global_id", "date"), all.x = TRUE
+    data.table(contacts), status, by = c("global_id", "contact.date"),
+    all.x = TRUE
   )
 }

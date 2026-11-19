@@ -21,8 +21,9 @@ dt_contacts <- extract_data(
   surveys = "contact"
 )
 
-## illness status comes from the symptom report filed on the day of the contact
-## report, read without the cleaning that drops reports
+## illness status comes from the symptom report filed on the day the contacts
+## describe (the day before the contact report), read without the cleaning that
+## drops reports
 dt_symptoms <- extract_data(
   "data/flusurvey_raw_2012_2020.rds",
   years = 2012:2013,
