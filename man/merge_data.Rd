@@ -44,12 +44,16 @@ from the range ("sample"), or apply a function, given as character string
 (e.g., "mean")}
 
 \item{age.breaks}{a vector of the highest age (in whole years) in each age
-group except the last, which is open-ended (first age group starts at 0
-years of age). The default gives the groups 0-18, 19-44, 45-64 and 65+,
-which line up with the age bands of the contact questions.}
+group except the last (first age group starts at 0 years of age). The last
+group is open-ended. The default gives the groups 0-18, 19-44, 45-64 and
+65+, matching the age bands of the contact questions.}
 }
 \value{
-a rolling-joined data table
+a rolling-joined data table. \code{day.of.week} (1 for Monday to 7
+for Sunday) is that of the report date. If the contact survey is included,
+\code{contact.date} is the day the contacts describe (the day before the
+report) and \code{contact.day.of.week} is its day of the week. Use these
+rather than \code{day.of.week} when analysing contacts.
 }
 \description{
 Clean and merge flusurvey data tables
