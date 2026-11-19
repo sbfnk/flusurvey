@@ -34,7 +34,7 @@ aggregate_symptoms <- function(symptoms, ili.sudden.unknown = 1) {
       dt[is.na(suddenly) & fever.suddenly == "no", suddenly := "f"]
     }
     if (!is.na(ili.sudden.unknown)) {
-      dt[is.na(suddenly), suddenly := ifelse(ili.sudden.unknown, "t", "f")]
+      dt[is.na(suddenly), suddenly := ifelse(ili.sudden.unknown == 1, "t", "f")]
     }
   } else {
     dt[, suddenly := "t"]

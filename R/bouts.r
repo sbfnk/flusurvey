@@ -42,9 +42,10 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
 
   dt[, new.bout := (same == "no")]
   dt[, part.symptom.id := seq_len(.N), by = list(participant_id, season)]
-  ## sum() rather than any(): the two differ when no.symptoms has missing values
+  ## any() alone would ignore missing values next to a "t"; a participant with
+  ## a missing value gets a missing first.no.symptoms
   dt[, first.no.symptoms := ifelse(
-    sum(no.symptoms == "t") > 0, # nolint: boolean_arithmetic_linter.
+    if (anyNA(no.symptoms)) NA else any(no.symptoms == "t"),
     min(which(no.symptoms == "t")),
     0
   ),
