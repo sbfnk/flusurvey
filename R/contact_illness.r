@@ -6,7 +6,9 @@
 ##' \code{date}. A contact report with no symptom report on that day, or from
 ##' a participant without symptom data, gets a missing status rather than
 ##' "no symptoms". The reported illness dates indicate whether symptoms were
-##' present on the contact day. An unknown date can leave the status missing.
+##' present on the contact day. When several reports match, each status is
+##' positive if any report is positive, missing if none is positive and at
+##' least one is unknown, and negative otherwise.
 ##'
 ##' Read the symptom data with a \code{clean} argument in
 ##' \code{\link{extract_data}} that cannot drop symptom reports. The default
@@ -41,32 +43,25 @@
 contact_illness <- function(contacts, symptoms) {
   symptoms <- data.table(symptoms)
   symptoms <- symptoms[!is.na(global_id) & !is.na(date)]
-  last_of_day <- !duplicated(
-    symptoms[, list(global_id, date)],
-    fromLast = TRUE
-  )
-  symptoms <- symptoms[last_of_day]
-  on_day <- with(
-    symptoms, no.symptoms == "f" & symptoms.start.date <= date &
-      (symptoms.end.date >= date |
-         (is.na(symptoms.end.date) & symptoms.end.option == "still_ill"))
-  )
+  symptoms[, on_day :=
+             no.symptoms == "f" & symptoms.start.date <= date &
+             (symptoms.end.date >= date |
+              (is.na(symptoms.end.date) & symptoms.end.option == "still_ill"))]
   status <- symptoms[,
     list(
-      global_id, date,
       current_symptoms = fifelse(
-        on_day, "symptoms", "no symptoms"
+        any(on_day), "symptoms", "no symptoms"
       ),
       current_ili = fifelse(
-        on_day & ili == "t", "ILI", "no ILI"
+        any(on_day & ili == "t"), "ILI", "no ILI"
       ),
       current_ili_self = fifelse(
-        on_day & ili.self == "t", "ILI", "no ILI"
+        any(on_day & ili.self == "t"), "ILI", "no ILI"
       ),
       current_ari = fifelse(
-        on_day & resp.symptoms == "t", "ARI", "no ARI"
+        any(on_day & resp.symptoms == "t"), "ARI", "no ARI"
       )
-    )
+    ), by = list(global_id, date)
   ]
   setnames(status, "date", "contact.date")
   merge(

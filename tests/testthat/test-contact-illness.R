@@ -12,6 +12,27 @@ test_that("contact illness keeps derived and self-reported ILI separate", {
   expect_equal(res$current_ili_self, c("ILI", "no ILI", "ILI", NA))
 })
 
+test_that("same-day reports combine statuses independently of row order", {
+  day <- as.Date("2013-01-07")
+  contacts <- data.table::data.table(global_id = letters[1:3], contact.date = day)
+  symptoms <- data.table::data.table(
+    global_id = rep(letters[1:3], each = 2), date = day,
+    no.symptoms = c("f", "t", "f", "t", "f", "f"),
+    ili = c("t", "f", NA, "f", "f", "f"),
+    ili.self = c("f", "f", "t", "f", "f", "f"),
+    resp.symptoms = c("t", "f", NA, "f", "f", "f"),
+    symptoms.start.date = day, symptoms.end.date = as.Date(NA),
+    symptoms.end.option = "still_ill"
+  )
+  forward <- contact_illness(contacts, symptoms)
+  backward <- contact_illness(contacts, symptoms[nrow(symptoms):1])
+  expect_equal(forward, backward)
+  expect_equal(forward$current_symptoms, rep("symptoms", 3))
+  expect_equal(forward$current_ili, c("ILI", NA, "no ILI"))
+  expect_equal(forward$current_ili_self, c("no ILI", "ILI", "no ILI"))
+  expect_equal(forward$current_ari, c("ARI", NA, "no ARI"))
+})
+
 test_that("contact_illness takes status from the symptom report of the contact day", {
   contacts <- data.table::data.table(
     global_id = c("a", "a", "b", "c"),
