@@ -99,8 +99,8 @@ get_incidence <- function(
 
   ## work out denominator of active members
   if (denominator == "active.members") {
-    ## every period between the first and last report of a season, so that
-    ## periods without new cases are kept
+    ## use every period between the first and last report of a season, to
+    ## keep periods without new cases
     period_start <- dt[,
       list(first = min(get(columns[["min.date"]])),
            last = max(get(columns[["max.date"]]))),
