@@ -13,8 +13,9 @@ summarise_table <- function(x) {
   list(
     dim = dim(x),
     classes = vapply(x, function(column) class(column)[1], ""),
-    ## Hash the text form of the values rather than the object, so the hashes do
-    ## not depend on how R serialises attributes on each platform or version.
+    ## Hash the text form of the values instead of the object. R serialises
+    ## attributes differently across platforms and versions, which would change
+    ## the hashes.
     hashes = vapply(x, function(column) rlang::hash(as.character(column)), "")
   )
 }
