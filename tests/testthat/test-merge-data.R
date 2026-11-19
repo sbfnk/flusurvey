@@ -46,6 +46,42 @@ test_that("the driving survey retains same-day reports through joins", {
   }
 })
 
+test_that("season selection handles tied report dates", {
+  report <- data.table::copy(simulated_data[["2013"]][["contact"]][1])
+  reports <- data.table::rbindlist(rep(list(report), 6))
+  reports[, global_id := c("a", "a", "b", "c", "d", "e")]
+  reports[, date := as.Date(c(
+    "2014-01-01", "2014-01-01", "2014-01-02", "2014-01-02",
+    "2013-11-01", "2014-04-02"
+  ))]
+  result <- merge_data(list(contact = reports), clean = "limit.season")
+  expect_equal(result$date, as.Date(c(
+    "2013-11-01", "2014-01-01", "2014-01-01", "2014-01-02", "2014-01-02"
+  )))
+
+  across_seasons <- data.table::data.table(date = as.Date(c(
+    "2015-01-01", "2015-01-01", "2014-01-01", "2014-01-01"
+  )))
+  expect_equal(
+    flusurvey:::limit_to_season(across_seasons)$date,
+    as.Date(c("2014-01-01", "2014-01-01"))
+  )
+
+  for (month in 1:12) {
+    peak <- as.Date(sprintf("2014-%02d-15", month))
+    start_year <- if (month >= 11) 2014 else 2013
+    end_year <- if (month <= 4) 2014 else 2015
+    start <- as.Date(sprintf("%d-11-01", start_year))
+    end <- as.Date(sprintf("%d-04-01", end_year))
+    dates <- c(peak + 1, peak, start - 1, start, end, end + 1)
+    tied <- data.table::data.table(date = c(dates, peak + 1, peak))
+    expect_equal(
+      flusurvey:::limit_to_season(tied),
+      tied[date >= start & date <= end]
+    )
+  }
+})
+
 test_that("minimum symptom reports counts reporting days", {
   report <- data.table::copy(simulated_data[["2013"]][["symptom"]][1])
   reports <- data.table::rbindlist(rep(list(report), 6))
