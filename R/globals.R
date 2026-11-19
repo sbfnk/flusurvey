@@ -55,6 +55,7 @@ utils::globalVariables(c(
   "previous.symptoms.end.date",
   "region",
   "regions",
+  "resp.symptoms",
   "same",
   "season",
   "suddenly",

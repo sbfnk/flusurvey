@@ -33,9 +33,11 @@
 ##' @export
 contact_illness <- function(contacts, symptoms) {
   symptoms <- data.table(symptoms)
-  symptoms <- symptoms[!duplicated(symptoms[, list(global_id, date)],
+  last_of_day <- !duplicated(
+    symptoms[, list(global_id, date)],
     fromLast = TRUE
-  )]
+  )
+  symptoms <- symptoms[last_of_day]
   status <- symptoms[,
     list(
       global_id, date,
