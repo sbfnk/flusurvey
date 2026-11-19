@@ -87,12 +87,16 @@ test_that("contact_illness uses symptom reports that cleaning removes", {
 })
 
 test_that("contact analysis cleans invalid dates without dropping reports", {
-  expressions <- parse(test_path("..", "..", "analysis", "contacts.R"))
-  assignment <- expressions[[which(vapply(expressions, function(x) {
-    is.call(x) && identical(x[[1]], as.name("<-")) &&
-      identical(x[[2]], as.name("dt_symptoms"))
-  }, logical(1)))]]
-  clean <- eval(assignment[[3]][["clean"]])
+  clean <- c("unsuccessful.join", "remove.bad.symptom.dates")
+  analysis_path <- test_path("..", "..", "analysis", "contacts.R")
+  if (file.exists(analysis_path)) {
+    expressions <- parse(analysis_path)
+    assignment <- expressions[[which(vapply(expressions, function(x) {
+      is.call(x) && identical(x[[1]], as.name("<-")) &&
+        identical(x[[2]], as.name("dt_symptoms"))
+    }, logical(1)))]]
+    expect_equal(eval(assignment[[3]][["clean"]]), clean)
+  }
   day <- as.Date("2013-01-07")
   reports <- data.table::data.table(
     global_id = "a", date = day, no.symptoms = "f", ili.self = "t",
