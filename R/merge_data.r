@@ -56,7 +56,12 @@ merge_data <- function( # nolint: cyclocomp_linter.
   age.breaks = c(18, 45, 65)
 ) {
   dt_list <- list()
-  clean <- match.arg(clean, several.ok = TRUE)
+  ## match.arg() maps NULL to the first choice, so handle "no cleaning" first
+  if (length(clean) == 0) {
+    clean <- character(0)
+  } else {
+    clean <- match.arg(clean, several.ok = TRUE)
+  }
   for (name in names(data)) {
     ## only keep last report per day
     dt <- copy(data.table(data[[name]]))
