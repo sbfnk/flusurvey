@@ -9,11 +9,6 @@ library("ggplot2")
 library("data.table")
 library("here")
 
-dt <- extract_data(
-  "data/flusurvey_raw_2012_2020.rds",
-  years = 2012:2013
-)
-
 dt_back_contacts <- extract_data(
   "data/flusurvey_raw_2012_2020.rds",
   years = 2012:2013,
@@ -26,44 +21,16 @@ dt_contacts <- extract_data(
   surveys = "contact"
 )
 
-bouts <- bouts_of_illness(dt)
-bouts <- bouts[!is.na(symptoms.end.date)]
-bouts <- bouts[,
-  list(global_id, ili.self, resp.symptoms, symptoms.start.date, symptoms.end.date)
-]
-
-## create big data set of all contacts with all symptom data
-contacts_symptoms <- merge(
-  dt_back_contacts[, list(global_id, date)], bouts, by = "global_id",
-  all.x = TRUE, allow.cartesian = TRUE
+## illness status comes from the symptom report filed on the day of the contact
+## report, read without the cleaning that drops reports
+dt_symptoms <- extract_data(
+  "data/flusurvey_raw_2012_2020.rds",
+  years = 2012:2013,
+  surveys = "symptom",
+  clean = "unsuccessful.join"
 )
-contacts_symptoms <- contacts_symptoms[
-  is.na(symptoms.start.date), current_symptoms := FALSE
-]
-contacts_symptoms <- contacts_symptoms[
-  date >= symptoms.start.date & date <= symptoms.end.date,
-  current_symptoms := TRUE
-]
-contacts_symptoms <- contacts_symptoms[
-  is.na(current_symptoms), current_symptoms := FALSE
-]
-contacts_symptoms <- contacts_symptoms[,
-  list(
-    current_symptoms = any(current_symptoms),
-    current_ili = any(ili.self == "t" & current_symptoms, na.rm = TRUE),
-    current_ari = any(resp.symptoms == "t" & current_symptoms, na.rm = TRUE)
-  ), by = list(global_id, date)
-]
 
-contacts_symptoms[, current_ili := fifelse(current_ili, "ILI", "no ILI")]
-contacts_symptoms[, current_ari := fifelse(current_ari, "ARI", "no ARI")]
-contacts_symptoms[,
-  current_symptoms := fifelse(current_symptoms, "symptoms", "no symptoms")
-]
-
-contacts <- merge(
-  dt_back_contacts, contacts_symptoms, by = c("global_id", "date")
-)
+contacts <- contact_illness(dt_back_contacts, dt_symptoms)
 
 saveRDS(contacts, here("outputs", "contacts.rds"))
 

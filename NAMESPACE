@@ -2,6 +2,7 @@
 
 export(aggregate_symptoms)
 export(bouts_of_illness)
+export(contact_illness)
 export(extract_data)
 export(get_incidence)
 export(merge_data)
