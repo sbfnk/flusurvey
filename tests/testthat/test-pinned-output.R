@@ -7,11 +7,11 @@ test_that("merge_data with default cleaning gives the pinned table", {
   expect_identical(
     fingerprint(dt),
     list(
-      dim = c(2898L, 241L), key = c("date", "global_id"),
-      classes = c(character = 3L, Date = 7L, factor = 163L, integer = 64L,
-                  numeric = 4L),
-      missing = 171448, numeric_total = 7566752, factor_levels = 471L,
-      factor_codes = 450741, names_checksum = 914620034
+      dim = c(2898L, 243L), key = c("date", "global_id"),
+      classes = c(character = 3L, Date = 8L, factor = 163L, integer = 64L,
+                  numeric = 5L),
+      missing = 171448, numeric_total = 7578810, factor_levels = 471L,
+      factor_codes = 450741, names_checksum = 928461132
     )
   )
 })
@@ -22,11 +22,11 @@ test_that("merge_data with only the first reports removed gives the pinned table
   expect_identical(
     fingerprint(dt),
     list(
-      dim = c(3068L, 243L), key = c("date", "global_id"),
-      classes = c(character = 5L, Date = 7L, factor = 163L, integer = 64L,
-                  numeric = 4L),
-      missing = 185613, numeric_total = 8022565, factor_levels = 471L,
-      factor_codes = 474407, names_checksum = 924250222
+      dim = c(3068L, 245L), key = c("date", "global_id"),
+      classes = c(character = 5L, Date = 8L, factor = 163L, integer = 64L,
+                  numeric = 5L),
+      missing = 185641, numeric_total = 8035196, factor_levels = 471L,
+      factor_codes = 474407, names_checksum = 938163011
     )
   )
 })
@@ -38,11 +38,11 @@ test_that("merge_data with a function for ranges gives the pinned table", {
   expect_identical(
     fingerprint(dt),
     list(
-      dim = c(3325L, 243L), key = c("date", "global_id"),
-      classes = c(character = 5L, Date = 7L, factor = 158L, integer = 69L,
-                  numeric = 4L),
-      missing = 205689, numeric_total = 8817189, factor_levels = 461L,
-      factor_codes = 492193, names_checksum = 931895033
+      dim = c(3325L, 245L), key = c("date", "global_id"),
+      classes = c(character = 5L, Date = 8L, factor = 158L, integer = 69L,
+                  numeric = 5L),
+      missing = 205707, numeric_total = 8829829, factor_levels = 461L,
+      factor_codes = 492193, names_checksum = 945860811
     )
   )
 })
@@ -53,11 +53,11 @@ test_that("extract_data gives the pinned table for both seasons", {
   expect_identical(
     fingerprint(dt),
     list(
-      dim = c(5734L, 251L), key = "global_id",
-      classes = c(character = 7L, Date = 7L, factor = 166L, integer = 67L,
-                  numeric = 4L),
-      missing = 387628, numeric_total = 2568174, factor_levels = 477L,
-      factor_codes = 875082, names_checksum = 983080577
+      dim = c(5734L, 253L), key = "global_id",
+      classes = c(character = 7L, Date = 8L, factor = 166L, integer = 67L,
+                  numeric = 5L),
+      missing = 387628, numeric_total = 2591232, factor_levels = 477L,
+      factor_codes = 875082, names_checksum = 997430436
     )
   )
 })
@@ -102,15 +102,17 @@ test_that("extract_data warns about years and surveys that do not exist", {
 ## raw files: question names as columns, 0/1 for yes/no and option codes
 raw_file <- function(season, survey) {
   dt <- data.table::copy(simulated_data[[season]][[survey]])
-  codes <- questions[[season]][[survey]]
+  codes <- flusurvey::questions[[season]][[survey]]
   for (col in colnames(dt)) {
     x <- dt[[col]]
     if (is.factor(x) && identical(levels(x), c("f", "t"))) {
       data.table::set(dt, j = col, value = as.integer(x == "t"))
-    } else if (col %in% names(options)) {
+    } else if (col %in% names(flusurvey::options)) {
       data.table::set(
         dt, j = col,
-        value = names(options[[col]])[match(as.character(x), options[[col]])]
+        value = names(flusurvey::options[[col]])[
+          match(as.character(x), flusurvey::options[[col]])
+        ]
       )
     } else if (inherits(x, "Date")) {
       data.table::set(dt, j = col, value = as.character(x))
@@ -176,8 +178,8 @@ test_that("bouts_of_illness handles missing values in no.symptoms", {
   set.seed(1)
   dt <- extract_data(simulated_data, years = 2013:2014)
   invisible(capture.output(complete <- bouts_of_illness(data.table::copy(dt))))
-  expect_identical(dim(complete), c(217L, 259L))
+  expect_identical(dim(complete), c(217L, 261L))
   dt[sample(.N, 300), no.symptoms := NA]
   invisible(capture.output(res <- bouts_of_illness(dt)))
-  expect_identical(dim(res), c(205L, 259L))
+  expect_identical(dim(res), c(205L, 261L))
 })
