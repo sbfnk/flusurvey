@@ -44,7 +44,11 @@ fill_household_counts <- function(dt) {
 ##' (e.g., "mean")
 ##' @param age.breaks a vector of limits of age groups (first age group starts
 ##' at 0 years of age)
-##' @return a rolling-joined data table
+##' @return a rolling-joined data table. \code{day.of.week} (1 for Monday to 7
+##' for Sunday) is that of the report date. If the contact survey is included,
+##' \code{contact.date} is the day the contacts describe (the day before the
+##' report) and \code{contact.day.of.week} is its day of the week. Use these
+##' rather than \code{day.of.week} when analysing contacts.
 ##' @author seb
 ##' @examples
 ##' dt <- merge_data(simulated_data[["2013"]])
@@ -399,6 +403,11 @@ merge_data <- function( # nolint: cyclocomp_linter.
           .SDcols = columns[[column_name]]
         ]
       }
+
+      ## the survey asks about the previous day: the contacts belong to the
+      ## day before the report
+      dt[, contact.date := date - 1]
+      dt[, contact.day.of.week := (wday(contact.date) - 2) %% 7 + 1]
     }
 
     if ("id" %in% colnames(dt)) {
