@@ -154,7 +154,7 @@ merge_data <- function(
   convert_logical_columns(res, res)
 }
 
-## Keep the season containing the earliest date with most reports.
+## Keep the season containing the earliest date with the most reports.
 limit_to_season <- function(dt) {
   ## figure out date with most reports, this defines the season
   reports <- dt[, .N, date]
