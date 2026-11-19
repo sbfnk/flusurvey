@@ -39,6 +39,8 @@ extract_data <- function(
   if ("all" %in% years) {
     years <- names(data)
   }
+  ## names(data) are character, but the season label needs numeric years
+  years <- as.integer(years)
 
   if ("all" %in% surveys) {
     surveys <- Reduce(union, sapply(data, names))
