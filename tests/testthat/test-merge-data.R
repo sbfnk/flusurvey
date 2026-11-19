@@ -1,7 +1,7 @@
 test_that("merge_data turns t/f columns from every survey into factors", {
   data <- lapply(simulated_data[["2013"]], data.table::copy)
-  ## columns that are only in the background survey, which is not the last
-  ## one processed
+  ## columns found only in the background survey, which is not the last
+  ## survey processed
   background_only <- setdiff(
     colnames(data[["background"]]),
     colnames(data[[length(data)]])
