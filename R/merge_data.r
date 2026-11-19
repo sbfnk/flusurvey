@@ -29,14 +29,14 @@
 ##' - 'limit.season', whether to limit a flu season to November -> April
 ##' - 'remove.postcodes', whether to remove postcodes
 ##' - 'n.reports', whether to exclude those with fewer than \code{min.reports}
-##' reports
+##' symptom reporting days
 ##' - 'unsuccessful.join', whether to exclude those with unsuccesful joins (e.g.
 ##' if symptoms are reported without a background survey present; the web site
 ##' should have prevented this, but doesn't appear to have done so)
 ##' - 'only.symptoms', whether to exclude those that have no report without
 ##' symptoms
-##' @param min.reports minimum number of reports per user (ignored if
-##' 'min.reports' is not given as a cleaning option)
+##' @param min.reports minimum number of symptom reporting days per user
+##' (ignored if 'min.reports' is not given as a cleaning option)
 ##' @param ranges what to do if a number of contacts is given as a range: sample
 ##' from the range ("sample"), or apply a function, given as character string
 ##' (e.g., "mean")
@@ -225,8 +225,7 @@ convert_logical_columns <- function(res, reference) {
 
 clean_symptom <- function(dt, clean, min.reports) {
   dt <- aggregate_symptoms(dt)
-  ## calculate min.reports, max.reports, nReports
-  dt[, nReports := .N, by = global_id]
+  dt[, nReports := uniqueN(date), by = global_id]
   if ("n.reports" %in% clean) {
     dt <- dt[nReports >= min.reports]
   }

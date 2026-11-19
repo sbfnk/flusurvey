@@ -45,3 +45,17 @@ test_that("the driving survey retains same-day reports through joins", {
     expect_equal(nrow(result), 2)
   }
 })
+
+test_that("minimum symptom reports counts reporting days", {
+  report <- data.table::copy(simulated_data[["2013"]][["symptom"]][1])
+  reports <- data.table::rbindlist(rep(list(report), 6))
+  reports[, global_id := rep(c("a", "b"), each = 3)]
+  reports[global_id == "b", date := date + 0:2]
+
+  result <- merge_data(list(symptom = reports), clean = "n.reports")
+  expect_equal(as.character(result$global_id), rep("b", 3))
+  expect_equal(result$nReports, rep(3L, 3))
+
+  unfiltered <- merge_data(list(symptom = reports), clean = NULL)
+  expect_equal(unfiltered[global_id == "a", nReports], rep(1L, 3))
+})

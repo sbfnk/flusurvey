@@ -45,15 +45,15 @@ date of report
 - 'limit.season', whether to limit a flu season to November -> April
 - 'remove.postcodes', whether to remove postcodes
 - 'n.reports', whether to exclude those with fewer than \code{min.reports}
-reports
+symptom reporting days
 - 'unsuccessful.join', whether to exclude those with unsuccesful joins (e.g.
 if symptoms are reported without a background survey present; the web site
 should have prevented this, but doesn't appear to have done so)
 - 'only.symptoms', whether to exclude those that have no report without
 symptoms}
 
-\item{min.reports}{minimum number of reports per user (ignored if
-'min.reports' is not given as a cleaning option)}
+\item{min.reports}{minimum number of symptom reporting days per user
+(ignored if 'min.reports' is not given as a cleaning option)}
 
 \item{ranges}{what to do if a number of contacts is given as a range: sample
 from the range ("sample"), or apply a function, given as character string
