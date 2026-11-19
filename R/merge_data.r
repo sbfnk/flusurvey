@@ -107,8 +107,8 @@ merge_data <- function(
     ]
   }
 
-  ## pick the columns to convert from the joined table, as a t/f column may
-  ## be present in an earlier survey only
+  ## take the columns to convert from the joined table, because a t/f column
+  ## can appear in an earlier survey only
   convert_logical_columns(res, res)
 }
 
