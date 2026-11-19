@@ -8,9 +8,9 @@ extract_seeded <- function(...) {
   extract_data(simulated_data, years = 2013:2014, ...)
 }
 
-## Rows are put in a fixed order before hashing, with radix ordering, which
-## does not depend on the locale or on how the table was joined, so that the
-## hashes describe the values and not the order they happened to arrive in.
+## Rows are sorted with radix ordering before hashing. Radix ordering is the
+## same in every locale and for any join order, so the hashes depend only on
+## the values.
 sort_rows <- function(x) {
   keys <- intersect(c("global_id", "participant_id", "date"), colnames(x))
   if (length(keys) == 0) return(x)
