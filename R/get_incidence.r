@@ -99,8 +99,23 @@ get_incidence <- function(
 
   ## work out denominator of active members
   if (denominator == "active.members") {
+    ## every period between the first and last report of a season, so that
+    ## periods without new cases are kept
+    period_start <- dt[,
+      list(first = min(get(columns[["min.date"]])),
+           last = max(get(columns[["max.date"]]))),
+      by = season
+    ]
+    periods <- period_start[, {
+      if (aggregation == "year") {
+        list(period = unique(first))
+      } else {
+        list(period = seq(first, last, by = aggregation))
+      }
+    }, by = season]
+    setnames(periods, "period", aggregation)
     active_reports <- lapply(unique(
-      incidence[, get(aggregation)]
+      periods[, get(aggregation)]
     ), function(x) {
       id_active <- dt[
         get(columns[["min.date"]]) <= x &
@@ -113,6 +128,9 @@ get_incidence <- function(
       id_active
     })
     active_reports <- rbindlist(active_reports)
+    active_reports <- merge(active_reports, periods,
+      by = c(aggregation, "season")
+    )
     incidence <-
       merge(incidence, active_reports,
         by = c(aggregation, "season", by), all.y = TRUE
@@ -120,11 +138,20 @@ get_incidence <- function(
   } else {
     id_reports <- dt[,
       list(reports = .N),
-      by = c(columns[["date"]], id_column, by)
+      by = c(columns[["date"]], id_column, "season", by)
     ]
-    reports <- id_reports[, .N, by = c(columns[["date"]], by)]
+    reports <- id_reports[, .N, by = c(columns[["date"]], "season", by)]
     setnames(reports, columns[["date"]], aggregation)
-    incidence <- merge(incidence, reports, by = c(aggregation, by))
+    incidence <- merge(incidence, reports,
+      by = c(aggregation, "season", by), all.y = TRUE
+    )
+  }
+  for (incidence_column in incidence.columns) {
+    if (!incidence_column %in% colnames(incidence)) {
+      incidence[, paste(incidence_column) := 0]
+    } else {
+      incidence[is.na(get(incidence_column)), paste(incidence_column) := 0]
+    }
   }
 
   incidence <- incidence[N >= min.N]
