@@ -1,6 +1,6 @@
 ## Defines the `questions` and `options` datasets and saves them to data/.
 ## Run by hand from the root of the repository when the question definitions
-## change; it is not part of the installed package.
+## change. The installed package does not include this script.
 
 header_replace <- function(x, old_questions, new_questions) {
   old_pos <- which(names(x) %in% old_questions)
