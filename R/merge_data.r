@@ -331,6 +331,17 @@ convert_household_counts <- function(dt) {
   invisible(dt)
 }
 
+## Set missing household counts to zero. In the 2009/10 and 2010/11 seasons the
+## background questionnaire only asks for the number of household members in
+## each age band, and a blank answer means nobody in the household is in that
+## band. Modifies the counts by reference.
+fill_household_counts <- function(dt) {
+  for (nb.name in grep("^nb\\.", colnames(dt), value = TRUE)) {
+    dt[is.na(get(nb.name)), paste(nb.name) := 0]
+  }
+  invisible(dt)
+}
+
 ## calculate auxiliary variable: living with children
 add_living_with_children <- function(dt) {
   if ("household.0.4" %in% colnames(dt)) {
@@ -340,9 +351,7 @@ add_living_with_children <- function(dt) {
         as.integer((household.0.4 == "t" | household.5.18 == "t"))
     ]
   } else {
-    for (nb.name in grep("^nb\\.", colnames(dt), value = TRUE)) {
-      dt[is.null(get(nb.name)), paste(nb.name) := 0]
-    }
+    fill_household_counts(dt)
     dt[
       ,
       living.with.children :=

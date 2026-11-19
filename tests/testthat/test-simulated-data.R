@@ -72,6 +72,16 @@ test_that("bouts_of_illness returns bouts of illness", {
   expect_false(anyNA(res$symptoms.start.date))
 })
 
+test_that("missing household counts are set to 0", {
+  dt <- data.table::data.table(
+    nb.household.0.4 = c(1L, NA, NA),
+    nb.household.5.18 = c(NA, NA, 2L)
+  )
+  fill_household_counts(dt)
+  expect_identical(dt$nb.household.0.4, c(1L, 0L, 0L))
+  expect_identical(dt$nb.household.5.18, c(0L, 0L, 2L))
+})
+
 test_that("the order of surveys does not change the merged table", {
   forward <- extract_data(
     simulated_data, years = 2013, surveys = c("background", "symptom")
