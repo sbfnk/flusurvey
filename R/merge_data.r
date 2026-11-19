@@ -457,7 +457,7 @@ clean_contact <- function(dt, ranges) {
   }
   add_contact_totals(dt, types, contact_columns)
 
-  ## the survey asks about the previous day: the contacts belong to the day
+  ## the survey asks about the previous day, so contacts date from the day
   ## before the report
   dt[, contact.date := date - 1]
   dt[, contact.day.of.week := (wday(contact.date) - 2) %% 7 + 1]
