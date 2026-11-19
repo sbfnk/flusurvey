@@ -15,12 +15,6 @@ dt_back_contacts <- extract_data(
   surveys = c("background", "contact")
 )
 
-dt_contacts <- extract_data(
-  "data/flusurvey_raw_2012_2020.rds",
-  years = 2012:2013,
-  surveys = "contact"
-)
-
 ## illness status comes from the symptom report filed on the day the contacts
 ## describe (the day before the contact report), read without the cleaning that
 ## drops reports
@@ -39,7 +33,7 @@ dir.create(here("figures"), showWarnings = FALSE)
 
 for (type in c("conversational", "physical")) {
   ## describe contact data
-  max_people <- dt_contacts |>
+  max_people <- contacts |>
     group_by(participant_id, season) |>
     summarise(n = n(), .groups = "drop") |>
     group_by(participant_id) |>
@@ -52,7 +46,7 @@ for (type in c("conversational", "physical")) {
     pull(participant_id)
 
   p <- ggplot(
-    dt_contacts |>
+    contacts |>
     filter(participant_id %in% max_people),
     aes_string(x = "date", y = type, group = "season")
   ) +
@@ -73,7 +67,7 @@ for (type in c("conversational", "physical")) {
     base_aspect_ratio = 2
   )
 
-  means <- dt_contacts |>
+  means <- contacts |>
     group_by(participant_id) |>
     mutate(
       mean = mean(.data[[type]]),
@@ -138,7 +132,7 @@ for (type in c("conversational", "physical")) {
   save_plot(here("figures", paste0(type, "_contacts_mean_var.png")), p)
 
   ## contact with respect to background
-  bg_means <- dt_back_contacts |>
+  bg_means <- contacts |>
     group_by(participant_id) |>
     mutate(
       mean = mean(.data[[type]]),
@@ -150,12 +144,12 @@ for (type in c("conversational", "physical")) {
     pull(mean) |>
     quantile(probs = 0.95, na.rm = TRUE)
 
-  type_settings <- colnames(dt_back_contacts) |>
+  type_settings <- colnames(contacts) |>
     grep(pattern = paste0("^", type, "."), value = TRUE) |>
     grep(pattern = "^[^0-9]*$", value = TRUE)
 
   ## setting
-  bg_type_means <- dt_back_contacts |>
+  bg_type_means <- contacts |>
     group_by(participant_id) |>
     mutate(across(all_of(type_settings), mean)) |>
     pivot_longer(
@@ -532,7 +526,7 @@ for (type in c("conversational", "physical")) {
   save_plot(here("figures", paste0(type, "_region_setting.png")), p)
 }
 
-means <- dt_contacts |>
+means <- contacts |>
   group_by(participant_id) |>
   mutate(
     mean.physical = mean(physical),
