@@ -12,7 +12,7 @@ merge_data(
   min.reports = 3,
   ranges = "sample",
   age.breaks = c(18, 45, 65),
-  max.band.count = 10
+  max.band.count = Inf
 )
 }
 \arguments{
@@ -48,12 +48,12 @@ from the range ("sample"), or apply a function, given as character string
 at 0 years of age)}
 
 \item{max.band.count}{the largest number of people accepted in a single age
-band of the household. Larger counts are treated as typing errors and set to
-missing, which makes \code{nb.household} missing too. A band that is ticked
-as present without a number counts as one person, and a household with no
-band ticked gets a missing \code{nb.household}. Whether the counts include
-the participant depends on the questionnaire wording, which is not recorded
-in this package.}
+band of the household. There is no limit by default, as households in
+institutions such as care homes can be large. Larger counts are set to
+missing, and \code{nb.household} is then missing too. The counts include the
+participant. A band that is ticked as present without a number counts as one
+person, and a household with no band ticked gets a missing
+\code{nb.household}.}
 }
 \value{
 a rolling-joined data table

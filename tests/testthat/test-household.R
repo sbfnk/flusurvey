@@ -5,7 +5,7 @@ pick_ids <- function(data, n) {
   head(intersect(data$background$global_id, names(counts)[counts > 2]), n)
 }
 
-test_that("nb.household handles unticked, uncounted and implausible bands", {
+test_that("nb.household handles unticked, and uncounted bands, and keeps large counts", {
   data <- copy(simulated_data[["2013"]])
   bg <- data$background
   ind <- grep("^household\\.", colnames(bg), value = TRUE)
@@ -16,6 +16,7 @@ test_that("nb.household handles unticked, uncounted and implausible bands", {
     c("household.0.4", "nb.household.0.4") := list("t", NA)
   ]
   bg[global_id == ids[2], (ind) := "f"]
+  bg[global_id == ids[3], (ind) := "f"]
   bg[
     global_id == ids[3],
     c("household.19.44", "nb.household.19.44") := list("t", 500)
@@ -24,7 +25,7 @@ test_that("nb.household handles unticked, uncounted and implausible bands", {
   hh <- unique(dt[global_id %in% ids, list(global_id, nb.household)])
   expect_equal(hh[global_id == ids[1], nb.household], 1)
   expect_true(is.na(hh[global_id == ids[2], nb.household]))
-  expect_true(is.na(hh[global_id == ids[3], nb.household]))
+  expect_equal(hh[global_id == ids[3], nb.household], 500)
 })
 
 test_that("max.band.count sets the limit on a band", {
