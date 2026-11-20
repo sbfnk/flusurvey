@@ -17,7 +17,8 @@ bouts_of_illness(x, symptomatic.only = TRUE, as.data.frame = TRUE)
 a data table of bouts of illness
 }
 \description{
-Extract bouts of illness from a flusurvey data table
+Where no report of a bout gives a start date, \code{symptoms.start.date} is
+left missing rather than set to a report date.
 }
 \examples{
 dt <- extract_data(simulated_data, years = 2013:2014)
