@@ -43,6 +43,11 @@
 ##' group except the last (first age group starts at 0 years of age). The last
 ##' group is open-ended. The default gives the groups 0-18, 19-44, 45-64 and
 ##' 65+, matching the age bands of the contact questions.
+##' @param ili.sudden.unknown how to interpret reports where sudden onset is
+##' unknown, passed to \code{\link{aggregate_symptoms}}: \code{NA} (the
+##' default) leaves \code{ili} and \code{ili.fever} missing where onset is
+##' needed to decide, \code{1} counts unknown onset as sudden and \code{0} as
+##' not sudden. The recorded onset is kept in \code{onset}.
 ##' @return a rolling-joined data table. \code{day.of.week} (1 for Monday to 7
 ##' for Sunday) is that of the report date. If the contact survey is included,
 ##' \code{contact.date} is the day the contacts describe (the day before the
@@ -74,7 +79,8 @@ merge_data <- function(
   ),
   min.reports = 3,
   ranges = "sample",
-  age.breaks = c(18, 44, 64)
+  age.breaks = c(18, 44, 64),
+  ili.sudden.unknown = NA
 ) {
   survey_order <- c("background", "contact", "symptom")
   if (!all(names(data) %in% survey_order)) {
@@ -118,7 +124,7 @@ merge_data <- function(
     }
 
     dt <- switch(name,
-      symptom = clean_symptom(dt, clean, min.reports),
+      symptom = clean_symptom(dt, clean, min.reports, ili.sudden.unknown),
       background = clean_background(dt, age.breaks),
       contact = clean_contact(dt, ranges),
       dt
@@ -222,8 +228,8 @@ convert_logical_columns <- function(res, reference) {
 
 ## ---- symptom survey ---------------------------------------------------------
 
-clean_symptom <- function(dt, clean, min.reports) {
-  dt <- aggregate_symptoms(dt)
+clean_symptom <- function(dt, clean, min.reports, ili.sudden.unknown) {
+  dt <- aggregate_symptoms(dt, ili.sudden.unknown = ili.sudden.unknown)
   ## calculate min.reports, max.reports, nReports
   dt[, nReports := .N, by = global_id]
   if ("n.reports" %in% clean) {
