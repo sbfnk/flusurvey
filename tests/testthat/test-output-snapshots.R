@@ -5,7 +5,7 @@
 ## are sampled at random, so we set the seed before every extraction.
 extract_seeded <- function(...) {
   set.seed(20150101)
-  extract_data(simulated_data, years = 2013:2014, ...)
+  expect_contact_warning(extract_data(simulated_data, years = 2013:2014, ...))
 }
 
 ## Rows are sorted with radix ordering before hashing. Radix ordering is the

@@ -3,7 +3,7 @@
 
 test_that("merge_data with default cleaning gives the pinned table", {
   set.seed(1)
-  dt <- merge_data(simulated_data[["2013"]])
+  dt <- expect_contact_warning(merge_data(simulated_data[["2013"]]))
   expect_identical(
     fingerprint(dt),
     list(
@@ -18,7 +18,9 @@ test_that("merge_data with default cleaning gives the pinned table", {
 
 test_that("merge_data with only the first reports removed gives the pinned table", {
   set.seed(1)
-  dt <- merge_data(simulated_data[["2013"]], clean = "remove.first")
+  dt <- expect_contact_warning(
+    merge_data(simulated_data[["2013"]], clean = "remove.first")
+  )
   expect_identical(
     fingerprint(dt),
     list(
@@ -33,8 +35,10 @@ test_that("merge_data with only the first reports removed gives the pinned table
 
 test_that("merge_data with a function for ranges gives the pinned table", {
   set.seed(1)
-  dt <- merge_data(simulated_data[["2014"]], clean = "n.reports",
-                   ranges = "mean", min.reports = 2)
+  dt <- expect_contact_warning(
+    merge_data(simulated_data[["2014"]], clean = "n.reports",
+               ranges = "mean", min.reports = 2)
+  )
   expect_identical(
     fingerprint(dt),
     list(
@@ -49,7 +53,7 @@ test_that("merge_data with a function for ranges gives the pinned table", {
 
 test_that("extract_data gives the pinned table for both seasons", {
   set.seed(1)
-  dt <- extract_data(simulated_data, years = 2013:2014)
+  dt <- expect_contact_warning(extract_data(simulated_data, years = 2013:2014))
   expect_identical(
     fingerprint(dt),
     list(
@@ -176,7 +180,7 @@ test_that("read_data warns when the surveys share no id", {
 
 test_that("bouts_of_illness handles missing values in no.symptoms", {
   set.seed(1)
-  dt <- extract_data(simulated_data, years = 2013:2014)
+  dt <- expect_contact_warning(extract_data(simulated_data, years = 2013:2014))
   invisible(capture.output(complete <- bouts_of_illness(data.table::copy(dt))))
   expect_identical(dim(complete), c(217L, 261L))
   dt[sample(.N, 300), no.symptoms := NA]
