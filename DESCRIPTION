@@ -13,12 +13,14 @@ URL: https://sbfnk.github.io/flusurvey/, https://github.com/sbfnk/flusurvey
 BugReports: https://github.com/sbfnk/flusurvey/issues
 Imports:
     data.table,
-    here,
     lubridate,
     plyr,
     stats,
     utils
 Suggests:
+    here,
+    rlang,
     testthat
 LazyData: true
+Config/testthat/edition: 3
 Config/roxygen2/version: 8.0.0

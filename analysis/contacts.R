@@ -9,9 +9,12 @@ library("ggplot2")
 library("data.table")
 library("here")
 
+## episodes come from the symptom survey alone: joining it to the contact
+## survey pairs unrelated reports and drops symptom reports
 dt <- extract_data(
   "data/flusurvey_raw_2012_2020.rds",
-  years = 2012:2013
+  years = 2012:2013,
+  surveys = c("background", "symptom")
 )
 
 dt_back_contacts <- extract_data(
@@ -20,28 +23,26 @@ dt_back_contacts <- extract_data(
   surveys = c("background", "contact")
 )
 
-dt_contacts <- extract_data(
-  "data/flusurvey_raw_2012_2020.rds",
-  years = 2012:2013,
-  surveys = "contact"
-)
-
 bouts <- bouts_of_illness(dt)
 bouts <- bouts[!is.na(symptoms.end.date)]
 bouts <- bouts[,
-  list(global_id, ili.self, resp.symptoms, symptoms.start.date, symptoms.end.date)
+  list(
+    global_id, ili.self, ili, ili.fever, resp.symptoms,
+    symptoms.start.date, symptoms.end.date
+  )
 ]
 
-## create big data set of all contacts with all symptom data
+## create big data set of all contacts with all symptom data; contacts are
+## reported for the day before the report, and illness is taken on that day
 contacts_symptoms <- merge(
-  dt_back_contacts[, list(global_id, date)], bouts, by = "global_id",
-  all.x = TRUE, allow.cartesian = TRUE
+  dt_back_contacts[, list(global_id, date, contact.date)], bouts,
+  by = "global_id", all.x = TRUE, allow.cartesian = TRUE
 )
 contacts_symptoms <- contacts_symptoms[
   is.na(symptoms.start.date), current_symptoms := FALSE
 ]
 contacts_symptoms <- contacts_symptoms[
-  date >= symptoms.start.date & date <= symptoms.end.date,
+  contact.date >= symptoms.start.date & contact.date <= symptoms.end.date,
   current_symptoms := TRUE
 ]
 contacts_symptoms <- contacts_symptoms[
@@ -50,19 +51,27 @@ contacts_symptoms <- contacts_symptoms[
 contacts_symptoms <- contacts_symptoms[,
   list(
     current_symptoms = any(current_symptoms),
-    current_ili = any(ili.self == "t" & current_symptoms, na.rm = TRUE),
+    current_ili_self = any(ili.self == "t" & current_symptoms, na.rm = TRUE),
+    current_ili = any(ili == "t" & current_symptoms, na.rm = TRUE),
+    current_ili_fever = any(ili.fever == "t" & current_symptoms, na.rm = TRUE),
     current_ari = any(resp.symptoms == "t" & current_symptoms, na.rm = TRUE)
-  ), by = list(global_id, date)
+  ), by = list(global_id, date, contact.date)
 ]
 
+contacts_symptoms[,
+  current_ili_self := fifelse(current_ili_self, "ILI", "no ILI")
+]
 contacts_symptoms[, current_ili := fifelse(current_ili, "ILI", "no ILI")]
+contacts_symptoms[,
+  current_ili_fever := fifelse(current_ili_fever, "ILI", "no ILI")
+]
 contacts_symptoms[, current_ari := fifelse(current_ari, "ARI", "no ARI")]
 contacts_symptoms[,
   current_symptoms := fifelse(current_symptoms, "symptoms", "no symptoms")
 ]
 
 contacts <- merge(
-  dt_back_contacts, contacts_symptoms, by = c("global_id", "date")
+  dt_back_contacts, contacts_symptoms, by = c("global_id", "date", "contact.date")
 )
 
 saveRDS(contacts, here("outputs", "contacts.rds"))
@@ -71,7 +80,7 @@ dir.create(here("figures"), showWarnings = FALSE)
 
 for (type in c("conversational", "physical")) {
   ## describe contact data
-  max_people <- dt_contacts |>
+  max_people <- contacts |>
     group_by(participant_id, season) |>
     summarise(n = n(), .groups = "drop") |>
     group_by(participant_id) |>
@@ -84,7 +93,7 @@ for (type in c("conversational", "physical")) {
     pull(participant_id)
 
   p <- ggplot(
-    dt_contacts |>
+    contacts |>
     filter(participant_id %in% max_people),
     aes_string(x = "date", y = type, group = "season")
   ) +
@@ -105,7 +114,7 @@ for (type in c("conversational", "physical")) {
     base_aspect_ratio = 2
   )
 
-  means <- dt_contacts |>
+  means <- contacts |>
     group_by(participant_id) |>
     mutate(
       mean = mean(.data[[type]]),
@@ -564,7 +573,7 @@ for (type in c("conversational", "physical")) {
   save_plot(here("figures", paste0(type, "_region_setting.png")), p)
 }
 
-means <- dt_contacts |>
+means <- contacts |>
   group_by(participant_id) |>
   mutate(
     mean.physical = mean(physical),
