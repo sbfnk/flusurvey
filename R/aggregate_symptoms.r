@@ -27,8 +27,6 @@ onset_status <- function(dt) {
 
 ##' Aggregate symptoms in symptom table to work out ILI etc.
 ##'
-##' Aggregate symptoms in symptom table to work out ILI etc.
-##'
 ##' The recorded onset is kept in the column \code{onset}: "sudden",
 ##' "not.sudden", "dont_know" (an explicit answer), "not.answered" (the question
 ##' was asked but not answered) or "no.question" (the data have no onset
