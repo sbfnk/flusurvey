@@ -15,9 +15,11 @@ dt_back_contacts <- extract_data(
   surveys = c("background", "contact")
 )
 
-## illness status comes from illness bouts built from all symptom reports, read
-## without the cleaning that drops reports; contacts are located in a bout by
-## contact.date, without needing a report on the contact day
+## illness bouts are built from all symptom reports, read without the cleaning
+## that drops reports. Eligibility (at least three reporting days per
+## participant and season) and follow-up (first to last report without
+## symptoms) are applied in contact_illness(), which locates each contact by
+## contact.date: healthy within follow-up outside bouts, unknown outside it
 dt_symptoms <- extract_data(
   "data/flusurvey_raw_2012_2020.rds",
   years = 2012:2013,
