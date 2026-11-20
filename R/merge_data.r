@@ -151,11 +151,12 @@ merge_data <- function(
   convert_logical_columns(res, res)
 }
 
-## Keep the reports from the season that contains the date with most reports.
+## Keep the reports from the season that contains the date with most reports,
+## or the earliest such date if several are tied.
 limit_to_season <- function(dt) {
   ## figure out date with most reports, this defines the season
   reports <- dt[, .N, date]
-  max_date <- reports[N == max(N), date]
+  max_date <- min(reports[N == max(N), date])
   ## season begins on 1 November before the maximum date
   if (lubridate::month(max_date) >= 11) {
     season_start <- as.Date(paste(year(max_date), 11, 1, sep = "-"))
