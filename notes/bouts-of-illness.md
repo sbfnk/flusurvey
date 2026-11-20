@@ -52,7 +52,7 @@ Each symptomatic report then belongs to the bout of the last start at or before 
 
 The start date of a bout is the start date given in its last report. If the last report gives none, it is the last start date given in any of its reports. If no report gives one, it is the date of the first report.
 
-The end date of a bout depends on whether its last report gives one. If it does, the bout keeps the end date of its first report, which may be missing or earlier. If it does not, the end date is the last end date given in any of its reports, and if no report gives one, the date of the last report.
+The end date of a bout depends on whether its last report gives one. If it does, the bout keeps the end date of its first report, which may be missing or different. If it does not, the end date is the last end date given in any of its reports, and if no report gives one, the date of the last report.
 
 The start and end dates are not checked against each other. A bout can end before it starts.
 
