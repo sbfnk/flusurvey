@@ -40,3 +40,11 @@ test_that("merge_data preserves positional contact and age arguments", {
     )
   }
 })
+
+test_that("merge_data keeps ili.sudden.unknown as the sixth argument", {
+  data <- simulated_data[["2013"]]["symptom"]
+  expect_equal(
+    merge_data(data, NULL, 3, "sample", c(18, 44, 64), 1),
+    merge_data(data, clean = NULL, ili.sudden.unknown = 1)
+  )
+})

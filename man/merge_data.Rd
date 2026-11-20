@@ -12,8 +12,8 @@ merge_data(
   min.reports = 3,
   ranges = "sample",
   age.breaks = c(18, 44, 64),
-  max.symptom.days = 28,
-  ili.sudden.unknown = NA
+  ili.sudden.unknown = NA,
+  max.symptom.days = 28
 )
 }
 \arguments{
@@ -71,15 +71,16 @@ group except the last (first age group starts at 0 years of age). The last
 group is open-ended. The default gives the groups 0-18, 19-44, 45-64 and
 65+, matching the age bands of the contact questions.}
 
-\item{max.symptom.days}{maximum number of days before a report that
-symptoms can have started before illness is flagged as long-running
-(ignored if 'remove.bad.symptom.dates' is not given as a cleaning option);
-use \code{Inf} for no limit}
 \item{ili.sudden.unknown}{how to interpret reports where sudden onset is
 unknown, passed to \code{\link{aggregate_symptoms}}: \code{NA} (the
 default) leaves \code{ili} and \code{ili.fever} missing where onset is
 needed to decide, \code{1} counts unknown onset as sudden and \code{0} as
 not sudden. The recorded onset is kept in \code{onset}.}
+
+\item{max.symptom.days}{maximum number of days before a report that
+symptoms can have started before illness is flagged as long-running
+(ignored if 'remove.bad.symptom.dates' is not given as a cleaning option);
+use \code{Inf} for no limit}
 }
 \value{
 a rolling-joined data table. \code{day.of.week} (1 for Monday to 7
