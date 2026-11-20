@@ -114,8 +114,7 @@ merge_data <- function(
     dt <- copy(data.table(data[[name]]))
     dt <- dt[!duplicated(dt[, list(global_id, date)], fromLast = TRUE)]
 
-    if ("limit.season" %in% clean &&
-          (name != "background" || length(data) == 1)) {
+    if ("limit.season" %in% clean && limits_season(name, length(data))) {
       dt <- limit_to_season(dt)
     }
 
@@ -601,4 +600,10 @@ add_contact_totals <- function(dt, types, contact_columns) {
     ]
   }
   invisible(dt)
+}
+
+## The background survey keeps its full date range when merged with others,
+## so that participants reporting symptoms in the season are not dropped
+limits_season <- function(name, n_surveys) {
+  name != "background" || n_surveys == 1
 }
