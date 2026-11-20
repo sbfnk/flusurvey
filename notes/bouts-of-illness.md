@@ -26,7 +26,7 @@ A symptomatic report has `no.symptoms == "f"` and a symptom-free report has `no.
 8. `only.symptoms`: participants with no symptom-free report among the remaining reports are dropped. A participant with a missing `no.symptoms` answer in any report is dropped as well, because their count of symptom-free reports is missing.
 9. The surveys are joined by a rolling join on the report date, always in the order background, contact, symptom. With the symptom survey included, each row is one symptom report, with the latest background and contact report on or before its date. Joining the contact and symptom surveys gives a warning. With `unsuccessful.join`, symptom reports without a report on or before their date from each of the other surveys are dropped. A participant whose background reports were all filed before the season window, and removed in step 2, loses all their symptom reports here. One who files another background report within the window loses only the symptom reports before it. Last, character columns of the joined table with values including both "t" and "f" become factors.
 
-`clean = NULL` skips all of these steps except step 1, the case definitions in step 3 and the join.
+`clean = NULL` skips all of these steps except step 1, the case definitions in step 3, and the join with its conversion to factors.
 
 These steps change what the bout rules see:
 
