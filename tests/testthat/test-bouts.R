@@ -35,8 +35,6 @@ test_that("input is sorted by participant, season and date", {
 })
 
 test_that("an unknown onset is left missing, not set to a report date", {
-  ## the end date precedes the first report, so a report-date onset would
-  ## give an end before the start
   x <- reports(
     3, c("2013-01-10", "2013-01-17"), c(TRUE, TRUE), c(NA, "yes"),
     c(NA, NA), c("2013-01-08", NA)

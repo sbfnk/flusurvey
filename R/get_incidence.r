@@ -71,8 +71,6 @@ get_incidence <- function(
 
   id_column <- grep("_id$", colnames(dt), value = TRUE)
 
-  ## bouts with an unknown onset, such as an illness already under way at the
-  ## first report, have no date to count them on
   bouts <- bouts[!is.na(symptoms.start.date)]
 
   ## calculate incidence based on symptom start date
