@@ -66,7 +66,7 @@ When the input has a `symptom.id` column that is not its first column, each bout
 
 The "t"/"f" columns of the rows outside any bout are combined in the same way, per participant and season. All these rows take "t" if any of them has "t". Their other columns stay as they are.
 
-With `symptomatic.only = TRUE` (the default) only the bout rows are returned. Without a `symptom.id` column, or with it as the first column, the function stops with an error.
+With `symptomatic.only = TRUE` (the default) only the bout rows are returned. Without a `symptom.id` column the function stops with an error. With `symptom.id` as the first column no bout rows are built: the function stops if `symptomatic.only = TRUE`, and otherwise returns every report.
 
 ## Known problems
 
