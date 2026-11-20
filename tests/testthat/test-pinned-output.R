@@ -3,61 +3,65 @@
 
 test_that("merge_data with default cleaning gives the pinned table", {
   set.seed(1)
-  dt <- merge_data(simulated_data[["2013"]])
+  dt <- expect_contact_warning(merge_data(simulated_data[["2013"]]))
   expect_identical(
     fingerprint(dt),
     list(
-      dim = c(2898L, 243L), key = c("date", "global_id"),
-      classes = c(character = 3L, Date = 8L, factor = 163L, integer = 64L,
+      dim = c(2898L, 244L), key = c("date", "global_id"),
+      classes = c(character = 4L, Date = 8L, factor = 163L, integer = 64L,
                   numeric = 5L),
-      missing = 168572, numeric_total = 7578464, factor_levels = 471L,
-      factor_codes = 456503, names_checksum = 928461132
+      missing = 171453, numeric_total = 7578464, factor_levels = 471L,
+      factor_codes = 450879, names_checksum = 931033708
     )
   )
 })
 
 test_that("merge_data with only the first reports removed gives the pinned table", {
   set.seed(1)
-  dt <- merge_data(simulated_data[["2013"]], clean = "remove.first")
+  dt <- expect_contact_warning(
+    merge_data(simulated_data[["2013"]], clean = "remove.first")
+  )
   expect_identical(
     fingerprint(dt),
     list(
-      dim = c(3068L, 245L), key = c("date", "global_id"),
-      classes = c(character = 5L, Date = 8L, factor = 163L, integer = 64L,
+      dim = c(3068L, 246L), key = c("date", "global_id"),
+      classes = c(character = 6L, Date = 8L, factor = 163L, integer = 64L,
                   numeric = 5L),
-      missing = 182595, numeric_total = 8035196, factor_levels = 471L,
-      factor_codes = 480499, names_checksum = 938163011
+      missing = 185641, numeric_total = 8035196, factor_levels = 471L,
+      factor_codes = 474553, names_checksum = 940749042
     )
   )
 })
 
 test_that("merge_data with a function for ranges gives the pinned table", {
   set.seed(1)
-  dt <- merge_data(simulated_data[["2014"]], clean = "n.reports",
-                   ranges = "mean", min.reports = 2)
+  dt <- expect_contact_warning(
+    merge_data(simulated_data[["2014"]], clean = "n.reports",
+               ranges = "mean", min.reports = 2)
+  )
   expect_identical(
     fingerprint(dt),
     list(
-      dim = c(3325L, 245L), key = c("date", "global_id"),
-      classes = c(character = 5L, Date = 8L, factor = 158L, integer = 69L,
+      dim = c(3325L, 246L), key = c("date", "global_id"),
+      classes = c(character = 6L, Date = 8L, factor = 158L, integer = 69L,
                   numeric = 5L),
-      missing = 202398, numeric_total = 8829829, factor_levels = 461L,
-      factor_codes = 498811, names_checksum = 945860811
+      missing = 205707, numeric_total = 8829829, factor_levels = 461L,
+      factor_codes = 492240, names_checksum = 948456787
     )
   )
 })
 
 test_that("extract_data gives the pinned table for both seasons", {
   set.seed(1)
-  dt <- extract_data(simulated_data, years = 2013:2014)
+  dt <- expect_contact_warning(extract_data(simulated_data, years = 2013:2014))
   expect_identical(
     fingerprint(dt),
     list(
-      dim = c(5734L, 253L), key = "global_id",
-      classes = c(character = 7L, Date = 8L, factor = 166L, integer = 67L,
+      dim = c(5734L, 254L), key = "global_id",
+      classes = c(character = 8L, Date = 8L, factor = 166L, integer = 67L,
                   numeric = 5L),
-      missing = 381935, numeric_total = 2590541, factor_levels = 477L,
-      factor_codes = 886490, names_checksum = 997430436
+      missing = 387639, numeric_total = 2590541, factor_levels = 477L,
+      factor_codes = 875260, names_checksum = 1000095514
     )
   )
 })
@@ -70,11 +74,11 @@ test_that("extract_data without joining returns one table per season", {
   expect_identical(
     fingerprint(res[["2013"]]),
     list(
-      dim = c(2932L, 82L), key = c("date", "global_id"),
-      classes = c(character = 1L, Date = 6L, factor = 69L, integer = 5L,
+      dim = c(2932L, 83L), key = c("date", "global_id"),
+      classes = c(character = 2L, Date = 6L, factor = 69L, integer = 5L,
                   numeric = 1L),
-      missing = 122081, numeric_total = 5258973, factor_levels = 209L,
-      factor_codes = 101150, names_checksum = 113647443
+      missing = 124995, numeric_total = 5258973, factor_levels = 209L,
+      factor_codes = 95322, names_checksum = 114538729
     )
   )
 })
@@ -176,10 +180,10 @@ test_that("read_data warns when the surveys share no id", {
 
 test_that("bouts_of_illness handles missing values in no.symptoms", {
   set.seed(1)
-  dt <- extract_data(simulated_data, years = 2013:2014)
+  dt <- expect_contact_warning(extract_data(simulated_data, years = 2013:2014))
   invisible(capture.output(complete <- bouts_of_illness(data.table::copy(dt))))
-  expect_identical(dim(complete), c(217L, 261L))
+  expect_identical(dim(complete), c(217L, 262L))
   dt[sample(.N, 300), no.symptoms := NA]
   invisible(capture.output(res <- bouts_of_illness(dt)))
-  expect_identical(dim(res), c(205L, 261L))
+  expect_identical(dim(res), c(205L, 262L))
 })

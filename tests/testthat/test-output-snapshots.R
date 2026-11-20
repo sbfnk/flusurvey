@@ -5,7 +5,7 @@
 ## are sampled at random, so we set the seed before every extraction.
 extract_seeded <- function(...) {
   set.seed(20150101)
-  extract_data(simulated_data, years = 2013:2014, ...)
+  expect_contact_warning(extract_data(simulated_data, years = 2013:2014, ...))
 }
 
 ## Rows are sorted with radix ordering before hashing. Radix ordering is the
@@ -30,12 +30,13 @@ summarise_table <- function(x) {
   )
 }
 
-expect_unchanged <- function(x) {
+expect_unchanged <- function(x, name) {
+  capture_snapshot_table(x, name)
   expect_snapshot_value(summarise_table(x), style = "json2")
 }
 
 test_that("extract_data output with the default cleaning is unchanged", {
-  expect_unchanged(extract_seeded())
+  expect_unchanged(extract_seeded(), "extract-default")
 })
 
 cleaning_options <- c(
@@ -46,24 +47,25 @@ cleaning_options <- c(
 
 for (option in cleaning_options) {
   test_that(paste("extract_data output with only", option, "is unchanged"), {
-    expect_unchanged(extract_seeded(clean = option))
+    expect_unchanged(extract_seeded(clean = option), paste0("extract-", option))
   })
 }
 
 test_that("extract_data output with clean = NULL is unchanged", {
-  expect_unchanged(extract_seeded(clean = NULL))
+  expect_unchanged(extract_seeded(clean = NULL), "extract-uncleaned")
 })
 
 test_that("bouts_of_illness output on the default extract is unchanged", {
   dt <- extract_seeded()
   invisible(capture.output(res <- bouts_of_illness(dt)))
-  expect_unchanged(res)
+  expect_unchanged(res, "bouts")
 })
 
 test_that("get_incidence output on the default extract is unchanged", {
   dt <- extract_seeded()
   expect_unchanged(
-    get_incidence(dt, incidence.columns = "ili", aggregation = "week")
+    get_incidence(dt, incidence.columns = "ili", aggregation = "week"),
+    "incidence"
   )
-  expect_unchanged(get_incidence(dt, by = "agegroup"))
+  expect_unchanged(get_incidence(dt, by = "agegroup"), "incidence-agegroup")
 })
