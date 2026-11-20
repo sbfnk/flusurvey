@@ -26,6 +26,7 @@
 ##' date of report
 ##' - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 ##' - 'limit.season', whether to limit a flu season to November -> April
+##' (not applied to the background survey when it is merged with others)
 ##' - 'remove.postcodes', whether to remove postcodes
 ##' - 'n.reports', whether to exclude those with fewer than \code{min.reports}
 ##' reports
@@ -113,7 +114,10 @@ merge_data <- function(
     dt <- copy(data.table(data[[name]]))
     dt <- dt[!duplicated(dt[, list(global_id, date)], fromLast = TRUE)]
 
-    if ("limit.season" %in% clean) {
+    ## a background survey that is joined onto others is not limited: trimming
+    ## it to its own busiest season drops the reports of those it describes
+    if ("limit.season" %in% clean &&
+          (name != "background" || length(data) == 1)) {
       dt <- limit_to_season(dt)
     }
 

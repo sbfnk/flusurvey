@@ -199,6 +199,18 @@ test_that("default extraction handles symptom surveys without health scores", {
   }
 })
 
+test_that("limit.season does not drop symptom reports by background date", {
+  d <- data.table::copy(simulated_data[["2013"]][c("background", "symptom")])
+  d_original <- data.table::copy(d)
+  d$background <- data.table::data.table(d$background)
+  d$background[global_id == "sim0002", date := as.Date("2012-10-15")]
+  clean <- c("limit.season", "unsuccessful.join")
+  expected <- merge_data(d_original, clean = clean)[global_id == "sim0002"]
+  expect_gt(nrow(expected), 0)
+  actual <- merge_data(d, clean = clean)[global_id == "sim0002"]
+  expect_equal(actual$date, expected$date)
+})
+
 test_that("remove.bad.health.scores is accepted by name", {
   dt <- expect_contact_warning(
     extract_data(simulated_data, years = 2013:2014,
