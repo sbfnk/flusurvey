@@ -74,7 +74,7 @@ With `symptomatic.only = TRUE` (the default) only the bout rows are returned. Wi
 - S2 can start the bout at a later leading report. The leading reports before it are then dropped.
 - S5 compares a participant's first report with another participant's last report. Where that end date is before this participant's start date, the first report starts a bout by chance (#22).
 - Without a `health.score` column, a table sorted by date makes S4 and S5 compare reports of different participants. The rules depend on the input order, and `bouts_of_illness()` sorts only by participant and season, and only when there is a `health.score` column.
-- The end date of a bout is lost or wrong when only the last report gives one (#18).
+- The end date of a bout is lost when only its last report gives one, and wrong when its first report gives a different one (#18).
 - The start date of a bout comes from its last report without a check against the other reports (#20).
 - A bout with no reported start date, but with a reported end date before its first report, gets a start date after its end date (#76, #77).
 - With `symptomatic.only = FALSE` the reports outside any bout share their "t"/"f" values. A dropped symptomatic report makes the symptom-free reports of the participant show its symptoms, and the dropped report itself is marked as symptom-free (#87).
