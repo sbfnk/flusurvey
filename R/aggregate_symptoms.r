@@ -36,7 +36,7 @@ onset_status <- function(dt) {
 ##' \code{ili.sudden.unknown} sets how the last three are interpreted in the
 ##' derived columns \code{suddenly}, \code{ili} and \code{ili.fever}. It leaves
 ##' \code{onset} and the answers in the data unchanged. A report that already
-##' fails another ILI criterion is not ILI whatever its onset.
+##' fails another ILI criterion is not ILI, whatever its onset.
 ##'
 ##' @param symptoms a data table of symptom reports
 ##' @param ili.sudden.unknown how to interpret reports where onset is unknown

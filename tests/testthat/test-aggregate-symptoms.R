@@ -70,7 +70,7 @@ test_that("fever questions settle onset where they answer it", {
 })
 
 test_that("merge_data and extract_data pass on ili.sudden.unknown", {
-  ## Copy the table: := would otherwise change the packaged data in place.
+  ## Copy the table, because := would change the packaged data in place.
   data <- simulated_data[["2013"]]
   data$symptom <- data.table::copy(data$symptom)
   data$symptom[, symptoms.suddenly := rep(
