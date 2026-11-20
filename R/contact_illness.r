@@ -12,12 +12,11 @@
 ##' \code{current_symptoms} is "symptoms" if the contact day lies in a bout. It
 ##' is "no symptoms" if it does not and the participant filed a usable report
 ##' (no symptoms, or symptoms with a valid interval) on the contact day, and
-##' missing otherwise. Missing means there is no information, not that the
-##' participant was healthy: a contact day without a matching bout is not
-##' taken as evidence of health.
+##' missing otherwise. Missing means there is no information: a contact day
+##' without a matching bout is not taken as evidence of health.
 ##'
 ##' The case-definition flags are known per report, not per day. A bout meeting
-##' a definition at some point does not mean that every symptom was present on
+##' a definition at some point need not have had every symptom present on
 ##' every day of it. The \code{bout_} columns therefore describe the whole
 ##' bout: positive if any report in the bout meets the definition, negative if
 ##' all reports have it unmet and missing otherwise. Outside a bout they equal
@@ -108,7 +107,7 @@ contact_illness <- function(contacts, symptoms) {
     c(TRUE, bstart[-1] > head(cummax(as.numeric(bend)), -1) + 1)
   ), by = global_id]
   bouts <- reports[, c(
-    ## reports are sorted by start, so the first start is the earliest
+    ## reports are sorted by start; the first start is the earliest
     list(bout_start = bstart[1], bout_end = bend[which.max(as.numeric(bend))]),
     lapply(.SD, combine)
   ), by = list(global_id, bout), .SDcols = unname(flag_cols)]
