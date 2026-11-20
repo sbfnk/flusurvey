@@ -8,10 +8,8 @@ extract_seeded <- function(...) {
   expect_contact_warning(extract_data(simulated_data, years = 2013:2014, ...))
 }
 
-## Values are converted to text before hashing. Objects are serialised
-## differently across platforms and R versions, and as.character() on doubles
-## has changed between R versions, so doubles are written with ten significant
-## digits instead.
+## Doubles are written with ten significant digits because as.character() on
+## doubles differs between R versions.
 as_text <- function(column) {
   if (is.double(column)) {
     out <- sprintf("%.10g", column)
@@ -22,9 +20,7 @@ as_text <- function(column) {
   }
 }
 
-## Rows are sorted with radix ordering on the keys and then on every column.
-## Radix ordering is the same in every locale, and the full ordering means that
-## rows sharing a key come out the same whatever the join order.
+## Rows are radix-ordered on the keys, then on every other column.
 summarise_table <- function(x) {
   x <- as.data.frame(x)
   classes <- vapply(x, function(column) class(column)[1], "")
