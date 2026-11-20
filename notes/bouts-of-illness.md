@@ -64,7 +64,7 @@ When the input has a `symptom.id` column, each bout becomes one row, unless `sym
 - `min.health.score` is the lowest health score in the bout, and `baseline.health.score` is the median health score of the participant's symptom-free reports in the season.
 - `min.part.symptom.id` and `max.part.symptom.id` give the positions of the first and last report of the bout among the participant's reports in the season.
 
-The "t"/"f" columns of the rows outside any bout are combined in the same way, per participant and season. All these rows take "t" if any of them has "t". Their other columns stay as they are.
+The "t"/"f" columns of the rows outside any bout are combined in the same way, per participant and season. All these rows take "t" if any of them has "t" (for `.no` and `.none` columns, if all of them have "t"). Their other columns stay as they are.
 
 With `symptomatic.only = TRUE` (the default) only the bout rows are returned. Without a `symptom.id` column the function stops with an error. With `symptom.id` as the first column and no `health.score` column, no bout rows are built: the function stops if `symptomatic.only = TRUE`, and otherwise returns every report. A `health.score` column moves `participant_id` and `season` to the front, through the merge that adds `baseline.health.score`, and the bout rows are then built.
 
