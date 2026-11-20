@@ -602,8 +602,8 @@ add_contact_totals <- function(dt, types, contact_columns) {
   invisible(dt)
 }
 
-## The background survey keeps its full date range when merged with others,
-## so that participants reporting symptoms in the season are not dropped
+## The background survey keeps its full date range when merged with others.
+## Limiting it would drop participants who report symptoms in the season.
 limits_season <- function(name, n_surveys) {
   name != "background" || n_surveys == 1
 }
