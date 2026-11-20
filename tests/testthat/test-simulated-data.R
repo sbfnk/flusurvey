@@ -83,6 +83,33 @@ test_that("bouts_of_illness returns bouts of illness", {
   expect_false(anyNA(res$symptoms.start.date))
 })
 
+test_that("age groups follow the contact age bands", {
+  ages <- c(3, 18, 19, 44, 45, 64, 65, 90)
+  background <- data.table::data.table(simulated_data[["2013"]]$background)
+  background <- background[!duplicated(global_id)][seq_along(ages)]
+  background[, date := as.Date("2013-12-01")]
+  background[, birthmonth := format(date - 365.25 * ages - 10, "%Y-%m")]
+  dt <- merge_data(list(background = background), clean = "n.reports")
+  dt <- dt[order(age)]
+  expect_equal(dt$age, ages)
+  expect_equal(
+    as.character(dt$agegroup),
+    c("0-18", "0-18", "19-44", "19-44", "45-64", "45-64", "65+", "65+")
+  )
+  unsorted <- merge_data(
+    list(background = background), clean = "n.reports",
+    age.breaks = c(64, 18, 44)
+  )
+  unsorted <- unsorted[order(age)]
+  expect_identical(unsorted$agegroup, dt$agegroup)
+  expect_no_warning(single <- merge_data(
+    list(background = background), clean = "n.reports", age.breaks = numeric()
+  ))
+  expect_identical(levels(single$agegroup), "0+")
+  expect_true(all(as.character(single$agegroup) == "0+"))
+})
+
+
 test_that("missing household counts are set to 0", {
   dt <- data.table::data.table(
     nb.household.0.4 = c(1L, NA, NA),

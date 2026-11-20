@@ -11,7 +11,7 @@ test_that("merge_data with default cleaning gives the pinned table", {
       classes = c(character = 3L, Date = 8L, factor = 163L, integer = 64L,
                   numeric = 5L),
       missing = 168572, numeric_total = 7578464, factor_levels = 471L,
-      factor_codes = 456503, names_checksum = 928461132
+      factor_codes = 456641, names_checksum = 928461132
     )
   )
 })
@@ -28,7 +28,7 @@ test_that("merge_data with only the first reports removed gives the pinned table
       classes = c(character = 5L, Date = 8L, factor = 163L, integer = 64L,
                   numeric = 5L),
       missing = 182595, numeric_total = 8035196, factor_levels = 471L,
-      factor_codes = 480499, names_checksum = 938163011
+      factor_codes = 480645, names_checksum = 938163011
     )
   )
 })
@@ -46,7 +46,7 @@ test_that("merge_data with a function for ranges gives the pinned table", {
       classes = c(character = 5L, Date = 8L, factor = 158L, integer = 69L,
                   numeric = 5L),
       missing = 202398, numeric_total = 8829829, factor_levels = 461L,
-      factor_codes = 498811, names_checksum = 945860811
+      factor_codes = 498858, names_checksum = 945860811
     )
   )
 })
@@ -61,7 +61,7 @@ test_that("extract_data gives the pinned table for both seasons", {
       classes = c(character = 7L, Date = 8L, factor = 166L, integer = 67L,
                   numeric = 5L),
       missing = 381935, numeric_total = 2590541, factor_levels = 477L,
-      factor_codes = 886490, names_checksum = 997430436
+      factor_codes = 886668, names_checksum = 997430436
     )
   )
 })
