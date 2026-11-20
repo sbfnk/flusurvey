@@ -12,36 +12,57 @@ contact_illness(contacts, symptoms)
 
 \item{symptoms}{a data table of symptom reports, as returned by
 \code{\link{extract_data}}, with columns \code{global_id}, \code{date},
-\code{no.symptoms}, \code{ili}, \code{ili.self}, \code{resp.symptoms},
-\code{symptoms.start.date}, \code{symptoms.end.date} and
-\code{symptoms.end.option}}
+\code{no.symptoms}, \code{symptoms.start.date}, \code{symptoms.end.date}
+and \code{symptoms.end.option}. The columns \code{ili} (symptom-based
+ILI), \code{ili.fever} (symptom-based ILI with fever), \code{ili.self}
+(self-assessed ILI) and \code{resp.symptoms} (ARI) are used where present;
+a missing column gives missing flags.}
 }
 \value{
 the contact reports with added columns \code{current_symptoms}
-("symptoms" or "no symptoms"), \code{current_ili} for derived ILI,
-\code{current_ili_self} for self-reported ILI (both "ILI" or "no ILI"),
-and \code{current_ari} ("ARI" or "no ARI"), each missing where there is no
-symptom report on the day or where the status cannot be determined
+("symptoms" or "no symptoms"), and a daily column \code{current_*} and a
+bout column \code{bout_*} for each of \code{ili} (symptom-based),
+\code{ili_fever} (symptom-based with fever), \code{ili_self}
+(self-assessed), all "ILI" or "no ILI", and \code{ari} ("ARI" or
+"no ARI"). Each is missing where the information is lacking
 }
 \description{
-Looks up, for each contact report, the symptom report filed by the same
-participant on the day the contacts describe, \code{contact.date}. Contact
-reports describe the previous day, which is the day before the report
-\code{date}. A contact report with no symptom report on that day, or from
-a participant without symptom data, gets a missing status rather than
-"no symptoms". Reported illness dates determine whether symptoms were
-present on the contact day. When several reports match, each status is
-positive if any report is positive, missing if none is positive and at
-least one is unknown, and negative otherwise.
+Locates each contact report, by \code{contact.date}, within the illness
+bouts of the same participant. A bout is built from all symptom reports of
+a participant: each report with symptoms supports the interval from its
+\code{symptoms.start.date} to its \code{symptoms.end.date}, or to the
+report \code{date} if the participant was still ill. Overlapping or
+adjacent intervals are merged into one bout. A report whose dates are
+missing or inconsistent, or whose end is not known, supports no interval.
+A symptom report is not needed on the contact day itself.
 }
 \details{
+\code{current_symptoms} is "symptoms" if the contact day lies in a bout. It
+is "no symptoms" if it does not and the participant filed a usable report
+(no symptoms, or symptoms with a valid interval) on the contact day, and
+missing otherwise. Missing means there is no information, not that the
+participant was healthy: a contact day without a matching bout is not
+taken as evidence of health.
+
+The case-definition flags are known per report, not per day. A bout meeting
+a definition at some point does not mean that every symptom was present on
+every day of it. The \code{bout_} columns therefore describe the whole
+bout: positive if any report in the bout meets the definition, negative if
+all reports have it unmet and missing otherwise. Outside a bout they equal
+the daily columns. The daily \code{current_} columns are positive or
+negative only on days with a symptom report whose interval includes that
+day, assuming that such a report describes its own day, and are missing on
+other days of a bout. Outside a bout they are negative where the
+participant was observed, as for \code{current_symptoms}. Several reports
+on a day are combined: positive if any is positive, otherwise missing if
+any is unknown.
+
 Read the symptom data with a \code{clean} argument in
-\code{\link{extract_data}} that cannot drop symptom reports. The default
-cleaning steps (e.g., \code{"remove.first"}) can remove a symptom report,
-and the status of a contact report from the same day then cannot be
-determined. Use \code{clean = c("unsuccessful.join",
+\code{\link{extract_data}} that cannot drop symptom reports, as the default
+cleaning (e.g., \code{"remove.first"}) can remove reports that support a
+bout. Use \code{clean = c("unsuccessful.join",
 "remove.bad.symptom.dates")} to clear invalid symptom dates without
-dropping reports when a single survey is read.
+dropping reports when reading a single survey.
 }
 \examples{
 contacts <- extract_data(

@@ -1,36 +1,149 @@
-test_that("contact illness keeps derived and self-reported ILI separate", {
-  day <- as.Date("2013-01-07")
-  contacts <- data.table::data.table(global_id = letters[1:4], contact.date = day)
-  symptoms <- data.table::data.table(
-    global_id = letters[1:4], date = day, no.symptoms = "f",
-    ili = c("f", "t", NA, "t"), ili.self = c("t", "f", "t", NA),
-    resp.symptoms = "t", symptoms.start.date = day,
-    symptoms.end.date = as.Date(NA), symptoms.end.option = "still_ill"
+report <- function(id, date, ill = TRUE, start = NA, end = NA,
+                   option = "date", ili = "f", ili.fever = "f",
+                   ili.self = "f", ari = "f") {
+  data.table::data.table(
+    global_id = id, date = as.Date(date),
+    no.symptoms = if (ill) "f" else "t",
+    symptoms.start.date = as.Date(start), symptoms.end.date = as.Date(end),
+    symptoms.end.option = option, ili = ili, ili.fever = ili.fever,
+    ili.self = ili.self, resp.symptoms = ari
   )
-  res <- contact_illness(contacts, symptoms)
-  expect_equal(res$current_ili, c("no ILI", "ILI", NA, "ILI"))
-  expect_equal(res$current_ili_self, c("ILI", "no ILI", "ILI", NA))
+}
+
+contact <- function(id, day) {
+  data.table::data.table(global_id = id, contact.date = as.Date(day))
+}
+
+test_that("contact illness keeps the four case definitions separate", {
+  symptoms <- data.table::rbindlist(list(
+    report("a", "2013-01-07", start = "2013-01-07", option = "still_ill",
+           ili = "t", ili.fever = "f", ili.self = "f", ari = "f"),
+    report("b", "2013-01-07", start = "2013-01-07", option = "still_ill",
+           ili = "t", ili.fever = "t", ili.self = "f", ari = "t"),
+    report("c", "2013-01-07", start = "2013-01-07", option = "still_ill",
+           ili = "f", ili.fever = "f", ili.self = "t", ari = "t"),
+    report("d", "2013-01-07", start = "2013-01-07", option = "still_ill",
+           ili = "f", ili.fever = "f", ili.self = "f", ari = "t")
+  ))
+  res <- contact_illness(contact(letters[1:4], "2013-01-07"), symptoms)
+  expect_equal(res$current_symptoms, rep("symptoms", 4))
+  expect_equal(res$current_ili, c("ILI", "ILI", "no ILI", "no ILI"))
+  expect_equal(res$current_ili_fever, c("no ILI", "ILI", "no ILI", "no ILI"))
+  expect_equal(res$current_ili_self, c("no ILI", "no ILI", "ILI", "no ILI"))
+  expect_equal(res$current_ari, c("no ARI", "ARI", "ARI", "ARI"))
 })
 
-test_that("same-day reports combine statuses independently of row order", {
-  day <- as.Date("2013-01-07")
-  contacts <- data.table::data.table(global_id = letters[1:3], contact.date = day)
-  symptoms <- data.table::data.table(
-    global_id = rep(letters[1:3], each = 2), date = day,
-    no.symptoms = c("f", "t", "f", "t", "f", "f"),
-    ili = c("t", "f", NA, "f", "f", "f"),
-    ili.self = c("f", "f", "t", "f", "f", "f"),
-    resp.symptoms = c("t", "f", NA, "f", "f", "f"),
-    symptoms.start.date = day, symptoms.end.date = as.Date(NA),
-    symptoms.end.option = "still_ill"
+test_that("a contact day between symptom reports lies in the bout", {
+  symptoms <- data.table::rbindlist(list(
+    report("a", "2013-01-03", start = "2013-01-02", option = "still_ill",
+           ili = "t", ili.fever = "t", ari = "t"),
+    report("a", "2013-01-08", start = "2013-01-02", end = "2013-01-07",
+           ili = "t", ili.fever = "f", ari = "t")
+  ))
+  res <- contact_illness(contact("a", c("2013-01-05", "2013-01-03")), symptoms)
+  expect_equal(res$current_symptoms, c("symptoms", "symptoms"))
+  ## no report is dated on 5 January: the bout description applies, the daily
+  ## flags are not assigned
+  expect_equal(res$bout_ili, c("ILI", "ILI"))
+  expect_equal(res$bout_ili_fever, c("ILI", "ILI"))
+  expect_true(is.na(res$current_ili[res$contact.date == as.Date("2013-01-05")]))
+  expect_equal(res$current_ili[res$contact.date == as.Date("2013-01-03")],
+               "ILI")
+  expect_true(
+    is.na(res$current_ili_fever[res$contact.date == as.Date("2013-01-05")])
   )
-  forward <- contact_illness(contacts, symptoms)
-  backward <- contact_illness(contacts, symptoms[nrow(symptoms):1])
+})
+
+test_that("bout flags combine all reports of the bout", {
+  symptoms <- data.table::rbindlist(list(
+    report("a", "2013-01-03", start = "2013-01-02", option = "still_ill",
+           ili = "t", ili.fever = "f"),
+    report("a", "2013-01-05", start = "2013-01-02", end = "2013-01-04",
+           ili = "f", ili.fever = "f")
+  ))
+  res <- contact_illness(contact("a", "2013-01-04"), symptoms)
+  expect_equal(res$bout_ili, "ILI")
+  expect_equal(res$bout_ili_fever, "no ILI")
+})
+
+test_that("a participant who was not observed has an unknown status", {
+  symptoms <- data.table::rbindlist(list(
+    report("a", "2013-01-03", start = "2013-01-02", end = "2013-01-03"),
+    report("b", "2013-01-10", ill = FALSE)
+  ))
+  res <- contact_illness(
+    contact(c("a", "a", "b", "b", "c"),
+            c("2013-01-03", "2013-01-20", "2013-01-10", "2013-01-20",
+              "2013-01-03")),
+    symptoms
+  )
+  data.table::setkey(res, global_id, contact.date)
+  expect_equal(res$current_symptoms,
+               c("symptoms", NA, "no symptoms", NA, NA))
+  expect_true(all(is.na(res$current_ili[c(2, 4, 5)])))
+  expect_true(all(is.na(res$bout_ili_fever[c(2, 4, 5)])))
+  expect_equal(res$current_ili[3], "no ILI")
+})
+
+test_that("reports without a usable interval give no bout", {
+  day <- as.Date("2013-01-07")
+  symptoms <- data.table::rbindlist(list(
+    report("a", day, start = day - 5, end = day - 4),
+    report("b", day, start = day - 5, option = "dont_know"),
+    report("c", day, start = NA, end = day),
+    report("d", day, start = day + 1, end = day + 2),
+    report("e", day, start = day - 5, option = "still_ill")
+  ))
+  res <- contact_illness(contact(letters[1:5], day), symptoms)
+  expect_equal(res$current_symptoms,
+               c("no symptoms", NA, NA, NA, "symptoms"))
+})
+
+test_that("bouts from separate reports merge when they overlap or touch", {
+  symptoms <- data.table::rbindlist(list(
+    report("a", "2013-01-03", start = "2013-01-01", end = "2013-01-03"),
+    report("a", "2013-01-08", start = "2013-01-04", end = "2013-01-06"),
+    report("a", "2013-01-20", start = "2013-01-15", end = "2013-01-16")
+  ))
+  res <- contact_illness(
+    contact("a", c("2013-01-02", "2013-01-05", "2013-01-10", "2013-01-16")),
+    symptoms
+  )
+  expect_equal(res$current_symptoms, c("symptoms", "symptoms", NA, "symptoms"))
+})
+
+test_that("same-day reports combine independently of row order", {
+  day <- as.Date("2013-01-07")
+  symptoms <- data.table::rbindlist(list(
+    report("a", day, start = day, option = "still_ill", ili = "t", ari = "t"),
+    report("a", day, start = day, option = "still_ill", ili = "f", ari = "f"),
+    report("b", day, start = day, option = "still_ill", ili = NA),
+    report("b", day, start = day, option = "still_ill", ili = "f"),
+    report("c", day, start = day, option = "still_ill")
+  ))
+  forward <- contact_illness(contact(letters[1:3], day), symptoms)
+  backward <- contact_illness(contact(letters[1:3], day),
+                              symptoms[nrow(symptoms):1])
   expect_equal(forward, backward)
-  expect_equal(forward$current_symptoms, rep("symptoms", 3))
   expect_equal(forward$current_ili, c("ILI", NA, "no ILI"))
-  expect_equal(forward$current_ili_self, c("no ILI", "ILI", "no ILI"))
-  expect_equal(forward$current_ari, c("ARI", NA, "no ARI"))
+  expect_equal(forward$current_ari, c("ARI", "no ARI", "no ARI"))
+})
+
+test_that("contact_illness does not match missing participant IDs or dates", {
+  contacts <- data.table::data.table(
+    global_id = c("a", NA, NA, "a"),
+    contact.date = as.Date(c(NA, "2013-01-01", NA, "2013-01-01"))
+  )
+  symptoms <- report(c("a", NA, NA, "a"),
+                     c(NA, "2013-01-01", NA, "2013-01-01"),
+                     start = "2013-01-01", option = "still_ill",
+                     ili = "t", ari = "t")
+  res <- contact_illness(contacts, symptoms)
+  matched <- !is.na(res$global_id) & !is.na(res$contact.date)
+  expect_equal(nrow(res), nrow(contacts))
+  expect_true(all(is.na(res$current_symptoms[!matched])))
+  expect_equal(res$current_symptoms[matched], "symptoms")
+  expect_equal(res$current_ili[matched], "ILI")
 })
 
 test_that("extraction preserves same-day symptom reports for contact illness", {
@@ -47,85 +160,16 @@ test_that("extraction preserves same-day symptom reports for contact illness", {
     clean = c("unsuccessful.join", "remove.bad.symptom.dates")
   )
   expect_equal(nrow(symptoms), 2)
-  res <- contact_illness(data.table::data.table(global_id = "a",
-                                                contact.date = day), symptoms)
+  res <- contact_illness(contact("a", day), symptoms)
   expect_equal(res$current_symptoms, "symptoms")
-  expect_equal(res$current_ili, "ILI")
   expect_equal(res$current_ili_self, "ILI")
   expect_equal(res$current_ari, "ARI")
-})
-
-test_that("contact_illness takes status from the symptom report of the contact day", {
-  contacts <- data.table::data.table(
-    global_id = c("a", "a", "b", "c"),
-    date = as.Date("2013-01-02") + c(0, 1, 0, 0)
-  )
-  contacts[, contact.date := date - 1]
-  symptoms <- data.table::data.table(
-    global_id = c("a", "a", "b"),
-    date = as.Date("2013-01-01") + c(0, 5, 0),
-    symptoms.start.date = as.Date("2013-01-01"),
-    symptoms.end.date = as.Date(NA), symptoms.end.option = "still_ill",
-    no.symptoms = factor(c("f", "t", "t"), levels = c("f", "t")),
-    ili = factor(c("t", "f", "f"), levels = c("f", "t")),
-    ili.self = factor(c("t", "f", "f"), levels = c("f", "t")),
-    resp.symptoms = factor(c("t", "f", "f"), levels = c("f", "t"))
-  )
-  res <- contact_illness(contacts, symptoms)
-  expect_equal(nrow(res), 4)
-  data.table::setkey(res, global_id, contact.date)
-  expect_equal(res$current_symptoms, c("symptoms", NA, "no symptoms", NA))
-  expect_equal(res$current_ili, c("ILI", NA, "no ILI", NA))
-  expect_equal(res$current_ari, c("ARI", NA, "no ARI", NA))
-})
-
-test_that("contact_illness does not match missing participant IDs or dates", {
-  contacts <- data.table::data.table(
-    global_id = c("a", NA, NA, "a"),
-    contact.date = as.Date(c(NA, "2013-01-01", NA, "2013-01-01"))
-  )
-  symptoms <- data.table::data.table(
-    global_id = c("a", NA, NA, "a"),
-    date = as.Date(c(NA, "2013-01-01", NA, "2013-01-01")),
-    no.symptoms = "f", ili = "t", ili.self = "t", resp.symptoms = "t",
-    symptoms.start.date = as.Date("2013-01-01"),
-    symptoms.end.date = as.Date(NA), symptoms.end.option = "still_ill"
-  )
-  res <- contact_illness(contacts, symptoms)
-  matched <- !is.na(res$global_id) & !is.na(res$contact.date)
-  expect_equal(nrow(res), nrow(contacts))
-  expect_true(all(is.na(res$current_symptoms[!matched])))
-  expect_true(all(is.na(res$current_ili[!matched])))
-  expect_true(all(is.na(res$current_ari[!matched])))
-  expect_equal(res$current_symptoms[matched], "symptoms")
-  expect_equal(res$current_ili[matched], "ILI")
-  expect_equal(res$current_ari[matched], "ARI")
-})
-
-test_that("contact illness uses illness dates and distinguishes unknown dates", {
-  day <- as.Date("2013-01-07")
-  contacts <- data.table::data.table(global_id = letters[1:7], contact.date = day)
-  symptoms <- data.table::data.table(
-    global_id = letters[1:7], date = day, no.symptoms = "f",
-    ili = "t", ili.self = "t", resp.symptoms = "t",
-    symptoms.start.date = day + c(-5, 0, -5, -5, NA, -5, 1),
-    symptoms.end.date = day + c(-4, 0, NA, NA, 0, NA, 2),
-    symptoms.end.option = c("date", "date", "still_ill", "dont_know",
-                            "date", "date", "date")
-  )
-  res <- contact_illness(contacts, symptoms)
-  expect_equal(res$current_symptoms, c("no symptoms", "symptoms", "symptoms",
-                                       NA, NA, NA, "no symptoms"))
-  expect_equal(res$current_ili, c("no ILI", "ILI", "ILI", NA, NA, NA, "no ILI"))
-  expect_equal(res$current_ari, c("no ARI", "ARI", "ARI", NA, NA, NA, "no ARI"))
 })
 
 test_that("contact_illness uses symptom reports that cleaning removes", {
   contacts <- extract_data(
     simulated_data, years = 2013:2014, surveys = c("background", "contact")
   )
-  ## simulated symptom reports fall on the contact report dates, so use
-  ## those dates for the lookup
   contacts[, contact.date := date]
   symptoms <- extract_data(
     simulated_data, years = 2013:2014, surveys = "symptom",
@@ -156,17 +200,12 @@ test_that("contact analysis cleans invalid dates without dropping reports", {
     expect_equal(eval(assignment[[3]][["clean"]]), clean)
   }
   day <- as.Date("2013-01-07")
-  reports <- data.table::data.table(
-    global_id = "a", date = day, no.symptoms = "f", ili = "t", ili.self = "t",
-    resp.symptoms = "t", symptoms.start.date = day - 1,
-    symptoms.end.date = day + 2, symptoms.end.option = "date"
-  )
+  reports <- report("a", day, start = day - 1, end = day + 2, ili = "t")
   symptoms <- extract_data(list(`2013` = list(symptom = reports)),
                            surveys = "symptom", clean = clean)
   expect_equal(nrow(symptoms), 1)
-  res <- contact_illness(data.table::data.table(global_id = "a",
-                                                contact.date = day), symptoms)
+  res <- contact_illness(contact("a", day), symptoms)
+  ## cleaning clears the invalid end date, leaving no usable interval, so the
+  ## contact day has an unknown status
   expect_true(is.na(res$current_symptoms))
-  expect_true(is.na(res$current_ili))
-  expect_true(is.na(res$current_ari))
 })
