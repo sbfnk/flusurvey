@@ -35,8 +35,8 @@ onset_status <- function(dt) {
 ##' question). None of the last three establishes sudden onset.
 ##' \code{ili.sudden.unknown} sets how the last three are interpreted in the
 ##' derived columns \code{suddenly}, \code{ili} and \code{ili.fever}. It leaves
-##' \code{onset} and the answers in the data unchanged. A report that already fails
-##' another ILI criterion is not ILI whatever its onset.
+##' \code{onset} and the answers in the data unchanged. A report that already
+##' fails another ILI criterion is not ILI whatever its onset.
 ##'
 ##' @param symptoms a data table of symptom reports
 ##' @param ili.sudden.unknown how to interpret reports where onset is unknown
@@ -50,7 +50,8 @@ onset_status <- function(dt) {
 aggregate_symptoms <- function(symptoms, ili.sudden.unknown = NA) {
   dt <- copy(data.table(symptoms))
   ## calculate ili
-  dt[, onset := onset_status(dt)]
+  onset <- onset_status(dt)
+  set(dt, j = "onset", value = onset)
   dt[, suddenly := fcase(
     onset == "sudden", "t",
     onset == "not.sudden", "f",
