@@ -2,7 +2,8 @@
 ##'
 ##' For each bout, use the latest reported start and end dates. If the start
 ##' date is unknown, leave it missing; if the end date is unknown, use the last
-##' report date. If the end date precedes the start date, set both dates to missing.
+##' report date. If the end date precedes the start date, set both dates to
+##' missing.
 ##'
 ##' @param x the data to extract bouts from
 ##' @param symptomatic.only whether to only include symptomatic periods
