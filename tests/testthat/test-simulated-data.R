@@ -6,8 +6,19 @@ test_that("simulated data has the questionnaires of both seasons", {
   }
 })
 
+test_that("the contact warning expectation leaves other warnings visible", {
+  expect_failure(expect_contact_warning(NULL))
+  expect_warning(
+    expect_contact_warning({
+      warning("The contact and symptom surveys are joined by report date")
+      warning("Another warning")
+    }),
+    "Another warning"
+  )
+})
+
 test_that("extract_data returns a non-empty table with default cleaning", {
-  dt <- extract_data(simulated_data, years = 2013:2014)
+  dt <- expect_contact_warning(extract_data(simulated_data, years = 2013:2014))
   expect_s3_class(dt, "data.table")
   expect_gt(nrow(dt), 0)
   expect_setequal(unique(dt$season), c("2012/13", "2013/14"))
@@ -17,7 +28,7 @@ test_that("extract_data returns a non-empty table with default cleaning", {
 })
 
 test_that("extract_data accepts the default years = 'all'", {
-  all_years <- extract_data(simulated_data)
+  all_years <- expect_contact_warning(extract_data(simulated_data))
   expect_setequal(unique(all_years$season), c("2012/13", "2013/14"))
   expect_equal(
     extract_data(simulated_data, years = "all", surveys = "background"),
@@ -26,7 +37,7 @@ test_that("extract_data accepts the default years = 'all'", {
 })
 
 test_that("get_incidence returns incidence for both seasons", {
-  dt <- extract_data(simulated_data, years = 2013:2014)
+  dt <- expect_contact_warning(extract_data(simulated_data, years = 2013:2014))
   incidence <- get_incidence(dt, incidence.columns = "ili",
                              aggregation = "week")
   expect_gt(nrow(incidence), 0)
@@ -66,7 +77,7 @@ test_that("get_incidence keeps periods without new cases", {
 })
 
 test_that("bouts_of_illness returns bouts of illness", {
-  dt <- extract_data(simulated_data, years = 2013:2014)
+  dt <- expect_contact_warning(extract_data(simulated_data, years = 2013:2014))
   invisible(capture.output(res <- bouts_of_illness(dt)))
   expect_gt(nrow(res), 0)
   expect_false(anyNA(res$symptoms.start.date))
@@ -97,11 +108,13 @@ test_that("merge_data gives the same table whatever the order", {
   reports <- simulated_data[["2013"]]
   ## contact ranges are sampled; set the seed before each call
   set.seed(1)
-  shuffled <- merge_data(reports[c("symptom", "contact", "background")],
-                         clean = NULL)
+  shuffled <- expect_contact_warning(
+    merge_data(reports[c("symptom", "contact", "background")], clean = NULL)
+  )
   set.seed(1)
-  ordered <- merge_data(reports[c("background", "contact", "symptom")],
-                        clean = NULL)
+  ordered <- expect_contact_warning(
+    merge_data(reports[c("background", "contact", "symptom")], clean = NULL)
+  )
   expect_equal(shuffled, ordered)
 })
 
@@ -121,9 +134,13 @@ test_that("extract_data drops surveys it cannot merge when extracting all", {
   data[["2013"]]$vaccine <- data[["2013"]]$background
   ## contact ranges are sampled; set the seed before each call
   set.seed(1)
-  expect_warning(dt <- extract_data(data, years = 2013), "'vaccine'")
+  expect_warning(
+    dt <- expect_contact_warning(extract_data(data, years = 2013)), "'vaccine'"
+  )
   set.seed(1)
-  expect_equal(dt, extract_data(simulated_data["2013"], years = 2013))
+  expect_equal(dt, expect_contact_warning(
+    extract_data(simulated_data["2013"], years = 2013)
+  ))
 })
 
 test_that("health scores outside 0 to 100 are removed by default", {
@@ -131,21 +148,24 @@ test_that("health scores outside 0 to 100 are removed by default", {
     season$symptom$health.score
   }))
   expect_true(any(raw < 0 | raw > 100, na.rm = TRUE))
-  dt <- extract_data(simulated_data, years = 2013:2014)
+  dt <- expect_contact_warning(extract_data(simulated_data, years = 2013:2014))
   expect_true(all(dt$health.score >= 0 & dt$health.score <= 100, na.rm = TRUE))
 })
 
 test_that("remove.bad.health.scores is accepted by name", {
-  dt <- extract_data(simulated_data, years = 2013:2014,
-                     clean = "remove.bad.health.scores")
+  dt <- expect_contact_warning(
+    extract_data(simulated_data, years = 2013:2014,
+                 clean = "remove.bad.health.scores")
+  )
   expect_true(all(dt$health.score >= 0 & dt$health.score <= 100, na.rm = TRUE))
-  dt <- extract_data(simulated_data, years = 2013:2014,
-                     clean = "remove.first")
+  dt <- expect_contact_warning(
+    extract_data(simulated_data, years = 2013:2014, clean = "remove.first")
+  )
   expect_true(any(dt$health.score < 0 | dt$health.score > 100, na.rm = TRUE))
 })
 
 test_that("merge_data dates contact reports by the day they describe", {
-  dt <- merge_data(simulated_data[["2013"]])
+  dt <- expect_contact_warning(merge_data(simulated_data[["2013"]]))
   expect_true(all(c("contact.date", "contact.day.of.week") %in% colnames(dt)))
   has_contact <- !is.na(dt$contact.date)
   expect_true(any(has_contact))
@@ -158,8 +178,8 @@ test_that("merge_data dates contact reports by the day they describe", {
     as.integer(format(dt$contact.date[has_contact], "%u"))
   )
   ## a contact report filed on Monday describes a Sunday
-  monday <- merge_data(
-    simulated_data[["2013"]], clean = NULL
+  monday <- expect_contact_warning(
+    merge_data(simulated_data[["2013"]], clean = NULL)
   )[day.of.week == 1 & !is.na(contact.date) & contact.date == date - 1]
   expect_gt(nrow(monday), 0)
   expect_true(all(monday$contact.day.of.week == 7))
