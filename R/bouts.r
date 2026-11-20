@@ -1,7 +1,7 @@
 ##' Extract bouts of illness from a flusurvey data table
 ##'
 ##' Where no report of a bout gives a start date, \code{symptoms.start.date} is
-##' is \code{NA}.
+##' \code{NA}.
 ##'
 ##' @param x the data to extract bouts from
 ##' @param symptomatic.only whether to only include symptomatic periods

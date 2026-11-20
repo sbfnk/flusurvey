@@ -18,7 +18,7 @@ a data table of bouts of illness
 }
 \description{
 Where no report of a bout gives a start date, \code{symptoms.start.date} is
-left missing rather than set to a report date.
+\code{NA}.
 }
 \examples{
 dt <- extract_data(simulated_data, years = 2013:2014)
