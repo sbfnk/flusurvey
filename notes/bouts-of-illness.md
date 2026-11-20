@@ -78,4 +78,4 @@ With `symptomatic.only = TRUE` (the default) only the bout rows are returned. Wi
 - The start date of a bout comes from its last report without a check against the other reports (#20).
 - A bout with no reported start date, but with a reported end date before its first report, gets a start date after its end date (#76, #77).
 - With `symptomatic.only = FALSE` the reports outside any bout share their "t"/"f" values. A dropped symptomatic report makes the symptom-free reports of the participant show its symptoms, and the dropped report itself is marked as symptom-free (#87).
-- `only.symptoms` drops participants who are ill at every report and participants with any missing `no.symptoms` answer, before the bout rules see them (#88).
+- `only.symptoms` also drops participants with any missing `no.symptoms` answer (#88).
