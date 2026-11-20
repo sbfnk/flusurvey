@@ -22,12 +22,12 @@
 ##' - 'remove.first', whether to remove everyone's first report,
 ##' - 'remove.bad.symptom.dates', whether to remove bad symptom dates: symptom
 ##' end of symptoms before start of symptoms, symptoms reported to have started
-##' or ended after date of report. Such dates are set to missing. Start dates
-##' are otherwise kept as reported, and two logical columns flag them:
+##' or ended after date of report. Such dates are set to missing. Other start
+##' dates are kept as reported, and two logical columns flag them:
 ##' \code{illness.ongoing.at.entry} (start before the participant's first
 ##' report in the season) and \code{long.running.illness} (start more than
 ##' \code{max.symptom.days} days before the report that gives it).
-##' \code{\link{bouts_of_illness}} carries both flags to the bouts, and
+##' \code{\link{bouts_of_illness}} copies both flags to the bouts.
 ##' \code{\link{get_incidence}} does not count bouts ongoing at entry as new
 ##' cases.
 ##' - 'remove.bad.health.scores', whether to remove health scores <0 or >100
@@ -285,9 +285,9 @@ remove_bad_symptom_dates <- function(dt, max.symptom.days) {
       symptoms.start.date := as.Date(NA_character_)
     ]
   }
-  ## keep the reported start date, but flag illness that began before the
+  ## keep the reported start date and flag illness that began before the
   ## first report (ongoing at entry) or too long before the report that
-  ## gives it, so that these can be handled explicitly downstream
+  ## gives it, so that later steps can handle these cases explicitly
   if ("symptoms.start.date" %in% colnames(dt)) {
     dt[, illness.ongoing.at.entry :=
       !is.na(symptoms.start.date) & symptoms.start.date < min.date]
