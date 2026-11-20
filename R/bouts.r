@@ -140,6 +140,12 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
     symptoms.end.date := last(date),
     by = list(participant_id, season, bout)
   ]
+  dt[
+    !is.na(bout) & is.na(last.not.na.symptoms.start.date) &
+      symptoms.end.date < symptoms.start.date,
+    symptoms.end.date := last(date),
+    by = list(participant_id, season, bout)
+  ]
 
   dt[, last.symptoms.start.date := NULL]
   dt[, last.not.na.symptoms.start.date := NULL]
