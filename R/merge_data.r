@@ -40,8 +40,10 @@
 ##' @param ranges what to do if a number of contacts is given as a range: sample
 ##' from the range ("sample"), or apply a function, given as character string
 ##' (e.g., "mean")
-##' @param age.breaks a vector of limits of age groups (first age group starts
-##' at 0 years of age)
+##' @param age.breaks a vector of the highest age (in whole years) in each age
+##' group except the last (first age group starts at 0 years of age). The last
+##' group is open-ended. The default gives the groups 0-18, 19-44, 45-64 and
+##' 65+, matching the age bands of the contact questions.
 ##' @param max.symptom.days maximum number of days before a report that
 ##' symptoms can have started (ignored if 'remove.bad.symptom.dates' is
 ##' not given as a cleaning option); use \code{Inf} for no limit
@@ -76,7 +78,7 @@ merge_data <- function(
   ),
   min.reports = 3,
   ranges = "sample",
-  age.breaks = c(18, 45, 65),
+  age.breaks = c(18, 44, 64),
   max.symptom.days = 28
 ) {
   survey_order <- c("background", "contact", "symptom")
@@ -299,6 +301,9 @@ remove_bad_symptom_dates <- function(dt, max.symptom.days) {
 }
 
 remove_bad_health_scores <- function(dt) {
+  if (!"health.score" %in% colnames(dt)) {
+    return(dt)
+  }
   dt[
     health.score < 0 | health.score > 100,
     health.score := NA_real_
@@ -342,13 +347,19 @@ add_age <- function(dt, age.breaks) {
   dt[age < 0, birthdate := NA]
   dt[age < 0, age := NA]
 
+  ## ages are whole years. Each group includes its upper limit and the next
+  ## group starts one year later, as in the contact age bands
+  age.breaks <- sort(age.breaks, na.last = TRUE)
+  agegroup_labels <- paste0(
+    c(0, age.breaks + 1), "-", c(age.breaks, "")
+  )
+  agegroup_labels[length(agegroup_labels)] <-
+    paste0(if (length(age.breaks)) max(age.breaks) + 1 else 0, "+")
   dt[, agegroup := cut(
     age,
-    breaks = c(0, age.breaks, max(age, na.rm = TRUE)),
-    include.lowest = TRUE, right = TRUE
+    breaks = c(-Inf, age.breaks, Inf),
+    labels = agegroup_labels
   )]
-  dt[grep("^\\(65,", agegroup), agegroup := "(65,)"]
-  dt[, agegroup := factor(agegroup)]
   dt
 }
 

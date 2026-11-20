@@ -17,9 +17,9 @@ season_with_start <- function(offset, from = c("first", "report"),
 }
 
 start_after_cleaning <- function(x, ...) {
-  cleaned <- merge_data(
+  cleaned <- expect_contact_warning(merge_data(
     x$season, clean = "remove.bad.symptom.dates", ...
-  )
+  ))
   cleaned[global_id == x$id & date == x$date]$symptoms.start.date
 }
 
