@@ -289,11 +289,15 @@ remove_bad_symptom_dates <- function(dt, max.symptom.days) {
   ## first report (ongoing at entry) or too long before the report that
   ## gives it, so that later steps can handle these cases explicitly
   if ("symptoms.start.date" %in% colnames(dt)) {
-    dt[, illness.ongoing.at.entry :=
-      !is.na(symptoms.start.date) & symptoms.start.date < min.date]
-    dt[, long.running.illness :=
-      !is.na(symptoms.start.date) &
-        as.numeric(date - symptoms.start.date) > max.symptom.days]
+    dt[,
+      illness.ongoing.at.entry :=
+        !is.na(symptoms.start.date) & symptoms.start.date < min.date
+    ]
+    dt[,
+      long.running.illness :=
+        !is.na(symptoms.start.date) &
+        as.numeric(date - symptoms.start.date) > max.symptom.days
+    ]
   }
   ## remove end date after reporting date
   if ("symptoms.end.date" %in% colnames(dt)) {

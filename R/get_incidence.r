@@ -31,11 +31,7 @@ get_incidence <- function(
   denominator <- match.arg(denominator)
 
   dt <- copy(data)
-  bouts <- bouts_of_illness(data)
-  ## illness that began before the first report is not a new case in the season
-  if ("illness.ongoing.at.entry" %in% colnames(bouts)) {
-    bouts <- bouts[!illness.ongoing.at.entry %in% TRUE]
-  }
+  bouts <- drop_ongoing_at_entry(bouts_of_illness(data))
   ## required date columns
   columns <- c("symptoms.start.date", "date", "min.date", "max.date")
   names(columns) <- columns
@@ -45,30 +41,8 @@ get_incidence <- function(
     columns <- sub("date$", paste(aggregation, "date", sep = "."), columns)
 
     for (col_id in seq_along(columns)) {
-      date_col <- columns[col_id]
-      if (aggregation == "year") {
-        dt[, paste(date_col) := as.Date(
-          paste(substr(season, 1, 4), 11, 1, sep = "-")
-        )]
-        bouts[, paste(date_col) := as.Date(
-          paste(substr(season, 1, 4), 11, 1, sep = "-")
-        )]
-      } else {
-        dt[
-          ,
-          paste(date_col) := floor_date(
-            get(names(date_col)),
-            unit = aggregation
-          )
-        ]
-        bouts[
-          ,
-          paste(date_col) := floor_date(
-            get(names(date_col)),
-            unit = aggregation
-          )
-        ]
-      }
+      add_period_date(dt, columns[col_id], aggregation)
+      add_period_date(bouts, columns[col_id], aggregation)
     }
   }
 
@@ -164,4 +138,30 @@ get_incidence <- function(
   setkeyv(incidence, aggregation)
 
   incidence
+}
+
+## Adds, by reference, a column holding the aggregation period of a date column.
+add_period_date <- function(dt, date_col, aggregation) {
+  if (aggregation == "year") {
+    dt[, paste(date_col) := as.Date(
+      paste(substr(season, 1, 4), 11, 1, sep = "-")
+    )]
+  } else {
+    dt[
+      ,
+      paste(date_col) := floor_date(
+        get(names(date_col)),
+        unit = aggregation
+      )
+    ]
+  }
+  invisible(dt)
+}
+
+## Illness that began before the first report is not a new case in the season.
+drop_ongoing_at_entry <- function(bouts) {
+  if (!"illness.ongoing.at.entry" %in% colnames(bouts)) {
+    return(bouts)
+  }
+  bouts[is.na(illness.ongoing.at.entry) | !illness.ongoing.at.entry]
 }
