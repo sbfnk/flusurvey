@@ -191,6 +191,13 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
         ]
       }
     }
+    for (flag in intersect(
+      c("illness.ongoing.at.entry", "long.running.illness"), colnames(dt)
+    )) {
+      dt[!is.na(bout), paste(flag) := any(get(flag)),
+        by = list(participant_id, season, bout)
+      ]
+    }
     if ("health.score" %in% colnames(dt)) {
       dt[!is.na(bout),
         min.health.score := ifelse(

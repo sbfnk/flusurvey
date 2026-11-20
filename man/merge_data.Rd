@@ -29,7 +29,7 @@ each symptom report with the latest earlier contact report, however long
 before it was filed, and a contact report describes one day whereas a
 symptom report describes the week before it. With
 'unsuccessful.join' the symptom reports without an earlier contact report
-are dropped, which shortens episodes of illness. To link the two, extract
+are dropped, shortening episodes of illness. To link the two, extract
 the symptom and contact surveys separately, get the episodes with
 \code{\link{bouts_of_illness}} and flag the contact reports made during an
 episode with \code{\link{flag_ill_contacts}}.}
@@ -38,10 +38,15 @@ episode with \code{\link{flag_ill_contacts}}.}
 cleans to perform (by default all):
 - 'remove.first', whether to remove everyone's first report,
 - 'remove.bad.symptom.dates', whether to remove bad symptom dates: symptom
-start before the date of the participant's first report in the season or
-more than \code{max.symptom.days} days before the report that gives it, end
-of symptoms before start of symptoms, symptoms reported to have started or
-ended after date of report. Bad start dates are set to missing.
+end of symptoms before start of symptoms, symptoms reported to have started
+or ended after date of report. Such dates are set to missing. Start dates
+are otherwise kept as reported, and two logical columns flag them:
+\code{illness.ongoing.at.entry} (start before the participant's first
+report in the season) and \code{long.running.illness} (start more than
+\code{max.symptom.days} days before the report that gives it).
+\code{\link{bouts_of_illness}} carries both flags to the bouts, and
+\code{\link{get_incidence}} does not count bouts ongoing at entry as new
+cases.
 - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 - 'limit.season', whether to limit a flu season to November -> April
 - 'remove.postcodes', whether to remove postcodes
@@ -65,9 +70,10 @@ group except the last (first age group starts at 0 years of age). The last
 group is open-ended. The default gives the groups 0-18, 19-44, 45-64 and
 65+, matching the age bands of the contact questions.}
 
-\item{max.symptom.days}{maximum number of days a symptom start date can be
-before the report that gives it (ignored if 'remove.bad.symptom.dates' is
-not given as a cleaning option); use \code{Inf} for no limit}
+\item{max.symptom.days}{maximum number of days before a report that
+symptoms can have started before illness is flagged as long-running
+(ignored if 'remove.bad.symptom.dates' is not given as a cleaning option);
+use \code{Inf} for no limit}
 }
 \value{
 a rolling-joined data table. \code{day.of.week} (1 for Monday to 7

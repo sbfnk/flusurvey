@@ -32,6 +32,10 @@ get_incidence <- function(
 
   dt <- copy(data)
   bouts <- bouts_of_illness(data)
+  ## illness that began before the first report is not a new case in the season
+  if ("illness.ongoing.at.entry" %in% colnames(bouts)) {
+    bouts <- bouts[!illness.ongoing.at.entry %in% TRUE]
+  }
   ## required date columns
   columns <- c("symptoms.start.date", "date", "min.date", "max.date")
   names(columns) <- columns

@@ -7,11 +7,11 @@ test_that("merge_data with default cleaning gives the pinned table", {
   expect_identical(
     fingerprint(dt),
     list(
-      dim = c(2898L, 243L), key = c("date", "global_id"),
+      dim = c(2898L, 245L), key = c("date", "global_id"),
       classes = c(character = 3L, Date = 8L, factor = 163L, integer = 64L,
-                  numeric = 5L),
-      missing = 168575, numeric_total = 7578464, factor_levels = 471L,
-      factor_codes = 456641, names_checksum = 928461132
+                  logical = 2L, numeric = 5L),
+      missing = 168572, numeric_total = 7578464, factor_levels = 471L,
+      factor_codes = 456641, names_checksum = 948544098
     )
   )
 })
@@ -57,11 +57,11 @@ test_that("extract_data gives the pinned table for both seasons", {
   expect_identical(
     fingerprint(dt),
     list(
-      dim = c(5734L, 253L), key = "global_id",
+      dim = c(5734L, 255L), key = "global_id",
       classes = c(character = 7L, Date = 8L, factor = 166L, integer = 67L,
-                  numeric = 5L),
-      missing = 381941, numeric_total = 2590541, factor_levels = 477L,
-      factor_codes = 886668, names_checksum = 997430436
+                  logical = 2L, numeric = 5L),
+      missing = 381935, numeric_total = 2590541, factor_levels = 477L,
+      factor_codes = 886668, names_checksum = 1018222584
     )
   )
 })
@@ -74,11 +74,11 @@ test_that("extract_data without joining returns one table per season", {
   expect_identical(
     fingerprint(res[["2013"]]),
     list(
-      dim = c(2932L, 82L), key = c("date", "global_id"),
+      dim = c(2932L, 84L), key = c("date", "global_id"),
       classes = c(character = 1L, Date = 6L, factor = 69L, integer = 5L,
-                  numeric = 1L),
-      missing = 122084, numeric_total = 5258973, factor_levels = 209L,
-      factor_codes = 101150, names_checksum = 113647443
+                  logical = 2L, numeric = 1L),
+      missing = 122081, numeric_total = 5258973, factor_levels = 209L,
+      factor_codes = 101150, names_checksum = 120662331
     )
   )
 })
@@ -182,8 +182,8 @@ test_that("bouts_of_illness handles missing values in no.symptoms", {
   set.seed(1)
   dt <- expect_contact_warning(extract_data(simulated_data, years = 2013:2014))
   invisible(capture.output(complete <- bouts_of_illness(data.table::copy(dt))))
-  expect_identical(dim(complete), c(217L, 261L))
+  expect_identical(dim(complete), c(217L, 263L))
   dt[sample(.N, 300), no.symptoms := NA]
   invisible(capture.output(res <- bouts_of_illness(dt)))
-  expect_identical(dim(res), c(205L, 261L))
+  expect_identical(dim(res), c(205L, 263L))
 })

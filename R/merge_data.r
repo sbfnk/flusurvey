@@ -21,10 +21,15 @@
 ##' cleans to perform (by default all):
 ##' - 'remove.first', whether to remove everyone's first report,
 ##' - 'remove.bad.symptom.dates', whether to remove bad symptom dates: symptom
-##' start before the date of the participant's first report in the season or
-##' more than \code{max.symptom.days} days before the report that gives it, end
-##' of symptoms before start of symptoms, symptoms reported to have started or
-##' ended after date of report. Bad start dates are set to missing.
+##' end of symptoms before start of symptoms, symptoms reported to have started
+##' or ended after date of report. Such dates are set to missing. Start dates
+##' are otherwise kept as reported, and two logical columns flag them:
+##' \code{illness.ongoing.at.entry} (start before the participant's first
+##' report in the season) and \code{long.running.illness} (start more than
+##' \code{max.symptom.days} days before the report that gives it).
+##' \code{\link{bouts_of_illness}} carries both flags to the bouts, and
+##' \code{\link{get_incidence}} does not count bouts ongoing at entry as new
+##' cases.
 ##' - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 ##' - 'limit.season', whether to limit a flu season to November -> April
 ##' - 'remove.postcodes', whether to remove postcodes
@@ -45,8 +50,9 @@
 ##' group is open-ended. The default gives the groups 0-18, 19-44, 45-64 and
 ##' 65+, matching the age bands of the contact questions.
 ##' @param max.symptom.days maximum number of days before a report that
-##' symptoms can have started (ignored if 'remove.bad.symptom.dates' is
-##' not given as a cleaning option); use \code{Inf} for no limit
+##' symptoms can have started before illness is flagged as long-running
+##' (ignored if 'remove.bad.symptom.dates' is not given as a cleaning option);
+##' use \code{Inf} for no limit
 ##' @return a rolling-joined data table. \code{day.of.week} (1 for Monday to 7
 ##' for Sunday) is that of the report date. If the contact survey is included,
 ##' \code{contact.date} is the day the contacts describe (the day before the
@@ -279,16 +285,15 @@ remove_bad_symptom_dates <- function(dt, max.symptom.days) {
       symptoms.start.date := as.Date(NA_character_)
     ]
   }
-  ## remove start dates before the first report or too long before the
-  ## report that gives them, as they would extend an episode of illness
-  ## over all intervening reports
+  ## keep the reported start date, but flag illness that began before the
+  ## first report (ongoing at entry) or too long before the report that
+  ## gives it, so that these can be handled explicitly downstream
   if ("symptoms.start.date" %in% colnames(dt)) {
-    dt[
+    dt[, illness.ongoing.at.entry :=
+      !is.na(symptoms.start.date) & symptoms.start.date < min.date]
+    dt[, long.running.illness :=
       !is.na(symptoms.start.date) &
-        (symptoms.start.date < min.date |
-           as.numeric(date - symptoms.start.date) > max.symptom.days),
-      symptoms.start.date := as.Date(NA_character_)
-    ]
+        as.numeric(date - symptoms.start.date) > max.symptom.days]
   }
   ## remove end date after reporting date
   if ("symptoms.end.date" %in% colnames(dt)) {
