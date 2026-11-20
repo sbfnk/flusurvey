@@ -54,5 +54,14 @@ jobs:
           needs: check
 
       - uses: r-lib/actions/check-r-package@v2
+        env:
+          SNAPSHOT_TABLES: ${{ runner.temp }}/snapshot-tables
         with:
           upload-snapshots: true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: snapshot-tables-${{ matrix.config.os }}-${{ matrix.config.r }}
+          path: ${{ runner.temp }}/snapshot-tables/*.rds
+          if-no-files-found: ignore
