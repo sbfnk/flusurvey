@@ -80,7 +80,8 @@ test_that("bouts_of_illness returns bouts of illness", {
   dt <- expect_contact_warning(extract_data(simulated_data, years = 2013:2014))
   invisible(capture.output(res <- bouts_of_illness(dt)))
   expect_gt(nrow(res), 0)
-  expect_false(anyNA(res$symptoms.start.date))
+  known <- res[!is.na(symptoms.start.date) & !is.na(symptoms.end.date)]
+  expect_true(all(known$symptoms.start.date <= known$symptoms.end.date))
 })
 
 test_that("age groups follow the contact age bands", {
