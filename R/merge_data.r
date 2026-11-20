@@ -114,8 +114,6 @@ merge_data <- function(
     dt <- copy(data.table(data[[name]]))
     dt <- dt[!duplicated(dt[, list(global_id, date)], fromLast = TRUE)]
 
-    ## a background survey that is joined onto others is not limited: trimming
-    ## it to its own busiest season drops the reports of those it describes
     if ("limit.season" %in% clean &&
           (name != "background" || length(data) == 1)) {
       dt <- limit_to_season(dt)
