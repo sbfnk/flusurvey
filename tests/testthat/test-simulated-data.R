@@ -85,6 +85,12 @@ test_that("age groups follow the contact age bands", {
     as.character(dt$agegroup),
     c("0-18", "0-18", "19-44", "19-44", "45-64", "45-64", "65+", "65+")
   )
+  unsorted <- merge_data(
+    list(background = background), clean = "n.reports",
+    age.breaks = c(64, 18, 44)
+  )
+  unsorted <- unsorted[order(age)]
+  expect_identical(unsorted$agegroup, dt$agegroup)
 })
 
 

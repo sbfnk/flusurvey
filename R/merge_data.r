@@ -330,6 +330,7 @@ add_age <- function(dt, age.breaks) {
 
   ## ages are whole years. Each group includes its upper limit and the next
   ## group starts one year later, as in the contact age bands
+  age.breaks <- sort(age.breaks, na.last = TRUE)
   agegroup_labels <- paste0(
     c(0, age.breaks + 1), "-", c(age.breaks, "")
   )
