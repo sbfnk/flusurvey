@@ -20,9 +20,8 @@ a data table of bouts of illness
 Extract bouts of illness from a flusurvey data table
 }
 \details{
-The latest reported start and end dates are used for each bout. An unknown
-start remains missing; an unknown end is set to the last report date. If
-the resulting end precedes the start, both dates are set to missing.
+Each bout uses its latest reported start and end dates. Unknown starts stay
+missing; unknown ends use the last report date. Inverted bounds are missing.
 }
 \examples{
 dt <- extract_data(simulated_data, years = 2013:2014)

@@ -1,8 +1,7 @@
 ##' Extract bouts of illness from a flusurvey data table
 ##'
-##' The latest reported start and end dates are used for each bout. An unknown
-##' start remains missing; an unknown end is set to the last report date. If
-##' the resulting end precedes the start, both dates are set to missing.
+##' Each bout uses its latest reported start and end dates. Unknown starts stay
+##' missing; unknown ends use the last report date. Inverted bounds are missing.
 ##'
 ##' @param x the data to extract bouts from
 ##' @param symptomatic.only whether to only include symptomatic periods
