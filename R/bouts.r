@@ -1,5 +1,9 @@
 ##' Extract bouts of illness from a flusurvey data table
 ##'
+##' The latest reported start and end dates are used for each bout. An unknown
+##' start remains missing; an unknown end is set to the last report date. If
+##' the resulting end precedes the start, both dates are set to missing.
+##'
 ##' @param x the data to extract bouts from
 ##' @param symptomatic.only whether to only include symptomatic periods
 ##' @param as.data.frame currently has no effect
@@ -15,7 +19,7 @@
 ##' @importFrom stats median
 ##' @export
 bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
-  dt <- data.table(x)
+  dt <- copy(data.table(x))
 
   if ("health.score" %in% colnames(dt)) {
     baselines <-
@@ -108,9 +112,6 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
     last.not.na.symptoms.start.date := last_not_na(symptoms.start.date),
     by = list(participant_id, season, bout)
   ]
-  dt[!is.na(bout), last.symptoms.end.date := last(symptoms.end.date),
-    by = list(participant_id, season, bout)
-  ]
   dt[!is.na(bout),
     last.not.na.symptoms.end.date := last_not_na(symptoms.end.date),
     by = list(participant_id, season, bout)
@@ -126,13 +127,8 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
     symptoms.start.date := last.not.na.symptoms.start.date,
     by = list(participant_id, season, bout)
   ]
-  dt[!is.na(bout) & is.na(last.not.na.symptoms.start.date),
-    symptoms.start.date := date[1],
-    by = list(participant_id, season, bout)
-  ]
   dt[
-    !is.na(bout) & is.na(last.symptoms.end.date) &
-      !is.na(last.not.na.symptoms.end.date),
+    !is.na(bout) & !is.na(last.not.na.symptoms.end.date),
     symptoms.end.date := last.not.na.symptoms.end.date,
     by = list(participant_id, season, bout)
   ]
@@ -140,10 +136,14 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
     symptoms.end.date := last(date),
     by = list(participant_id, season, bout)
   ]
+  dt[!is.na(bout) & !is.na(symptoms.start.date) & !is.na(symptoms.end.date) &
+       symptoms.end.date < symptoms.start.date,
+     c("symptoms.start.date", "symptoms.end.date") := list(
+       as.Date(NA_character_), as.Date(NA_character_)
+     )]
 
   dt[, last.symptoms.start.date := NULL]
   dt[, last.not.na.symptoms.start.date := NULL]
-  dt[, last.symptoms.end.date := NULL]
   dt[, last.not.na.symptoms.end.date := NULL]
 
 

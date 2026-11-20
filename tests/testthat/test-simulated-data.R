@@ -69,7 +69,7 @@ test_that("bouts_of_illness returns bouts of illness", {
   dt <- extract_data(simulated_data, years = 2013:2014)
   invisible(capture.output(res <- bouts_of_illness(dt)))
   expect_gt(nrow(res), 0)
-  expect_false(anyNA(res$symptoms.start.date))
+  expect_true(all(res$symptoms.start.date <= res$symptoms.end.date, na.rm = TRUE))
 })
 
 test_that("missing household counts are set to 0", {
