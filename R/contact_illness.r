@@ -65,7 +65,7 @@ contact_illness <- function(contacts, symptoms) {
     ili = "ili", ili_fever = "ili.fever", ili_self = "ili.self",
     ari = "resp.symptoms"
   )
-  labels <- list(
+  flag_labels <- list(
     ili = c("ILI", "no ILI"), ili_fever = c("ILI", "no ILI"),
     ili_self = c("ILI", "no ILI"), ari = c("ARI", "no ARI")
   )
@@ -87,12 +87,10 @@ contact_illness <- function(contacts, symptoms) {
     if (!col %in% colnames(symptoms)) symptoms[, (col) := NA_character_]
   }
   symptoms[, bstart := symptoms.start.date]
-  symptoms[, bend := fifelse(
+  symptoms[, bend := fcase(
     !is.na(symptoms.end.date), pmin(symptoms.end.date, date),
-    fifelse(
-      !is.na(symptoms.end.option) & symptoms.end.option == "still_ill",
-      date, as.Date(NA)
-    )
+    !is.na(symptoms.end.option) & symptoms.end.option == "still_ill", date,
+    default = as.Date(NA)
   )]
   symptoms[, valid := as.character(no.symptoms) == "f" &
              !is.na(bstart) & !is.na(bend) & bstart <= bend]
@@ -142,17 +140,21 @@ contact_illness <- function(contacts, symptoms) {
                   all.x = TRUE)
   status[is.na(bouted), bouted := FALSE]
   status[is.na(observed), observed := FALSE]
-  status[, current_symptoms := fifelse(
-    bouted, "symptoms", fifelse(observed, "no symptoms", NA_character_)
+  status[, current_symptoms := fcase(
+    bouted, "symptoms",
+    observed, "no symptoms",
+    default = NA_character_
   )]
   for (nm in names(flag_cols)) {
-    lab <- labels[[nm]]
+    lab <- flag_labels[[nm]]
     for (prefix in c("current", "bout")) {
-      source <- status[[paste0(if (prefix == "current") "day" else "bout",
-                               "_", nm)]]
-      status[, (paste0(prefix, "_", nm)) := fifelse(
-        bouted, fifelse(source == "t", lab[1], lab[2]),
-        fifelse(observed, lab[2], NA_character_)
+      flag <- status[[paste0(if (prefix == "current") "day" else "bout",
+                             "_", nm)]]
+      status[, (paste0(prefix, "_", nm)) := fcase(
+        bouted & flag == "t", lab[1],
+        bouted & flag != "t", lab[2],
+        !bouted & observed, lab[2],
+        default = NA_character_
       )]
     }
   }
