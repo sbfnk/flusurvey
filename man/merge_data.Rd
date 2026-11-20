@@ -12,6 +12,7 @@ merge_data(
   min.reports = 3,
   ranges = "sample",
   age.breaks = c(18, 44, 64),
+  ili.sudden.unknown = NA,
   max.band.count = Inf
 )
 }
@@ -29,7 +30,7 @@ each symptom report with the latest earlier contact report, however long
 before it was filed, and a contact report describes one day whereas a
 symptom report describes the week before it. With
 'unsuccessful.join' the symptom reports without an earlier contact report
-are dropped, which shortens episodes of illness. To link the two, extract
+are dropped, shortening episodes of illness. To link the two, extract
 the symptom and contact surveys separately, get the episodes with
 \code{\link{bouts_of_illness}} and flag the contact reports made during an
 episode with \code{\link{flag_ill_contacts}}.}
@@ -64,12 +65,18 @@ group except the last (first age group starts at 0 years of age). The last
 group is open-ended. The default gives the groups 0-18, 19-44, 45-64 and
 65+, matching the age bands of the contact questions.}
 
+\item{ili.sudden.unknown}{how to interpret reports where sudden onset is
+unknown, passed to \code{\link{aggregate_symptoms}}: \code{NA} (the
+default) leaves \code{ili} and \code{ili.fever} missing where onset is
+needed to decide, \code{1} counts unknown onset as sudden and \code{0} as
+not sudden. The recorded onset is kept in \code{onset}.}
+
 \item{max.band.count}{the largest number of people accepted in a single age
 band of the household. There is no limit by default, as households in
 institutions such as care homes can be large. Larger counts are set to
-missing, and \code{nb.household} is then missing too. The counts include the
-participant. A band that is ticked as present without a number counts as one
-person, and a household with no band ticked gets a missing
+missing. \code{nb.household} is then missing too. The counts include the
+participant. A band ticked as present without a number counts as one
+person. A household with no band ticked gets a missing
 \code{nb.household}.}
 }
 \value{
