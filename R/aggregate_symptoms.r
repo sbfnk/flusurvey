@@ -33,9 +33,9 @@ onset_status <- function(dt) {
 ##' "not.sudden", "dont_know" (an explicit answer), "not.answered" (the question
 ##' was asked but not answered) or "no.question" (the data have no onset
 ##' question). None of the last three establishes sudden onset.
-##' \code{ili.sudden.unknown} sets how they are interpreted for the derived
-##' columns \code{suddenly}, \code{ili} and \code{ili.fever}, without changing
-##' \code{onset} or the answers in the data. A report that already fails
+##' \code{ili.sudden.unknown} sets how the last three are interpreted in the
+##' derived columns \code{suddenly}, \code{ili} and \code{ili.fever}. It leaves
+##' \code{onset} and the answers in the data unchanged. A report that already fails
 ##' another ILI criterion is not ILI whatever its onset.
 ##'
 ##' @param symptoms a data table of symptom reports
