@@ -28,6 +28,17 @@ test_that("a continuing report does not start a second bout", {
   expect_equal(nrow(res), 1L)
 })
 
+test_that("an earlier revised start date does not split a continuing bout", {
+  x <- make_reports(
+    1, c("2013-01-17", "2013-01-24", "2013-01-31"),
+    c(TRUE, TRUE, FALSE), c("yes", "yes", NA),
+    c("2013-01-15", "2013-01-10", NA), c(NA, NA, NA)
+  )
+  capture.output(res <- bouts_of_illness(x))
+  expect_equal(nrow(res), 1L)
+  expect_equal(res$symptoms.start.date, as.Date("2013-01-10"))
+})
+
 a <- make_reports(
   1, c("2013-01-03", "2013-01-10"), c(FALSE, TRUE), c(NA, "no"),
   c(NA, "2013-01-05"), c(NA, "2013-01-08")
