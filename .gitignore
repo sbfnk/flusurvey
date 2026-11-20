@@ -9,3 +9,6 @@
 
 # RStudio files
 .Rproj.user/
+
+# testthat scratch snapshots
+*.new.md
