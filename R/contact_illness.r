@@ -8,9 +8,7 @@
 ##' \emph{Eligibility and follow-up.} A participant is eligible in a season if
 ##' they filed symptom reports on at least \code{min.reports} different days
 ##' and at least one of them reported no symptoms. Follow-up runs from the
-##' first to the last report without symptoms. The last report without
-##' symptoms is the default end of follow-up; the end of the last illness is
-##' not used as an alternative. All symptom reports, including those of
+##' first to the last report without symptoms. All symptom reports, including those of
 ##' ineligible participants and those outside follow-up, are used to
 ##' reconstruct bouts; eligibility and follow-up only decide which contact days
 ##' are classified. The column \code{follow_up} records the result:
@@ -38,9 +36,9 @@
 ##' illness cannot be placed, so every day since the participant's previous
 ##' report, up to and including its own date, is unknown (missing) unless
 ##' it lies in a bout. A report without symptoms is taken as no acute illness.
-##' The data hold no indicator of chronic symptoms, and the maintainers have
-##' not defined one (nor a duration after which symptoms count as chronic), so
-##' no rule for them is applied.
+##' The data hold no indicator of chronic symptoms and the maintainers have
+##' not defined one, or a duration after which symptoms count as chronic.
+##' No rule for chronic symptoms is applied.
 ##'
 ##' The case-definition flags are known per report, not per day. A bout meeting
 ##' a definition at some point need not have had every symptom present on
