@@ -2,7 +2,7 @@
 
 This file states in prose the rules that `bouts_of_illness()` uses to turn weekly symptom reports into bouts of illness. It also describes the cleaning in `merge_data()` that decides which reports reach it. A change to either should change this file in the same pull request. The rules can then be reviewed as rules, and the code checked against them.
 
-This version describes the code at commit `af3f969` (12 November 2026), before the fixes of November 2026. It records what the code did, including behaviour that is clearly unintended. The section "Known problems" lists those cases with the issue that covers each.
+It records what the code does, including behaviour that is clearly unintended. The section "Known problems" lists those cases with the issue that covers each.
 
 ## Terms
 
@@ -18,15 +18,15 @@ A symptomatic report has `no.symptoms == "f"` and a symptom-free report has `no.
 
 1. Only the last report of a participant on any one day is kept.
 2. `limit.season`: only reports between 1 November and 1 April around the date with most reports are kept.
-3. `aggregate_symptoms()` adds the case definitions (`ili`, `ili.fever`, `gi` and others). It keeps every report and leaves the columns used by the bout rules unchanged.
+3. `aggregate_symptoms()` adds the case definitions (`ili`, `ili.fever`, `gi` and others). A report with ILI symptoms and an unknown answer on sudden onset counts as ILI (`ili.sudden.unknown = 1`). It keeps every report and leaves the columns used by the bout rules unchanged.
 4. `n.reports`: participants with fewer than three reports are dropped. The count includes the report removed in the next step.
 5. `remove.first`: each participant's earliest report is dropped.
 6. `remove.bad.symptom.dates`: a start date after the report date is set to missing, as is an end date after the report date. When the end date is before the start date, both are set to missing. The documentation also promises to remove start dates before the first report and end dates after the last; the code does neither (#21).
-7. `remove.bad.health.score` was meant to set health scores outside 0 to 100 to missing. It never ran, because the option and the check spelt the name differently (#6).
+7. `remove.bad.health.scores`: health scores outside 0 to 100 are set to missing.
 8. `only.symptoms`: participants with no symptom-free report among the remaining reports are dropped. A participant with a missing `no.symptoms` answer in any report is dropped as well, because their count of symptom-free reports is missing.
-9. The surveys are joined by a rolling join on the report date. The last survey in the order given drives the join. If the contact survey came after the symptom survey, the rows were contact reports, each with the latest earlier symptom report (#31). With `unsuccessful.join`, rows without an earlier report from each of the other surveys are dropped.
+9. The surveys are joined by a rolling join on the report date, always in the order background, contact, symptom. With the symptom survey included, each row is one symptom report, with the latest background and contact report on or before its date. Joining the contact and symptom surveys gives a warning. With `unsuccessful.join`, symptom reports without an earlier report from each of the other surveys are dropped.
 
-`clean = NULL` was meant to skip all of this. `match.arg()` turned it into `"remove.first"`, and the first report was still removed (#5).
+`clean = NULL` skips all of these steps except step 1, the case definitions in step 3 and the join.
 
 These steps change what the bout rules see:
 
@@ -36,13 +36,13 @@ These steps change what the bout rules see:
 
 ## Start of a bout
 
-The reports of each participant and season are taken in the order of the input table, which `bouts_of_illness()` leaves unsorted. A symptomatic report starts a new bout if any of the following holds:
+The reports of each participant and season are sorted by report date. A symptomatic report starts a new bout if any of the following holds:
 
 - S1. `same` is "no".
 - S2. It is a leading report, and its start date is the earliest start date the participant reports in the season, counting all their reports in the season. Where several leading reports give that date, only the first of them starts a bout through this rule.
 - S3. It is the participant's first report, the participant has no symptom-free report in the season, and every report answers `no.symptoms`.
 - S4. The report before it was symptom-free.
-- S5. Its start date is after the end date of the report before it. Here "the report before it" is the previous row of the whole table. For a participant's first report, that is the last report of the participant in the row above.
+- S5. Its start date is after the end date of the previous report of the participant in the season.
 
 S2 and S3 apply only to participants who answer `no.symptoms` in every report of the season. A missing `same` is not a start under S1, and a missing start or end date is not a start under S2 or S5. A report with a missing `no.symptoms` answer is neither symptomatic nor symptom-free. It belongs to no bout, and it does not count as the symptom-free report before a start under S4.
 
@@ -72,8 +72,6 @@ With `symptomatic.only = TRUE` (the default) only the bout rows are returned. Wi
 
 - Leading reports are dropped unless S2 or S3 makes one of them a start. S3 never applies with the default cleaning. A participant whose first kept report continues an illness, with no start date or a later one than another report, loses that report and the illness it records (#19).
 - S2 can start the bout at a later leading report. The leading reports before it are then dropped.
-- S5 compares a participant's first report with another participant's last report. Where that end date is before this participant's start date, the first report starts a bout by chance. If the input is sorted by date, every comparison can cross participants (#22).
-- The rules depend on the input order, and `bouts_of_illness()` does not set it.
 - The end date of a bout is lost or wrong when only the last report gives one (#18).
 - The start date of a bout comes from its last report without a check against the other reports (#20).
 - A bout with no reported start date, but with a reported end date before its first report, gets a start date after its end date (#76, #77).
