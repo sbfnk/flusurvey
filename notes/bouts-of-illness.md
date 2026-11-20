@@ -30,7 +30,7 @@ A symptomatic report has `no.symptoms == "f"` and a symptom-free report has `no.
 
 These steps change what the bout rules see:
 
-- A participant who reports symptoms in every report of a season never reaches `bouts_of_illness()` (step 8). This includes anyone who stops reporting before recovering from an illness they had at their first report. With the default cleaning, rule S3 below never applies.
+- A participant who reports symptoms in every report of a season is dropped in step 8. This includes anyone who stops reporting before recovering from an illness they had at their first report. Such a participant reaches `bouts_of_illness()` only if step 9 then removes their symptom-free reports, and only then does rule S3 below apply.
 - After step 5 the first report kept often continues an illness from the removed report, with `same` set to "yes". Rows dropped by `unsuccessful.join` have the same effect.
 - Steps 6 and 8 run before the bout rules. A missing date in a bout is often a date that was reported and then removed as implausible.
 
