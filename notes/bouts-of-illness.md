@@ -36,12 +36,12 @@ These steps change what the bout rules see:
 
 ## Start of a bout
 
-The reports of each participant and season are taken in the order of the input table, which `bouts_of_illness()` leaves unsorted. A symptomatic report starts a new bout if any of the following holds:
+The reports of each participant and season are taken in the order of the input table. With a `health.score` column, the merge that adds `baseline.health.score` first sorts the table by participant and season, keeping the input order within each participant. A symptomatic report starts a new bout if any of the following holds:
 
 - S1. `same` is "no".
 - S2. It is a leading report, and its start date is the earliest start date the participant reports in the season, counting all their reports in the season. Where several leading reports give that date, only the first of them starts a bout through this rule.
 - S3. It is the participant's first report, the participant has no symptom-free report in the season, and every report answers `no.symptoms`.
-- S4. The report before it was symptom-free.
+- S4. The report before it was symptom-free. Here "the report before it" is the previous row of the whole table, except at the first report of a participant.
 - S5. Its start date is after the end date of the report before it. Here "the report before it" is the previous row of the whole table. For a participant's first report, that is the last report of the participant in the row above.
 
 S2 and S3 apply only to participants who answer `no.symptoms` in every report of the season. A missing `same` is not a start under S1, and a missing start or end date is not a start under S2 or S5. A report with a missing `no.symptoms` answer is neither symptomatic nor symptom-free. It belongs to no bout, and it does not count as the symptom-free report before a start under S4.
@@ -72,8 +72,8 @@ With `symptomatic.only = TRUE` (the default) only the bout rows are returned. Wi
 
 - Leading reports are dropped unless S2 or S3 makes one of them a start. S3 never applies with the default cleaning. A participant whose first kept report continues an illness, with no start date or a later one than another report, loses that report and the illness it records (#19).
 - S2 can start the bout at a later leading report. The leading reports before it are then dropped.
-- S5 compares a participant's first report with another participant's last report. Where that end date is before this participant's start date, the first report starts a bout by chance. If the input is sorted by date, every comparison can cross participants (#22).
-- The rules depend on the input order, and `bouts_of_illness()` does not set it.
+- S5 compares a participant's first report with another participant's last report. Where that end date is before this participant's start date, the first report starts a bout by chance (#22).
+- Without a `health.score` column, a table sorted by date makes S4 and S5 compare reports of different participants. The rules depend on the input order, and `bouts_of_illness()` sorts only by participant and season, and only when there is a `health.score` column.
 - The end date of a bout is lost or wrong when only the last report gives one (#18).
 - The start date of a bout comes from its last report without a check against the other reports (#20).
 - A bout with no reported start date, but with a reported end date before its first report, gets a start date after its end date (#76, #77).
