@@ -7,6 +7,16 @@
 ##' survey (the symptom reports, if present), each taking the latest report of
 ##' the other surveys on or before its date. Any other survey name gives an
 ##' error.
+##'
+##' Joining the contact and symptom surveys gives a warning. The join pairs
+##' each symptom report with the latest earlier contact report, however long
+##' before it was filed, and a contact report describes one day whereas a
+##' symptom report describes the week before it. With
+##' 'unsuccessful.join' the symptom reports without an earlier contact report
+##' are dropped, shortening episodes of illness. To link the two, extract
+##' the symptom and contact surveys separately, get the episodes with
+##' \code{\link{bouts_of_illness}} and flag the contact reports made during an
+##' episode with \code{\link{flag_ill_contacts}}.
 ##' @param clean cleaning options, NULL for no cleaning, otherwise a vector of
 ##' cleans to perform (by default all):
 ##' - 'remove.first', whether to remove everyone's first report,
@@ -78,6 +88,16 @@ merge_data <- function(
   }
   ## put the surveys in order first: the last table drives the rolling join
   data <- data[intersect(survey_order, names(data))]
+  if (all(c("contact", "symptom") %in% names(data))) {
+    warning(
+      "The contact and symptom surveys are joined by report date, which ",
+      "pairs each symptom report with the latest earlier contact report ",
+      "however long before it was filed, and (with 'unsuccessful.join') ",
+      "drops symptom reports that have none. To link contacts to illness, ",
+      "extract them separately and use flag_ill_contacts().",
+      call. = FALSE
+    )
+  }
   dt_list <- list()
   ## Check for an empty `clean` first, because match.arg() maps NULL to
   ## the first choice

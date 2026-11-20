@@ -29,6 +29,8 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
     dt <- merge(dt, baselines, by = c("participant_id", "season"), all.x = TRUE)
   }
 
+  ## the lags below need reports ordered by date within participant and season
+  setorderv(dt, c("participant_id", "season", "date"))
   dt[, id := seq_len(.N)]
 
   tf <-
@@ -83,7 +85,7 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
   dt[, previous.no.symptoms := NULL]
   dt[, previous.symptoms.end.date := as.Date(
     c(NA_character_, as.character(symptoms.end.date[-.N]))
-  )]
+  ), by = list(participant_id, season)]
   dt[
     !new.bout & !is.na(previous.symptoms.end.date) &
       !is.na(symptoms.start.date) & no.symptoms == "f" &
