@@ -8,8 +8,18 @@ extract_seeded <- function(...) {
   extract_data(simulated_data, years = 2013:2014, ...)
 }
 
+## Rows are sorted with radix ordering before hashing. Radix ordering is the
+## same in every locale and for any join order, so the hashes depend only on
+## the values.
+sort_rows <- function(x) {
+  keys <- intersect(c("global_id", "participant_id", "date"), colnames(x))
+  if (length(keys) == 0) return(x)
+  x[do.call(order, c(unname(as.list(x[keys])), list(method = "radix"))), ,
+    drop = FALSE]
+}
+
 summarise_table <- function(x) {
-  x <- as.data.frame(x)
+  x <- sort_rows(as.data.frame(x))
   list(
     dim = dim(x),
     classes = vapply(x, function(column) class(column)[1], ""),
