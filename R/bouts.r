@@ -29,6 +29,8 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
     dt <- merge(dt, baselines, by = c("participant_id", "season"), all.x = TRUE)
   }
 
+  ## the lags below need reports ordered by date within participant and season
+  setorderv(dt, c("participant_id", "season", "date"))
   dt[, id := seq_len(.N)]
 
   tf <-
@@ -42,9 +44,10 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
 
   dt[, new.bout := (same == "no")]
   dt[, part.symptom.id := seq_len(.N), by = list(participant_id, season)]
-  ## sum() rather than any(): the two differ when no.symptoms has missing values
+  ## any() alone would ignore missing values next to a "t"; a participant with
+  ## a missing value gets a missing first.no.symptoms
   dt[, first.no.symptoms := ifelse(
-    sum(no.symptoms == "t") > 0, # nolint: boolean_arithmetic_linter.
+    if (anyNA(no.symptoms)) NA else any(no.symptoms == "t"),
     min(which(no.symptoms == "t")),
     0
   ),
@@ -82,7 +85,7 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
   dt[, previous.no.symptoms := NULL]
   dt[, previous.symptoms.end.date := as.Date(
     c(NA_character_, as.character(symptoms.end.date[-.N]))
-  )]
+  ), by = list(participant_id, season)]
   dt[
     !new.bout & !is.na(previous.symptoms.end.date) &
       !is.na(symptoms.start.date) & no.symptoms == "f" &
