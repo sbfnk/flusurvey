@@ -297,7 +297,7 @@ remove_bad_health_scores <- function(dt) {
 ## Keeps the participants with at least one report without symptoms.
 keep_symptom_free_reporters <- function(dt) {
   no.symptoms <-
-    dt[, list(no.symptoms.reports = sum(no.symptoms == "t")),
+    dt[, list(no.symptoms.reports = sum(no.symptoms == "t", na.rm = TRUE)),
       by = global_id
     ]
   dt <- merge(dt, no.symptoms, by = "global_id", all.x = TRUE)
