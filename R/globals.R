@@ -60,6 +60,7 @@ utils::globalVariables(c(
   "same",
   "season",
   "suddenly",
+  "onset",
   "symptoms.end.date",
   "symptoms.start.date",
   "symptoms.suddenly",

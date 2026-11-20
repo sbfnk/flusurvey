@@ -1,42 +1,62 @@
+## Record the onset as answered: "sudden", "not.sudden", "dont_know" (explicit
+## answer), "not.answered" (question asked, no answer) or "no.question" (no
+## onset column at all). The fever questions settle onset only where they
+## answer it.
+onset_status <- function(dt) {
+  n <- nrow(dt)
+  onset.columns <- grep("\\.(suddenly|quickly)$", colnames(dt), value = TRUE)
+  if (length(onset.columns) == 0) {
+    return(rep("no.question", n))
+  }
+  status <- rep("not.answered", n)
+  if ("symptoms.suddenly" %in% colnames(dt)) {
+    status[which(dt$symptoms.suddenly == "dont_know")] <- "dont_know"
+    status[which(dt$symptoms.suddenly == "yes")] <- "sudden"
+    status[which(dt$symptoms.suddenly == "no")] <- "not.sudden"
+  }
+  for (fever.onset in intersect(c("fever.quickly", "fever.suddenly"),
+                                colnames(dt))) {
+    answer <- dt[[fever.onset]]
+    not.yet <- status != "sudden"
+    status[which(not.yet & answer == "yes")] <- "sudden"
+    settled <- status %in% c("dont_know", "not.answered")
+    status[which(settled & answer == "no")] <- "not.sudden"
+  }
+  status
+}
+
 ##' Aggregate symptoms in symptom table to work out ILI etc.
 ##'
+##' The recorded onset is kept in the column \code{onset}: "sudden",
+##' "not.sudden", "dont_know" (an explicit answer), "not.answered" (the question
+##' was asked but not answered) or "no.question" (the data have no onset
+##' question). None of the last three establishes sudden onset.
+##' \code{ili.sudden.unknown} sets how the last three are interpreted in the
+##' derived columns \code{suddenly}, \code{ili} and \code{ili.fever}. It leaves
+##' \code{onset} and the answers in the data unchanged. A report that already
+##' fails another ILI criterion is not ILI, whatever its onset.
+##'
 ##' @param symptoms a data table of symptom reports
-##' @param ili.sudden.unknown how to treat reports where it is not known whether
-##'   the symptoms started suddenly: `1` counts them as sudden and `0` as not
-##'   sudden. `NA` leaves them unknown, and `ili` is then missing for any
-##'   report with the symptoms of ILI but an unknown onset.
-##' @return a data table with added columns
+##' @param ili.sudden.unknown how to interpret reports where onset is unknown
+##'   (see above): \code{NA} (the default) leaves \code{suddenly}, \code{ili}
+##'   and \code{ili.fever} missing where onset is needed to decide, \code{1}
+##'   counts unknown onset as sudden and \code{0} counts it as not sudden.
+##' @return a data table with added columns, including \code{onset}
 ##' @author seb
 ##' @import data.table
 ##' @export
-aggregate_symptoms <- function(symptoms, ili.sudden.unknown = 1) {
+aggregate_symptoms <- function(symptoms, ili.sudden.unknown = NA) {
   dt <- copy(data.table(symptoms))
   ## calculate ili
-  if (any(grepl("\\.(suddenly|quickly)$", colnames(dt)))) {
-    dt[, suddenly := NA_character_]
-    if ("symptoms.suddenly" %in% colnames(dt)) {
-      dt[symptoms.suddenly == "yes", suddenly := "t"]
-      dt[symptoms.suddenly == "no", suddenly := "f"]
-    }
-    if ("fever.quickly" %in% colnames(dt)) {
-      dt[
-        (is.na(suddenly) | suddenly == "f") & fever.quickly == "yes",
-        suddenly := "t"
-      ]
-      dt[is.na(suddenly) & fever.quickly == "no", suddenly := "f"]
-    }
-    if ("fever.suddenly" %in% colnames(dt)) {
-      dt[
-        (is.na(suddenly) | suddenly == "f") & fever.suddenly == "yes",
-        suddenly := "t"
-      ]
-      dt[is.na(suddenly) & fever.suddenly == "no", suddenly := "f"]
-    }
-    if (!is.na(ili.sudden.unknown)) {
-      dt[is.na(suddenly), suddenly := ifelse(ili.sudden.unknown == 1, "t", "f")]
-    }
-  } else {
-    dt[, suddenly := "t"]
+  onset <- onset_status(dt)
+  set(dt, j = "onset", value = onset)
+  dt[, suddenly := fcase(
+    onset == "sudden", "t",
+    onset == "not.sudden", "f",
+    default = NA_character_
+  )]
+  if (!is.na(ili.sudden.unknown)) {
+    dt[is.na(suddenly), suddenly := ifelse(ili.sudden.unknown == 1, "t", "f")]
   }
   needs_fever <- !("fever" %in% colnames(dt)) &&
     "fever.temperature.range" %in% colnames(dt)
