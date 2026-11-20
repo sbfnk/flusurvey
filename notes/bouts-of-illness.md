@@ -24,7 +24,7 @@ A symptomatic report has `no.symptoms == "f"` and a symptom-free report has `no.
 6. `remove.bad.symptom.dates`: a start date after the report date is set to missing, as is an end date after the report date. When the end date is before the start date, both are set to missing. The documentation also promises to remove start dates before the first report and end dates after the last; the code does neither (#21).
 7. `remove.bad.health.score` was meant to set health scores outside 0 to 100 to missing. It never ran, because the option and the check spelt the name differently (#6).
 8. `only.symptoms`: participants with no symptom-free report among the remaining reports are dropped. A participant with a missing `no.symptoms` answer in any report is dropped as well, because their count of symptom-free reports is missing.
-9. The surveys are joined by a rolling join on the report date. The last survey in the order given drives the join. If the contact survey came after the symptom survey, the rows were contact reports, each with the latest symptom report on or before its date (#31). With `unsuccessful.join`, rows without a report on or before their date from each of the other surveys are dropped. Last, columns holding only "t" and "f" become factors, but only those of the last survey in the order given; when the symptom survey is not last, its columns stay character (#15).
+9. The surveys are joined by a rolling join on the report date. The last survey in the order given drives the join. If the contact survey came after the symptom survey, the rows were contact reports, each with the latest symptom report on or before its date (#31). With `unsuccessful.join`, rows without a report on or before their date from each of the other surveys are dropped. Last, columns holding only "t" and "f" become factors, but only those of the last survey in the order given; when the symptom survey is not last, its character columns stay character (#15).
 
 `clean = NULL` was meant to skip all of this. `match.arg()` turned it into `"remove.first"`, and the first report was still removed (#5).
 
@@ -78,5 +78,5 @@ With `symptomatic.only = TRUE` (the default) only the bout rows are returned. Wi
 - The start date of a bout comes from its last report without a check against the other reports (#20).
 - A bout with no reported start date, but with a reported end date before its first report, gets a start date after its end date (#76, #77).
 - With `symptomatic.only = FALSE` the reports outside any bout share their "t"/"f" values. A dropped symptomatic report makes the symptom-free reports of the participant show its symptoms, and the dropped report itself is marked as symptom-free (#87).
-- When the symptom survey is not the last one joined, its "t"/"f" columns stay character, and S4 and the merging of "t"/"f" columns in a bout do nothing (#15).
+- When the symptom survey is not the last one joined, its character "t"/"f" columns stay character (#15). S4 then never applies. Those columns are not merged within a bout, nor across the reports outside any bout.
 - `only.symptoms` also drops participants with any missing `no.symptoms` answer (#88).
