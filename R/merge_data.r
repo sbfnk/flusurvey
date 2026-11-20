@@ -335,7 +335,7 @@ add_age <- function(dt, age.breaks) {
     c(0, age.breaks + 1), "-", c(age.breaks, "")
   )
   agegroup_labels[length(agegroup_labels)] <-
-    paste0(max(age.breaks) + 1, "+")
+    paste0(if (length(age.breaks)) max(age.breaks) + 1 else 0, "+")
   dt[, agegroup := cut(
     age,
     breaks = c(-Inf, age.breaks, Inf),

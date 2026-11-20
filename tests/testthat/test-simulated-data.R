@@ -91,6 +91,11 @@ test_that("age groups follow the contact age bands", {
   )
   unsorted <- unsorted[order(age)]
   expect_identical(unsorted$agegroup, dt$agegroup)
+  expect_no_warning(single <- merge_data(
+    list(background = background), clean = "n.reports", age.breaks = numeric()
+  ))
+  expect_identical(levels(single$agegroup), "0+")
+  expect_true(all(as.character(single$agegroup) == "0+"))
 })
 
 
