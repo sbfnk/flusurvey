@@ -241,8 +241,8 @@ convert_logical_columns <- function(res, reference) {
 
 ## ---- symptom survey ---------------------------------------------------------
 
-clean_symptom <- function(
-    dt, clean, min.reports, max.symptom.days, ili.sudden.unknown) {
+clean_symptom <- function(dt, clean, min.reports, max.symptom.days,
+                          ili.sudden.unknown) {
   dt <- aggregate_symptoms(dt, ili.sudden.unknown = ili.sudden.unknown)
   ## calculate min.reports, max.reports, nReports
   dt[, nReports := .N, by = global_id]
