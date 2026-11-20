@@ -70,7 +70,7 @@ With `symptomatic.only = TRUE` (the default) only the bout rows are returned. Wi
 
 ## Known problems
 
-- Leading reports are dropped unless S2 or S3 makes one of them a start. S3 never applies with the default cleaning. A participant whose first kept report continues an illness, with no start date or a later one than another report, loses that report and the illness it records (#19).
+- Leading reports before the first start are dropped. S1, S2, S3 or S5 can start a bout among them, and S3 applies with the default cleaning only when the join removes all symptom-free reports. A participant whose first kept report continues an illness, with no start date or a later one than another report, loses that report and the illness it records (#19).
 - S2 can start the bout at a later leading report. The leading reports before it are then dropped.
 - S5 compares a participant's first report with another participant's last report. Where that end date is before this participant's start date, the first report starts a bout by chance (#22).
 - Without a `health.score` column, a table sorted by date makes S4 and S5 compare reports of different participants. The rules depend on the input order, and `bouts_of_illness()` sorts only by participant and season, and only when there is a `health.score` column.
