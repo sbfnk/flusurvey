@@ -2,7 +2,7 @@
 
 This file states in prose the rules that `bouts_of_illness()` uses to turn weekly symptom reports into bouts of illness. It also describes the cleaning in `merge_data()` that decides which reports reach it. A change to either should change this file in the same pull request. The rules can then be reviewed as rules, and the code checked against them.
 
-This version describes the code at commit `af3f969` (12 November 2026), before the fixes of November 2026. It records what the code did, including behaviour that is clearly unintended. The section "Known problems" lists those cases with the issue that covers each.
+It records what the code does, including behaviour that is clearly unintended. The section "Known problems" lists those cases with the issue that covers each.
 
 ## Terms
 
@@ -17,16 +17,16 @@ A symptomatic report has `no.symptoms == "f"` and a symptom-free report has `no.
 `extract_data()` cleans each season separately with `merge_data()`. With the default `clean`, the symptom survey goes through these steps in order. Here a participant is a `global_id` within one season.
 
 1. Only the last report of a participant on any one day is kept.
-2. `limit.season`: only reports between 1 November and 1 April around the date with most reports are kept.
-3. `aggregate_symptoms()` adds the case definitions (`ili`, `ili.fever`, `gi` and others). It keeps every report and leaves the columns used by the bout rules unchanged.
+2. `limit.season`: only reports between 1 November and 1 April around the date with most reports are kept. The limit also applies to the background and contact surveys, each with the window around its own date with most reports (#10).
+3. `aggregate_symptoms()` adds the case definitions (`ili`, `ili.fever`, `gi` and others). A report with ILI symptoms and an unknown answer on sudden onset counts as ILI (`ili.sudden.unknown = 1`). It keeps every report and leaves the columns used by the bout rules unchanged.
 4. `n.reports`: participants with fewer than three reports are dropped. The count includes the report removed in the next step.
 5. `remove.first`: each participant's earliest report is dropped.
 6. `remove.bad.symptom.dates`: first, when the reported end date is before the reported start date, both are set to missing. Then a start date after the report date is set to missing, as is an end date after the report date. The documentation also promises to remove start dates before the first report and end dates after the last; the code does neither (#21).
-7. `remove.bad.health.score` was meant to set health scores outside 0 to 100 to missing. It never ran, because the option and the check spelt the name differently (#6).
+7. `remove.bad.health.scores`: health scores outside 0 to 100 are set to missing.
 8. `only.symptoms`: participants with no symptom-free report among the remaining reports are dropped. A participant with a missing `no.symptoms` answer in any report is dropped as well, because their count of symptom-free reports is missing.
-9. The surveys are joined by a rolling join on the report date. The last survey in the order given drives the join. If the contact survey came after the symptom survey, the rows were contact reports, each with the latest symptom report on or before its date (#31). With `unsuccessful.join`, rows without a report on or before their date from each of the other surveys are dropped. Last, character columns with values including both "t" and "f" become factors, but only those of the last survey in the order given; when the symptom survey is not last, its character columns stay character (#15).
+9. The surveys are joined by a rolling join on the report date, always in the order background, contact, symptom. With the symptom survey included, each row is one symptom report, with the latest background and contact report on or before its date. Joining the contact and symptom surveys gives a warning. With `unsuccessful.join`, symptom reports without a report on or before their date from each of the other surveys are dropped. A participant whose background reports were all filed before the season window, and removed in step 2, loses all their symptom reports here. One who files another background report within the window loses only the symptom reports before it. Last, character columns of the joined table with values including both "t" and "f" become factors.
 
-`clean = NULL` was meant to skip all of this. `match.arg()` turned it into `"remove.first"`, and the first report was still removed (#5).
+`clean = NULL` skips all of these steps except step 1, the case definitions in step 3, and the join with its conversion to factors.
 
 These steps change what the bout rules see:
 
@@ -36,13 +36,13 @@ These steps change what the bout rules see:
 
 ## Start of a bout
 
-The reports of each participant and season are taken in the order of the input table. With a `health.score` column, the merge that adds `baseline.health.score` first sorts the table by participant and season, keeping the input order within each participant. A symptomatic report starts a new bout if any of the following holds:
+The reports are sorted by participant, season and report date. A symptomatic report starts a new bout if any of the following holds:
 
 - S1. `same` is "no".
 - S2. It is a leading report, and its start date is the earliest start date the participant reports in the season, counting all their reports in the season. Where several leading reports give that date, only the first of them starts a bout through this rule.
 - S3. It is the participant's first report, the participant has no symptom-free report in the season, and every report answers `no.symptoms`.
-- S4. The report before it was symptom-free. Here "the report before it" is the previous row of the whole table, except at the first report of a participant. S4 needs `no.symptoms` to be a factor: with a character column it never applies.
-- S5. Its start date is after the end date of the report before it. Here "the report before it" is the previous row of the whole table. For a participant's first report, that is the last report of the participant in the row above.
+- S4. The report before it was symptom-free. S4 needs `no.symptoms` to be a factor: with a character column it never applies.
+- S5. Its start date is after the end date of the previous report of the participant in the season.
 
 S2 and S3 apply only to participants who answer `no.symptoms` in every report of the season. A missing `same` is not a start under S1, and a missing start or end date is not a start under S2 or S5. A report with a missing `no.symptoms` answer is neither symptomatic nor symptom-free. It belongs to no bout, and it does not count as the symptom-free report before a start under S4.
 
@@ -70,13 +70,11 @@ With `symptomatic.only = TRUE` (the default) only the bout rows are returned. Wi
 
 ## Known problems
 
-- Leading reports before the first start are dropped. S1, S2 or S5 can start a bout among them, and so can S4 when another participant's symptom-free report sits between two of them in an input without `health.score`. A participant whose first kept report continues an illness, with no start date or a later one than another report, loses that report and the illness it records (#19).
+- Leading reports before the first start are dropped. S1, S2 or S5 can start a bout among them. A participant whose first kept report continues an illness, with no start date or a later one than another report, loses that report and the illness it records (#19).
 - S2 can start the bout at a later leading report. The leading reports before it are then dropped.
-- S5 compares a participant's first report with another participant's last report. Where that end date is before this participant's start date, the first report starts a bout by chance (#22).
-- Without a `health.score` column, a table sorted by date makes S4 and S5 compare reports of different participants. The rules depend on the input order, and `bouts_of_illness()` sorts only by participant and season, and only when there is a `health.score` column.
 - The end date of a bout is lost when only its last report gives one, and wrong when its first report gives a different one (#18).
 - The start date of a bout comes from its last report without a check against the other reports (#20).
 - A bout with no reported start date takes the date of its first report as its start. If the end date it keeps is earlier, the bout ends before it starts (#76, #77).
 - With `symptomatic.only = FALSE` the reports outside any bout share their "t"/"f" values. A dropped symptomatic report makes the symptom-free reports of the participant show its symptoms, and the dropped report itself is marked as symptom-free (#87).
-- When the symptom survey is not the last one joined, its character "t"/"f" columns stay character (#15). S4 then never applies. Those columns are not merged within a bout, nor across the reports outside any bout.
+- With `limit.season` and `unsuccessful.join`, a participant who filled in the background survey only before the season window loses all their symptom reports (#91).
 - `only.symptoms` also drops participants with any missing `no.symptoms` answer (#88).
