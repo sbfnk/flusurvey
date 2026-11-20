@@ -28,7 +28,7 @@ each symptom report with the latest earlier contact report, however long
 before it was filed, and a contact report describes one day whereas a
 symptom report describes the week before it. With
 'unsuccessful.join' the symptom reports without an earlier contact report
-are dropped, which shortens episodes of illness. To link the two, extract
+are dropped, shortening episodes of illness. To link the two, extract
 the symptom and contact surveys separately, get the episodes with
 \code{\link{bouts_of_illness}} and flag the contact reports made during an
 episode with \code{\link{flag_ill_contacts}}.}
@@ -49,7 +49,10 @@ reports
 if symptoms are reported without a background survey present; the web site
 should have prevented this, but doesn't appear to have done so)
 - 'only.symptoms', whether to exclude those that have no report without
-symptoms}
+symptoms in a season. Someone who is ill at every report may have joined
+or reported only because they were ill, and keeping them would bias
+incidence and prevalence upwards. Leave it out of \code{clean} for analyses
+that need these participants.}
 
 \item{min.reports}{minimum number of reports per user (ignored if
 'min.reports' is not given as a cleaning option)}
