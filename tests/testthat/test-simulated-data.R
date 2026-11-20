@@ -135,6 +135,26 @@ test_that("health scores outside 0 to 100 are removed by default", {
   expect_true(all(dt$health.score >= 0 & dt$health.score <= 100, na.rm = TRUE))
 })
 
+test_that("default extraction handles symptom surveys without health scores", {
+  data <- lapply(simulated_data, function(season) {
+    season$symptom <- data.table::copy(season$symptom)
+    season$symptom[, health.score := NULL]
+    season
+  })
+  other_cleaning <- c(
+    "remove.first", "remove.bad.symptom.dates", "limit.season",
+    "remove.postcodes", "n.reports", "unsuccessful.join", "only.symptoms"
+  )
+  for (years in list(2013, 2014, 2013:2014)) {
+    expected <- extract_data(data, years = years, surveys = "symptom",
+                             clean = other_cleaning)
+    actual <- extract_data(data, years = years, surveys = "symptom")
+    expect_gt(nrow(expected), 0)
+    expect_false("health.score" %in% names(actual))
+    expect_equal(actual, expected)
+  }
+})
+
 test_that("remove.bad.health.scores is accepted by name", {
   dt <- extract_data(simulated_data, years = 2013:2014,
                      clean = "remove.bad.health.scores")

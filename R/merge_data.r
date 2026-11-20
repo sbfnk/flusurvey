@@ -283,6 +283,9 @@ remove_bad_symptom_dates <- function(dt) {
 }
 
 remove_bad_health_scores <- function(dt) {
+  if (!"health.score" %in% colnames(dt)) {
+    return(dt)
+  }
   dt[
     health.score < 0 | health.score > 100,
     health.score := NA_real_
