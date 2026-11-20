@@ -8,8 +8,8 @@ extract_seeded <- function(...) {
   expect_contact_warning(extract_data(simulated_data, years = 2013:2014, ...))
 }
 
-## Doubles are written with ten significant digits because as.character() on
-## doubles differs between R versions.
+## We write doubles with ten significant digits because as.character() on
+## doubles gives different results between R versions.
 as_text <- function(column) {
   if (is.double(column)) {
     out <- sprintf("%.10g", column)
@@ -20,7 +20,7 @@ as_text <- function(column) {
   }
 }
 
-## Rows are radix-ordered on the keys, then on every other column.
+## We radix-order rows on the keys, then on every other column.
 summarise_table <- function(x) {
   x <- as.data.frame(x)
   classes <- vapply(x, function(column) class(column)[1], "")
