@@ -10,9 +10,9 @@ merge_data(
     "limit.season", "remove.postcodes", "n.reports", "unsuccessful.join",
     "only.symptoms"),
   min.reports = 3,
-  max.symptom.days = 28,
   ranges = "sample",
-  age.breaks = c(18, 45, 65)
+  age.breaks = c(18, 45, 65),
+  max.symptom.days = 28
 )
 }
 \arguments{
@@ -56,16 +56,16 @@ symptoms}
 \item{min.reports}{minimum number of reports per user (ignored if
 'min.reports' is not given as a cleaning option)}
 
-\item{max.symptom.days}{maximum number of days a symptom start date can be
-before the report that gives it (ignored if 'remove.bad.symptom.dates' is
-not given as a cleaning option); use \code{Inf} for no limit}
-
 \item{ranges}{what to do if a number of contacts is given as a range: sample
 from the range ("sample"), or apply a function, given as character string
 (e.g., "mean")}
 
 \item{age.breaks}{a vector of limits of age groups (first age group starts
 at 0 years of age)}
+
+\item{max.symptom.days}{maximum number of days a symptom start date can be
+before the report that gives it (ignored if 'remove.bad.symptom.dates' is
+not given as a cleaning option); use \code{Inf} for no limit}
 }
 \value{
 a rolling-joined data table. \code{day.of.week} (1 for Monday to 7

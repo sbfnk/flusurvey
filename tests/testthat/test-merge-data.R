@@ -29,3 +29,14 @@ test_that("merge_data skips every cleaning step for clean = NULL", {
     nrow(raw)
   )
 })
+
+test_that("merge_data preserves positional contact and age arguments", {
+  for (survey in c("background", "contact")) {
+    data <- simulated_data[["2013"]][survey]
+    expect_equal(
+      merge_data(data, character(), 3, "mean", c(10, 20)),
+      merge_data(data, clean = character(), min.reports = 3,
+                 ranges = "mean", age.breaks = c(10, 20))
+    )
+  }
+})

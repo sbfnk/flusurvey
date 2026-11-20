@@ -37,14 +37,14 @@
 ##' symptoms
 ##' @param min.reports minimum number of reports per user (ignored if
 ##' 'min.reports' is not given as a cleaning option)
-##' @param max.symptom.days maximum number of days a symptom start date can be
-##' before the report that gives it (ignored if 'remove.bad.symptom.dates' is
-##' not given as a cleaning option); use \code{Inf} for no limit
 ##' @param ranges what to do if a number of contacts is given as a range: sample
 ##' from the range ("sample"), or apply a function, given as character string
 ##' (e.g., "mean")
 ##' @param age.breaks a vector of limits of age groups (first age group starts
 ##' at 0 years of age)
+##' @param max.symptom.days maximum number of days a symptom start date can be
+##' before the report that gives it (ignored if 'remove.bad.symptom.dates' is
+##' not given as a cleaning option); use \code{Inf} for no limit
 ##' @return a rolling-joined data table. \code{day.of.week} (1 for Monday to 7
 ##' for Sunday) is that of the report date. If the contact survey is included,
 ##' \code{contact.date} is the day the contacts describe (the day before the
@@ -75,9 +75,9 @@ merge_data <- function(
     "only.symptoms"
   ),
   min.reports = 3,
-  max.symptom.days = 28,
   ranges = "sample",
-  age.breaks = c(18, 45, 65)
+  age.breaks = c(18, 45, 65),
+  max.symptom.days = 28
 ) {
   survey_order <- c("background", "contact", "symptom")
   if (!all(names(data) %in% survey_order)) {
