@@ -2,7 +2,7 @@
 ##'
 ##' For each bout, use the latest reported start and end dates. If the start
 ##' date is unknown, leave it missing; if the end date is unknown, use the last
-##' report date. If the end date precedes the start date, set both dates to
+##' report date. If the end date is before the start date, set both dates to
 ##' missing.
 ##'
 ##' @param x the data to extract bouts from
