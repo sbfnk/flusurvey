@@ -4,22 +4,31 @@
 \alias{aggregate_symptoms}
 \title{Aggregate symptoms in symptom table to work out ILI etc.}
 \usage{
-aggregate_symptoms(symptoms, ili.sudden.unknown = 1)
+aggregate_symptoms(symptoms, ili.sudden.unknown = NA)
 }
 \arguments{
 \item{symptoms}{a data table of symptom reports}
 
-\item{ili.sudden.unknown}{how to treat reports where sudden onset is
-unknown, i.e. answered "dont_know" or not at all, with no fever question
-to settle it. \code{1} (the default) counts onset as sudden, which allows such
-reports to be ILI. \code{0} counts onset as not sudden, which rules ILI out.
-\code{NA} leaves onset, \code{ili} and \code{ili.fever} missing.}
+\item{ili.sudden.unknown}{how to interpret reports where onset is unknown
+(see above): \code{NA} (the default) leaves \code{suddenly}, \code{ili}
+and \code{ili.fever} missing where onset is needed to decide, \code{1}
+counts unknown onset as sudden and \code{0} counts it as not sudden.}
 }
 \value{
-a data table with added columns
+a data table with added columns, including \code{onset}
 }
 \description{
 Aggregate symptoms in symptom table to work out ILI etc.
+}
+\details{
+The recorded onset is kept in the column \code{onset}: "sudden",
+"not.sudden", "dont_know" (an explicit answer), "not.answered" (the question
+was asked but not answered) or "no.question" (the data have no onset
+question). None of the last three establishes sudden onset.
+\code{ili.sudden.unknown} sets how they are interpreted for the derived
+columns \code{suddenly}, \code{ili} and \code{ili.fever}, without changing
+\code{onset} or the answers in the data. A report that already fails
+another ILI criterion is not ILI whatever its onset.
 }
 \author{
 seb
