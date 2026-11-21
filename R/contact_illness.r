@@ -8,8 +8,9 @@
 ##' \emph{Eligibility and follow-up.} A participant is eligible in a season if
 ##' they filed symptom reports on at least \code{min.reports} different days
 ##' and at least one of them reported no symptoms. Follow-up runs from the
-##' first to the last report without symptoms. Bouts are reconstructed from all
-##' symptom reports, including those of ineligible participants and those
+##' first report without symptoms to the end given by \code{follow_up_end}.
+##' Bouts are reconstructed from all symptom reports, including those of
+##' ineligible participants and those
 ##' outside follow-up; eligibility and follow-up only decide which contact days
 ##' are classified. The column \code{follow_up} records the result:
 ##' "in follow-up", "before follow-up", "after follow-up" or "not eligible".
@@ -77,6 +78,9 @@
 ##' a missing column gives missing flags.
 ##' @param min.reports the minimum number of days with symptom reports for a
 ##' participant to be eligible in a season
+##' @param follow_up_end where follow-up ends: \code{"last_healthy"} (the
+##' default) at the last report without symptoms, or \code{"end_of_illness"}
+##' at the later of that report and the end of the last bout of illness.
 ##' @return the contact reports with added columns \code{follow_up} (see
 ##' above), \code{current_symptoms}
 ##' ("symptoms" or "no symptoms"), and a daily column \code{current_*} and a
@@ -95,7 +99,10 @@
 ##' table(contact_illness(contacts, symptoms)$current_symptoms, useNA = "ifany")
 ##' @import data.table
 ##' @export
-contact_illness <- function(contacts, symptoms, min.reports = 3) {
+contact_illness <- function(contacts, symptoms, min.reports = 3,
+                            follow_up_end = c("last_healthy",
+                                              "end_of_illness")) {
+  follow_up_end <- match.arg(follow_up_end)
   flag_cols <- c(
     ili = "ili", ili_fever = "ili.fever", ili_self = "ili.self",
     ari = "resp.symptoms"
@@ -142,12 +149,16 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
              !is.na(bstart) & !is.na(bend) & bstart <= bend]
   symptoms[is.na(valid), valid := FALSE]
 
-  ## eligibility and follow-up: first to last report without symptoms
+  ## eligibility and follow-up: from the first report without symptoms to
+  ## the end set by follow_up_end
   follow_up <- symptoms[, list(
     n_reports = uniqueN(date),
     fu_start = if (any(healthy)) min(date[healthy]) else as.Date(NA),
-    fu_end = if (any(healthy)) max(date[healthy]) else as.Date(NA)
+    fu_end = if (any(healthy)) max(date[healthy]) else as.Date(NA),
+    last_illness_end = if (any(valid)) max(bend[valid]) else as.Date(NA)
   ), by = group_by]
+  follow_up[follow_up_end == "end_of_illness" & !is.na(last_illness_end) &
+              last_illness_end > fu_end, fu_end := last_illness_end]
   follow_up[, eligible := n_reports >= min.reports & !is.na(fu_start)]
 
   ## bouts from all reports with a valid interval
