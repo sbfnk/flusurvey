@@ -139,7 +139,7 @@ add_aggregated_dates <- function(dt, bouts, columns, aggregation) {
   invisible(NULL)
 }
 
-## calculate incidence based on symptom start date
+## count new cases by symptom start date
 count_new_cases <- function(
   bouts, incidence.columns, columns, aggregation, id_column, by
 ) {
@@ -171,7 +171,7 @@ count_new_cases <- function(
   incidence
 }
 
-## work out denominator of active members
+## compute the denominator from active members
 merge_active_members <- function(
   incidence, dt, columns, aggregation, id_column, by
 ) {
@@ -213,7 +213,7 @@ merge_active_members <- function(
   )
 }
 
-## work out denominator of all reports
+## compute the denominator from all reports
 merge_reports <- function(incidence, dt, columns, aggregation, id_column, by) {
   id_reports <- dt[,
     list(reports = .N),
