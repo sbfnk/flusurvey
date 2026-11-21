@@ -116,6 +116,8 @@ add_aggregated_dates <- function(dt, bouts, columns, aggregation) {
       dt[, paste(date_col) := as.Date(
         paste(substr(season, 1, 4), 11, 1, sep = "-")
       )]
+      ## the subscript keeps this empty when there are no bouts, as paste()
+      ## would otherwise return a single "-11-1"
       bouts[, paste(date_col) := as.Date(
         paste(substr(season, 1, 4), 11, 1, sep = "-")[seq_along(season)]
       )]
