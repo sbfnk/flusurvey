@@ -392,3 +392,28 @@ test_that("contact analysis cleans invalid dates without dropping reports", {
   ## days since the previous report are unknown rather than healthy
   expect_equal(res$current_symptoms, c("no symptoms", NA))
 })
+
+test_that("chronic reports are treated as no acute illness on request", {
+  symptoms <- data.table::rbindlist(list(
+    followed("a"),
+    report("a", "2013-01-20", start = "2013-01-02", end = "2013-01-20"),
+    report("a", "2013-01-25", start = "2013-01-24", end = "2013-01-25")
+  ))
+  symptoms[, other.chronic := c("f", "f", "t", "f")]
+  days <- as.Date(c("2013-01-10", "2013-01-24"))
+  status <- function(...) {
+    contact_illness(contact("a", days), symptoms, ...)$current_symptoms
+  }
+  expect_equal(status(), c("symptoms", "symptoms"))
+  expect_equal(status(chronic = "duration", chronic.days = 14),
+               c("no symptoms", "symptoms"))
+  expect_equal(status(chronic = "duration", chronic.days = 30),
+               c("symptoms", "symptoms"))
+  expect_equal(status(chronic = "condition"), c("no symptoms", "symptoms"))
+  expect_error(status(chronic = "duration"), "chronic.days")
+  expect_error(
+    contact_illness(contact("a", days), symptoms[, -"other.chronic"],
+                    chronic = "condition"),
+    "chronic.cols"
+  )
+})

@@ -36,9 +36,10 @@
 ##' illness cannot be placed, so every day since the participant's previous
 ##' report, up to and including its own date, is unknown (missing) unless
 ##' it lies in a bout. A report without symptoms is taken as no acute illness.
-##' The data hold no indicator of chronic symptoms and the maintainers have
-##' not defined one, or a duration after which symptoms count as chronic.
-##' No rule for chronic symptoms is applied.
+##' The data hold no indicator of chronic symptoms, so by default
+##' (\code{chronic = "none"}) no rule for them is applied. The argument
+##' \code{chronic} selects one: reports it flags as chronic are treated as
+##' no acute illness, so they support no bout and leave no day unknown.
 ##'
 ##' The case-definition flags are known per report, not per day. A bout meeting
 ##' a definition at some point need not have had every symptom present on
@@ -77,6 +78,15 @@
 ##' a missing column gives missing flags.
 ##' @param min.reports the minimum number of days with symptom reports for a
 ##' participant to be eligible in a season
+##' @param chronic how to identify chronic symptom reports: \code{"none"}
+##' (the default) flags none; \code{"duration"} flags reports with a valid
+##' interval of more than \code{chronic.days} days; \code{"condition"} flags
+##' reports for which any of the \code{chronic.cols} is "t"
+##' @param chronic.days the number of days beyond which a report counts as
+##' chronic, for \code{chronic = "duration"}
+##' @param chronic.cols columns of \code{symptoms} holding chronic medical
+##' conditions, for \code{chronic = "condition"}. Columns that are absent are
+##' ignored, and it is an error if none is present
 ##' @return the contact reports with added columns \code{follow_up} (see
 ##' above), \code{current_symptoms}
 ##' ("symptoms" or "no symptoms"), and a daily column \code{current_*} and a
@@ -95,7 +105,18 @@
 ##' table(contact_illness(contacts, symptoms)$current_symptoms, useNA = "ifany")
 ##' @import data.table
 ##' @export
-contact_illness <- function(contacts, symptoms, min.reports = 3) {
+contact_illness <- function(contacts, symptoms, min.reports = 3,
+                            chronic = c("none", "duration", "condition"),
+                            chronic.days = NULL,
+                            chronic.cols = c("chronic.heart.disease",
+                                             "other.chronic.lung.disease",
+                                             "other.chronic")) {
+  chronic <- match.arg(chronic)
+  if (chronic == "duration" &&
+        !(is.numeric(chronic.days) && length(chronic.days) == 1 &&
+            !is.na(chronic.days))) {
+    stop("'chronic.days' must be a single number when chronic = \"duration\"")
+  }
   flag_cols <- c(
     ili = "ili", ili_fever = "ili.fever", ili_self = "ili.self",
     ari = "resp.symptoms"
@@ -141,6 +162,19 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
   symptoms[, valid := as.character(no.symptoms) == "f" &
              !is.na(bstart) & !is.na(bend) & bstart <= bend]
   symptoms[is.na(valid), valid := FALSE]
+  symptoms[, is_chronic := FALSE]
+  if (chronic == "duration") {
+    symptoms[(valid), is_chronic := as.numeric(bend - bstart) + 1 > chronic.days]
+  } else if (chronic == "condition") {
+    present <- intersect(chronic.cols, colnames(symptoms))
+    if (length(present) == 0) {
+      stop("none of 'chronic.cols' is a column of 'symptoms'")
+    }
+    symptoms[, is_chronic := Reduce(`|`, lapply(
+      present, function(col) as.character(get(col)) %in% "t"
+    )) & as.character(no.symptoms) == "f"]
+  }
+  symptoms[(is_chronic), valid := FALSE]
 
   ## eligibility and follow-up: first to last report without symptoms
   follow_up <- symptoms[, list(
@@ -170,7 +204,7 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
     match(date, unique(date))
   ], by = group_by]
   unresolved <- symptoms[
-    !healthy & !valid,
+    !healthy & !valid & !is_chronic,
     list(unknown_start = fifelse(is.na(previous_date), date, previous_date + 1),
          unknown_end = date),
     by = group_by

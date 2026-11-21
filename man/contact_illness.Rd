@@ -4,7 +4,15 @@
 \alias{contact_illness}
 \title{Illness status of contact reports}
 \usage{
-contact_illness(contacts, symptoms, min.reports = 3)
+contact_illness(
+  contacts,
+  symptoms,
+  min.reports = 3,
+  chronic = c("none", "duration", "condition"),
+  chronic.days = NULL,
+  chronic.cols = c("chronic.heart.disease", "other.chronic.lung.disease",
+    "other.chronic")
+)
 }
 \arguments{
 \item{contacts}{a data table of contact reports with columns
@@ -21,6 +29,18 @@ a missing column gives missing flags.}
 
 \item{min.reports}{the minimum number of days with symptom reports for a
 participant to be eligible in a season}
+
+\item{chronic}{how to identify chronic symptom reports: \code{"none"}
+(the default) flags none; \code{"duration"} flags reports with a valid
+interval of more than \code{chronic.days} days; \code{"condition"} flags
+reports for which any of the \code{chronic.cols} is "t"}
+
+\item{chronic.days}{the number of days beyond which a report counts as
+chronic, for \code{chronic = "duration"}}
+
+\item{chronic.cols}{columns of \code{symptoms} holding chronic medical
+conditions, for \code{chronic = "condition"}. Columns that are absent are
+ignored, and it is an error if none is present}
 }
 \value{
 the contact reports with added columns \code{follow_up} (see
@@ -71,9 +91,10 @@ missing, inconsistent, or an unknown end that is not "still ill". Its
 illness cannot be placed, so every day since the participant's previous
 report, up to and including its own date, is unknown (missing) unless
 it lies in a bout. A report without symptoms is taken as no acute illness.
-The data hold no indicator of chronic symptoms, and the maintainers have
-not defined one (nor a duration after which symptoms count as chronic), so
-no rule for them is applied.
+The data hold no indicator of chronic symptoms, so by default
+(\code{chronic = "none"}) no rule for them is applied. The argument
+\code{chronic} selects one: reports it flags as chronic are treated as
+no acute illness, so they support no bout and leave no day unknown.
 
 The case-definition flags are known per report, not per day. A bout meeting
 a definition at some point need not have had every symptom present on
