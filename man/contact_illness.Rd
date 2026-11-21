@@ -4,7 +4,12 @@
 \alias{contact_illness}
 \title{Illness status of contact reports}
 \usage{
-contact_illness(contacts, symptoms, min.reports = 3)
+contact_illness(
+  contacts,
+  symptoms,
+  min.reports = 3,
+  healthy = c("follow-up", "report")
+)
 }
 \arguments{
 \item{contacts}{a data table of contact reports with columns
@@ -21,6 +26,10 @@ a missing column gives missing flags.}
 
 \item{min.reports}{the minimum number of days with symptom reports for a
 participant to be eligible in a season}
+
+\item{healthy}{the rule for a day outside a bout within follow-up:
+"follow-up" counts it as healthy, "report" only if a later report
+without symptoms covers it}
 }
 \value{
 the contact reports with added columns \code{follow_up} (see
@@ -41,11 +50,9 @@ not needed on the contact day itself.
 \emph{Eligibility and follow-up.} A participant is eligible in a season if
 they filed symptom reports on at least \code{min.reports} different days
 and at least one of them reported no symptoms. Follow-up runs from the
-first to the last report without symptoms. The last report without
-symptoms is the default end of follow-up; the end of the last illness is
-not used as an alternative. All symptom reports, including those of
-ineligible participants and those outside follow-up, are used to
-reconstruct bouts; eligibility and follow-up only decide which contact days
+first to the last report without symptoms. Bouts are reconstructed from all
+symptom reports, including those of ineligible participants and those
+outside follow-up; eligibility and follow-up only decide which contact days
 are classified. The column \code{follow_up} records the result:
 "in follow-up", "before follow-up", "after follow-up" or "not eligible".
 Contact days outside follow-up have an unknown status and are never
@@ -64,16 +71,21 @@ and a participant reporting no symptoms between two overlapping intervals
 does not split them.
 
 \emph{Daily status.} Within follow-up, \code{current_symptoms} is
-"symptoms" on days in a bout and "no symptoms" on every other day, with or
-without a report that day. The exception is a report with symptoms (or
+"symptoms" on days in a bout. With \code{healthy = "follow-up"} every
+other day is "no symptoms", with or without a report that day. With
+\code{healthy = "report"} a day is "no symptoms" only if a report
+without symptoms filed after it covers it, from the previous report's
+date up to the day before its own. Days before a participant's first
+report, and days with no such report, are unknown. The exception is a
+report with symptoms (or
 without a known symptom status) whose dates give no usable interval:
 missing, inconsistent, or an unknown end that is not "still ill". Its
 illness cannot be placed, so every day since the participant's previous
 report, up to and including its own date, is unknown (missing) unless
 it lies in a bout. A report without symptoms is taken as no acute illness.
-The data hold no indicator of chronic symptoms, and the maintainers have
-not defined one (nor a duration after which symptoms count as chronic), so
-no rule for them is applied.
+The data hold no indicator of chronic symptoms and the maintainers have
+not defined one, or a duration after which symptoms count as chronic.
+No rule for chronic symptoms is applied.
 
 The case-definition flags are known per report, not per day. A bout meeting
 a definition at some point need not have had every symptom present on
