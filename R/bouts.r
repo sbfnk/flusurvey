@@ -166,7 +166,7 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
     for (column in tf_columns) {
       cat("  ", column, "\n")
       if (grepl("\\.no(ne)?$", column)) {
-        dt[,
+        dt[!is.na(bout),
           paste(column) := factor(
             as.integer(all(get(column) == "t")),
             levels = 0:1,
@@ -175,7 +175,7 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
           by = list(participant_id, season, bout)
         ]
       } else {
-        dt[,
+        dt[!is.na(bout),
           paste(column) := factor(
             as.integer(any(get(column) == "t")),
             levels = 0:1,
