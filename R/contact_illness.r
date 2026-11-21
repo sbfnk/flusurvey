@@ -157,10 +157,8 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
     fu_end = if (any(healthy)) max(date[healthy]) else as.Date(NA),
     last_illness_end = if (any(valid)) max(bend[valid]) else as.Date(NA)
   ), by = group_by]
-  if (follow_up_end == "end_of_illness") {
-    follow_up[!is.na(last_illness_end) & last_illness_end > fu_end,
-              fu_end := last_illness_end]
-  }
+  follow_up[follow_up_end == "end_of_illness" & !is.na(last_illness_end) &
+              last_illness_end > fu_end, fu_end := last_illness_end]
   follow_up[, eligible := n_reports >= min.reports & !is.na(fu_start)]
 
   ## bouts from all reports with a valid interval
