@@ -11,7 +11,8 @@ merge_data(
     "only.symptoms"),
   min.reports = 3,
   ranges = "sample",
-  age.breaks = c(18, 44, 64)
+  age.breaks = c(18, 44, 64),
+  ili.sudden.unknown = NA
 )
 }
 \arguments{
@@ -20,22 +21,23 @@ merge_data(
 contact, symptom), regardless of their order in \code{data}. The last one
 present drives a rolling join. The result has one row per report of that
 survey (the symptom reports, if present), each taking the latest report of
-the other surveys on or before its date. Any other survey name gives an
-error.
+the other surveys on or before its date. When an earlier survey has several
+reports on the same day, its last report is used. Any other survey name
+gives an error.
 
 Joining the contact and symptom surveys gives a warning. The join pairs
 each symptom report with the latest earlier contact report, however long
 before it was filed, and a contact report describes one day whereas a
 symptom report describes the week before it. With
 'unsuccessful.join' the symptom reports without an earlier contact report
-are dropped, which shortens episodes of illness. To link the two, extract
+are dropped, shortening episodes of illness. To link the two, extract
 the symptom and contact surveys separately, get the episodes with
 \code{\link{bouts_of_illness}} and flag the contact reports made during an
 episode with \code{\link{flag_ill_contacts}}.}
 
 \item{clean}{cleaning options, NULL for no cleaning, otherwise a vector of
 cleans to perform (by default all):
-- 'remove.first', whether to remove everyone's first report,
+- 'remove.first', whether to remove reports from the first reporting day,
 - 'remove.bad.symptom.dates', whether to remove bad symptom dates: symptom
 start before date of first or end after end of last report, end of symptoms
 before start of symptoms, symptoms reported to have started or ended after
@@ -45,15 +47,15 @@ date of report
 (when surveys are merged, applied to the symptom survey only)
 - 'remove.postcodes', whether to remove postcodes
 - 'n.reports', whether to exclude those with fewer than \code{min.reports}
-reports
+symptom reporting days
 - 'unsuccessful.join', whether to exclude those with unsuccesful joins (e.g.
 if symptoms are reported without a background survey present; the web site
 should have prevented this, but doesn't appear to have done so)
 - 'only.symptoms', whether to exclude those that have no report without
 symptoms}
 
-\item{min.reports}{minimum number of reports per user (ignored if
-'min.reports' is not given as a cleaning option)}
+\item{min.reports}{minimum number of symptom reporting days per user
+(ignored if 'min.reports' is not given as a cleaning option)}
 
 \item{ranges}{what to do if a number of contacts is given as a range: sample
 from the range ("sample"), or apply a function, given as character string
@@ -63,6 +65,12 @@ from the range ("sample"), or apply a function, given as character string
 group except the last (first age group starts at 0 years of age). The last
 group is open-ended. The default gives the groups 0-18, 19-44, 45-64 and
 65+, matching the age bands of the contact questions.}
+
+\item{ili.sudden.unknown}{how to interpret reports where sudden onset is
+unknown, passed to \code{\link{aggregate_symptoms}}: \code{NA} (the
+default) leaves \code{ili} and \code{ili.fever} missing where onset is
+needed to decide, \code{1} counts unknown onset as sudden and \code{0} as
+not sudden. The recorded onset is kept in \code{onset}.}
 }
 \value{
 a rolling-joined data table. \code{day.of.week} (1 for Monday to 7
@@ -78,7 +86,7 @@ Clean and merge flusurvey data tables
 dt <- merge_data(simulated_data[["2013"]])
 table(dt$ili)
 
-## only remove each participant's first report
+## only remove each participant's first reporting day
 merge_data(simulated_data[["2013"]], clean = "remove.first")
 }
 \author{
