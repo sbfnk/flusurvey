@@ -10,6 +10,7 @@ utils::globalVariables(c(
   "bout",
   "contact.date",
   "contact.day.of.week",
+  "day",
   "country",
   "current_symptoms",
   "bend",

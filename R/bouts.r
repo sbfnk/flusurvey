@@ -3,7 +3,15 @@
 ##' @param x the data to extract bouts from
 ##' @param symptomatic.only whether to only include symptomatic periods
 ##' @param as.data.frame currently has no effect
-##' @return a data table of bouts of illness
+##' @param daily.flags how to assign the case-definition flags set by
+##'   \code{\link{aggregate_symptoms}} to the days of a bout.
+##'   \code{"none"} returns one row per bout. The other values return one row
+##'   per day, in the column \code{day}, from \code{symptoms.start.date} to
+##'   \code{symptoms.end.date}. \code{"carry.forward"} takes the flags from
+##'   the last report on or before the day. \code{"bout"} gives every day the
+##'   flags of the bout. \code{"report"} sets flags only on days with a
+##'   report.
+##' @return a data table of bouts of illness, or of their days
 ##' @author seb
 ##' @examples
 ##' dt <- extract_data(simulated_data, years = 2013:2014)
@@ -14,7 +22,11 @@
 ##' @import data.table
 ##' @importFrom stats median
 ##' @export
-bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
+bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE,
+                             daily.flags = c(
+                               "none", "carry.forward", "bout", "report"
+                             )) {
+  daily.flags <- match.arg(daily.flags)
   dt <- data.table(x)
 
   if ("health.score" %in% colnames(dt)) {
@@ -147,6 +159,18 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
   dt[, last.not.na.symptoms.end.date := NULL]
 
 
+  flag.columns <- intersect(
+    c(
+      "suddenly", "fever.symptoms", "systemic.symptoms", "resp.symptoms",
+      "general.symptoms", "ili.symptoms", "ili", "ili.fever", "ili.self", "gi"
+    ),
+    colnames(dt)
+  )
+  report.flags <- dt[!is.na(bout),
+    c("participant_id", "season", "bout", "date", flag.columns),
+    with = FALSE
+  ]
+
   symptoms.id.column <- which(colnames(dt) == "symptom.id")
   if (symptoms.id.column > 1) {
     dt[
@@ -203,5 +227,24 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
     dt <- dt[!is.na(min.part.symptom.id)]
   }
   dt[, id := NULL]
+  if (daily.flags != "none") {
+    dt <- dt[!is.na(bout)]
+    starts <- dt$symptoms.start.date
+    ends <- pmax(dt$symptoms.end.date, starts)
+    days <- Map(function(from, to) seq(from, to, by = "day"), starts, ends)
+    dt <- dt[rep(seq_len(nrow(dt)), lengths(days))]
+    dt[, day := as.Date(unlist(days), origin = "1970-01-01")]
+    if (daily.flags != "bout" && length(flag.columns) > 0) {
+      flags <- report.flags[
+        dt,
+        flag.columns,
+        on = c("participant_id", "season", "bout", date = "day"),
+        roll = if (daily.flags == "carry.forward") TRUE else FALSE,
+        mult = "last",
+        with = FALSE
+      ]
+      dt[, (flag.columns) := flags]
+    }
+  }
   dt[]
 }
