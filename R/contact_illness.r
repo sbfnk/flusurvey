@@ -104,7 +104,7 @@
 ##' @import data.table
 ##' @export
 contact_illness <- function(contacts, symptoms, min.reports = 3,
-                           healthy = c("follow-up", "report")) {
+                            healthy = c("follow-up", "report")) {
   healthy_rule <- match.arg(healthy)
   flag_cols <- c(
     ili = "ili", ili_fever = "ili.fever", ili_self = "ili.self",
