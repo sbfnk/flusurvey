@@ -79,9 +79,7 @@
 ##' participant to be eligible in a season
 ##' @param follow_up_end where follow-up ends: \code{"last_healthy"} (the
 ##' default) at the last report without symptoms, or \code{"end_of_illness"}
-##' at the later of that report and the end of the last bout of illness. The
-##' two differ for participants who were ill at or after their last report
-##' without symptoms.
+##' at the later of that report and the end of the last bout of illness.
 ##' @return the contact reports with added columns \code{follow_up} (see
 ##' above), \code{current_symptoms}
 ##' ("symptoms" or "no symptoms"), and a daily column \code{current_*} and a
