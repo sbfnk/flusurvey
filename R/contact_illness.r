@@ -84,8 +84,8 @@
 ##' @param chronic.days the number of days beyond which a report counts as
 ##' chronic, for \code{chronic = "duration"}
 ##' @param chronic.cols columns of \code{symptoms} holding chronic medical
-##' conditions, for \code{chronic = "condition"}. Columns that are absent are
-##' ignored, and it is an error if none is present
+##' conditions, for \code{chronic = "condition"}. Absent columns are ignored,
+##' but at least one must be present.
 ##' @return the contact reports with added columns \code{follow_up} (see
 ##' above), \code{current_symptoms}
 ##' ("symptoms" or "no symptoms"), and a daily column \code{current_*} and a
