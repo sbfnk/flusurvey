@@ -602,9 +602,9 @@ add_contact_totals <- function(dt, types, contact_columns) {
   invisible(dt)
 }
 
-## Only the symptom survey is limited when surveys are merged. Limiting the
-## background or contact survey would drop participants who report symptoms in
-## the season.
+## When surveys are merged, the season limit applies to the symptom survey
+## only. Applying it to the background or contact survey would drop
+## participants who report symptoms in the season.
 limits_season <- function(name, n_surveys) {
   name == "symptom" || n_surveys == 1
 }
