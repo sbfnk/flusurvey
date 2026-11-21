@@ -39,8 +39,8 @@ reports for which any of the \code{chronic.cols} is "t"}
 chronic, for \code{chronic = "duration"}}
 
 \item{chronic.cols}{columns of \code{symptoms} holding chronic medical
-conditions, for \code{chronic = "condition"}. Columns that are absent are
-ignored, and it is an error if none is present}
+conditions, for \code{chronic = "condition"}. Absent columns are ignored,
+but at least one must be present.}
 }
 \value{
 the contact reports with added columns \code{follow_up} (see
@@ -61,11 +61,9 @@ not needed on the contact day itself.
 \emph{Eligibility and follow-up.} A participant is eligible in a season if
 they filed symptom reports on at least \code{min.reports} different days
 and at least one of them reported no symptoms. Follow-up runs from the
-first to the last report without symptoms. The last report without
-symptoms is the default end of follow-up; the end of the last illness is
-not used as an alternative. All symptom reports, including those of
-ineligible participants and those outside follow-up, are used to
-reconstruct bouts; eligibility and follow-up only decide which contact days
+first to the last report without symptoms. Bouts are reconstructed from all
+symptom reports, including those of ineligible participants and those
+outside follow-up; eligibility and follow-up only decide which contact days
 are classified. The column \code{follow_up} records the result:
 "in follow-up", "before follow-up", "after follow-up" or "not eligible".
 Contact days outside follow-up have an unknown status and are never
