@@ -111,11 +111,6 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
                                              "other.chronic.lung.disease",
                                              "other.chronic")) {
   chronic <- match.arg(chronic)
-  if (chronic == "duration" &&
-        !(is.numeric(chronic.days) && length(chronic.days) == 1 &&
-            !is.na(chronic.days))) {
-    stop("'chronic.days' must be a single number when chronic = \"duration\"")
-  }
   flag_cols <- c(
     ili = "ili", ili_fever = "ili.fever", ili_self = "ili.self",
     ari = "resp.symptoms"
@@ -161,18 +156,9 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
   symptoms[, valid := as.character(no.symptoms) == "f" &
              !is.na(bstart) & !is.na(bend) & bstart <= bend]
   symptoms[is.na(valid), valid := FALSE]
-  symptoms[, is_chronic := FALSE]
-  if (chronic == "duration") {
-    symptoms[(valid), is_chronic := as.numeric(bend - bstart) + 1 > chronic.days]
-  } else if (chronic == "condition") {
-    present <- intersect(chronic.cols, colnames(symptoms))
-    if (length(present) == 0) {
-      stop("none of 'chronic.cols' is a column of 'symptoms'")
-    }
-    symptoms[, is_chronic := Reduce(`|`, lapply(
-      present, function(col) as.character(get(col)) %in% "t"
-    )) & as.character(no.symptoms) == "f"]
-  }
+  symptoms[, is_chronic := chronic_reports(
+    symptoms, chronic, chronic.days, chronic.cols
+  )]
   symptoms[(is_chronic), valid := FALSE]
 
   ## eligibility and follow-up: first to last report without symptoms
@@ -277,4 +263,28 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
             paste0("current_", names(flag_cols)),
             paste0("bout_", names(flag_cols)))
   merge(contacts, status[, keep, with = FALSE], by = key_cols, all.x = TRUE)
+}
+
+## Flags the reports that are chronic rather than acute, by `chronic`.
+chronic_reports <- function(symptoms, chronic, chronic.days, chronic.cols) {
+  if (chronic == "duration") {
+    if (!(is.numeric(chronic.days) && length(chronic.days) == 1 &&
+            !is.na(chronic.days))) {
+      stop("'chronic.days' must be a single number when chronic = \"duration\"",
+           call. = FALSE)
+    }
+    return(symptoms$valid & as.numeric(symptoms$bend - symptoms$bstart) + 1 >
+             chronic.days)
+  }
+  if (chronic == "condition") {
+    present <- intersect(chronic.cols, colnames(symptoms))
+    if (length(present) == 0) {
+      stop("none of 'chronic.cols' is a column of 'symptoms'", call. = FALSE)
+    }
+    conditions <- lapply(present, function(col) {
+      as.character(symptoms[[col]]) %in% "t"
+    })
+    return(Reduce(`|`, conditions) & as.character(symptoms$no.symptoms) == "f")
+  }
+  rep(FALSE, nrow(symptoms))
 }
