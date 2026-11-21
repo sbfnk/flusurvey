@@ -523,7 +523,7 @@ add_household_members <- function(dt, max.band.count) {
   ]
   ## a zero total means no band was filled in. Every household has at least
   ## one member, so zero is recorded as missing
-  dt[nb.household %in% 0, nb.household := NA_real_]
+  dt[nb.household == 0, nb.household := NA_real_]
   dt[, nb.household.children := rowSums(.SD),
     .SDcols = c("nb.household.0.4", "nb.household.5.18")
   ]
