@@ -285,7 +285,8 @@ chronic_reports <- function(symptoms, chronic, chronic.days, chronic.cols) {
       flag <- as.character(symptoms[[col]])
       !is.na(flag) & flag == "t"
     })
-    return(Reduce(`|`, conditions) & as.character(symptoms$no.symptoms) == "f")
+    no_symptoms <- as.character(symptoms$no.symptoms)
+    return(Reduce(`|`, conditions) & !is.na(no_symptoms) & no_symptoms == "f")
   }
   rep(FALSE, nrow(symptoms))
 }

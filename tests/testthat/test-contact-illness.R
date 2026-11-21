@@ -417,3 +417,18 @@ test_that("chronic reports are treated as no acute illness on request", {
     "chronic.cols"
   )
 })
+
+test_that("a chronic condition on a report without an answer leaves days unknown", {
+  symptoms <- data.table::rbindlist(list(
+    followed("a"),
+    report("a", "2013-01-20")
+  ))
+  symptoms[, no.symptoms := c("t", "t", NA)]
+  symptoms[, other.chronic := c("f", "f", "t")]
+  day <- contact("a", as.Date("2013-01-10"))
+  expect_equal(contact_illness(day, symptoms)$current_symptoms, NA_character_)
+  expect_equal(
+    contact_illness(day, symptoms, chronic = "condition")$current_symptoms,
+    NA_character_
+  )
+})
