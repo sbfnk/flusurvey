@@ -4,7 +4,12 @@
 \alias{bouts_of_illness}
 \title{Extract bouts of illness from a flusurvey data table}
 \usage{
-bouts_of_illness(x, symptomatic.only = TRUE, as.data.frame = TRUE)
+bouts_of_illness(
+  x,
+  symptomatic.only = TRUE,
+  as.data.frame = TRUE,
+  daily.flags = c("none", "carry.forward", "bout", "report")
+)
 }
 \arguments{
 \item{x}{the data to extract bouts from}
@@ -12,9 +17,21 @@ bouts_of_illness(x, symptomatic.only = TRUE, as.data.frame = TRUE)
 \item{symptomatic.only}{whether to only include symptomatic periods}
 
 \item{as.data.frame}{currently has no effect}
+
+\item{daily.flags}{how to give the case-definition flags set by
+\code{\link{aggregate_symptoms}} (\code{ili}, \code{ili.symptoms} and
+the others) to the days of a bout. \code{"none"} (the default) returns
+one row per bout. The other values return one row per day, in the column
+\code{day}, from \code{symptoms.start.date} to \code{symptoms.end.date}:
+\code{"carry.forward"} takes the flags from the last report on or before
+the day (missing before the first report), \code{"bout"} gives every day
+the flags of the bout, computed from the merged symptom columns, and
+\code{"report"} sets them only on days with a report and leaves the rest
+missing.}
 }
 \value{
-a data table of bouts of illness
+a data table of bouts of illness, or of the days of each bout
+unless \code{daily.flags} is \code{"none"}
 }
 \description{
 Extract bouts of illness from a flusurvey data table
