@@ -91,10 +91,9 @@ missing, inconsistent, or an unknown end that is not "still ill". Its
 illness cannot be placed, so every day since the participant's previous
 report, up to and including its own date, is unknown (missing) unless
 it lies in a bout. A report without symptoms is taken as no acute illness.
-The data hold no indicator of chronic symptoms, so by default
-(\code{chronic = "none"}) no rule for them is applied. The argument
-\code{chronic} selects one: reports it flags as chronic are treated as
-no acute illness, so they support no bout and leave no day unknown.
+By default (\code{chronic = "none"}) no rule for chronic symptoms is
+applied. Otherwise reports flagged as chronic are treated as no acute
+illness: they support no bout and leave no day unknown.
 
 The case-definition flags are known per report, not per day. A bout meeting
 a definition at some point need not have had every symptom present on
