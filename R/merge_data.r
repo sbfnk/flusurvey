@@ -5,8 +5,9 @@
 ##' contact, symptom), regardless of their order in \code{data}. The last one
 ##' present drives a rolling join. The result has one row per report of that
 ##' survey (the symptom reports, if present), each taking the latest report of
-##' the other surveys on or before its date. Any other survey name gives an
-##' error.
+##' the other surveys on or before its date. For several reports from an earlier
+##' survey on the same day, the last report is used. Any other survey name
+##' gives an error.
 ##'
 ##' Joining the contact and symptom surveys gives a warning. The join pairs
 ##' each symptom report with the latest earlier contact report, however long
@@ -19,7 +20,7 @@
 ##' episode with \code{\link{flag_ill_contacts}}.
 ##' @param clean cleaning options, NULL for no cleaning, otherwise a vector of
 ##' cleans to perform (by default all):
-##' - 'remove.first', whether to remove everyone's first report,
+##' - 'remove.first', whether to remove reports from the first reporting day,
 ##' - 'remove.bad.symptom.dates', whether to remove bad symptom dates: symptom
 ##' start before date of first or end after end of last report, end of symptoms
 ##' before start of symptoms, symptoms reported to have started or ended after
@@ -28,19 +29,26 @@
 ##' - 'limit.season', whether to limit a flu season to November -> April
 ##' - 'remove.postcodes', whether to remove postcodes
 ##' - 'n.reports', whether to exclude those with fewer than \code{min.reports}
-##' reports
+##' symptom reporting days
 ##' - 'unsuccessful.join', whether to exclude those with unsuccesful joins (e.g.
 ##' if symptoms are reported without a background survey present; the web site
 ##' should have prevented this, but doesn't appear to have done so)
 ##' - 'only.symptoms', whether to exclude those that have no report without
 ##' symptoms
-##' @param min.reports minimum number of reports per user (ignored if
-##' 'min.reports' is not given as a cleaning option)
+##' @param min.reports minimum number of symptom reporting days per participant
+##' (ignored if 'min.reports' is not given as a cleaning option)
 ##' @param ranges what to do if a number of contacts is given as a range: sample
 ##' from the range ("sample"), or apply a function, given as character string
 ##' (e.g., "mean")
-##' @param age.breaks a vector of limits of age groups (first age group starts
-##' at 0 years of age)
+##' @param age.breaks a vector of the highest age (in whole years) in each age
+##' group except the last (first age group starts at 0 years of age). The last
+##' group is open-ended. The default gives the groups 0-18, 19-44, 45-64 and
+##' 65+, matching the age bands of the contact questions.
+##' @param ili.sudden.unknown how to interpret reports where sudden onset is
+##' unknown, passed to \code{\link{aggregate_symptoms}}: \code{NA} (the
+##' default) leaves \code{ili} and \code{ili.fever} missing where onset is
+##' needed to decide, \code{1} counts unknown onset as sudden and \code{0} as
+##' not sudden. The recorded onset is kept in \code{onset}.
 ##' @return a rolling-joined data table. \code{day.of.week} (1 for Monday to 7
 ##' for Sunday) is that of the report date. If the contact survey is included,
 ##' \code{contact.date} is the day the contacts describe (the day before the
@@ -51,7 +59,7 @@
 ##' dt <- merge_data(simulated_data[["2013"]])
 ##' table(dt$ili)
 ##'
-##' ## only remove each participant's first report
+##' ## only remove each participant's first reporting day
 ##' merge_data(simulated_data[["2013"]], clean = "remove.first")
 ##' @import data.table
 ##' @importFrom lubridate interval years
@@ -72,7 +80,8 @@ merge_data <- function(
   ),
   min.reports = 3,
   ranges = "sample",
-  age.breaks = c(18, 45, 65)
+  age.breaks = c(18, 44, 64),
+  ili.sudden.unknown = NA
 ) {
   survey_order <- c("background", "contact", "symptom")
   if (!all(names(data) %in% survey_order)) {
@@ -107,16 +116,18 @@ merge_data <- function(
     clean <- match.arg(clean, several.ok = TRUE)
   }
   for (name in names(data)) {
-    ## only keep last report per day
     dt <- copy(data.table(data[[name]]))
-    dt <- dt[!duplicated(dt[, list(global_id, date)], fromLast = TRUE)]
+    if (name != tail(names(data), 1)) {
+      ## keep the last report per day for the rolling join
+      dt <- dt[!duplicated(dt[, list(global_id, date)], fromLast = TRUE)]
+    }
 
     if ("limit.season" %in% clean) {
       dt <- limit_to_season(dt)
     }
 
     dt <- switch(name,
-      symptom = clean_symptom(dt, clean, min.reports),
+      symptom = clean_symptom(dt, clean, min.reports, ili.sudden.unknown),
       background = clean_background(dt, age.breaks),
       contact = clean_contact(dt, ranges),
       dt
@@ -151,8 +162,7 @@ merge_data <- function(
   convert_logical_columns(res, res)
 }
 
-## Keep the reports from the season of the date with the most reports.
-## If several dates tie, use the earliest.
+## Keep the season containing the earliest date with the most reports.
 limit_to_season <- function(dt) {
   ## figure out date with most reports, this defines the season
   reports <- dt[, .N, date]
@@ -221,10 +231,9 @@ convert_logical_columns <- function(res, reference) {
 
 ## ---- symptom survey ---------------------------------------------------------
 
-clean_symptom <- function(dt, clean, min.reports) {
-  dt <- aggregate_symptoms(dt)
-  ## calculate min.reports, max.reports, nReports
-  dt[, nReports := .N, by = global_id]
+clean_symptom <- function(dt, clean, min.reports, ili.sudden.unknown) {
+  dt <- aggregate_symptoms(dt, ili.sudden.unknown = ili.sudden.unknown)
+  dt[, nReports := uniqueN(date), by = global_id]
   if ("n.reports" %in% clean) {
     dt <- dt[nReports >= min.reports]
   }
@@ -232,9 +241,9 @@ clean_symptom <- function(dt, clean, min.reports) {
   dt[, min.date := min(date), by = global_id]
   dt[, max.date := max(date), by = global_id]
 
-  ## remove first survey completed by everyone
+  ## remove reports from each participant's first reporting day
   if ("remove.first" %in% clean) {
-    dt <- dt[duplicated(global_id)]
+    dt <- dt[date > min.date]
   }
 
   if ("remove.bad.symptom.dates" %in% clean) {
@@ -284,6 +293,9 @@ remove_bad_symptom_dates <- function(dt) {
 }
 
 remove_bad_health_scores <- function(dt) {
+  if (!"health.score" %in% colnames(dt)) {
+    return(dt)
+  }
   dt[
     health.score < 0 | health.score > 100,
     health.score := NA_real_
@@ -327,13 +339,19 @@ add_age <- function(dt, age.breaks) {
   dt[age < 0, birthdate := NA]
   dt[age < 0, age := NA]
 
+  ## ages are whole years. Each group includes its upper limit and the next
+  ## group starts one year later, as in the contact age bands
+  age.breaks <- sort(age.breaks, na.last = TRUE)
+  agegroup_labels <- paste0(
+    c(0, age.breaks + 1), "-", c(age.breaks, "")
+  )
+  agegroup_labels[length(agegroup_labels)] <-
+    paste0(if (length(age.breaks)) max(age.breaks) + 1 else 0, "+")
   dt[, agegroup := cut(
     age,
-    breaks = c(0, age.breaks, max(age, na.rm = TRUE)),
-    include.lowest = TRUE, right = TRUE
+    breaks = c(-Inf, age.breaks, Inf),
+    labels = agegroup_labels
   )]
-  dt[grep("^\\(65,", agegroup), agegroup := "(65,)"]
-  dt[, agegroup := factor(agegroup)]
   dt
 }
 
