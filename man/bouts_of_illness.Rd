@@ -35,9 +35,11 @@ a data table of bouts of illness
 }
 \description{
 The end date of a bout is the last reported end date, or the last report
-date if none was reported. The remaining arguments choose how the start
-date is set where the reports leave a choice; the defaults keep the
-original behaviour.
+date if none was reported. This applies to every row of the bout and
+whatever the other arguments are; it differs from the earlier rule, which
+only filled in the end date of a bout whose last report had none. The other
+arguments set how the start date is chosen where the reports leave a
+choice, and their defaults keep the earlier behaviour.
 }
 \examples{
 dt <- extract_data(simulated_data, years = 2013:2014)

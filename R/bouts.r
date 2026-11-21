@@ -1,9 +1,11 @@
 ##' Extract bouts of illness from a flusurvey data table
 ##'
 ##' The end date of a bout is the last reported end date, or the last report
-##' date if none was reported. The other arguments set how the start date is
-##' chosen where the reports leave a choice. The defaults give the original
-##' behaviour.
+##' date if none was reported. This applies to every row of the bout and
+##' whatever the other arguments are; it differs from the earlier rule, which
+##' only filled in the end date of a bout whose last report had none. The other
+##' arguments set how the start date is chosen where the reports leave a
+##' choice, and their defaults keep the earlier behaviour.
 ##'
 ##' @param x the data to extract bouts from
 ##' @param symptomatic.only whether to only include symptomatic periods
