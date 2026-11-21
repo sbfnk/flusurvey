@@ -667,7 +667,7 @@ questions[["2016"]] <- questions[["2015"]]
 questions[["2016"]][["symptom"]] <-
   header_replace(
     questions[["2016"]][["symptom"]],
-    c("Q2", "Q12")
+    "Q12"
   )
 
 questions[["2017"]] <- questions[["2016"]]
@@ -755,7 +755,12 @@ options <-
     ),
     smart.phone = c("0" = "yes", "1" = "no"),
     self.swabbing = c("0" = "yes", "1" = "no"),
-    same = c("0" = "yes", "1" = "no", "2" = "dont_know"),
+    same = c(
+      "0" = "yes",
+      "1" = "no",
+      "2" = "dont_know",
+      "3" = "not_applicable"
+    ),
     symptoms.start.option = c("0" = "date", "1" = "dont_know"),
     symptoms.end.option = c("0" = "date", "1" = "dont_know", "2" = "still_ill"),
     symptoms.suddenly = c("0" = "yes", "1" = "no", "2" = "dont_know"),

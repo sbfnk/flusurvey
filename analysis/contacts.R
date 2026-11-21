@@ -9,70 +9,25 @@ library("ggplot2")
 library("data.table")
 library("here")
 
-## episodes come from the symptom survey alone: joining it to the contact
-## survey pairs unrelated reports and drops symptom reports
-dt <- extract_data(
-  "data/flusurvey_raw_2012_2020.rds",
-  years = 2012:2013,
-  surveys = c("background", "symptom")
-)
-
 dt_back_contacts <- extract_data(
   "data/flusurvey_raw_2012_2020.rds",
   years = 2012:2013,
   surveys = c("background", "contact")
 )
 
-bouts <- bouts_of_illness(dt)
-bouts <- bouts[!is.na(symptoms.end.date)]
-bouts <- bouts[,
-  list(
-    global_id, ili.self, ili, ili.fever, resp.symptoms,
-    symptoms.start.date, symptoms.end.date
-  )
-]
-
-## create big data set of all contacts with all symptom data; contacts are
-## reported for the day before the report, and illness is taken on that day
-contacts_symptoms <- merge(
-  dt_back_contacts[, list(global_id, date, contact.date)], bouts,
-  by = "global_id", all.x = TRUE, allow.cartesian = TRUE
+## illness bouts are built from all symptom reports, read without the cleaning
+## that drops reports. Eligibility (at least three reporting days per
+## participant and season) and follow-up (first to last report without
+## symptoms) are applied in contact_illness(), which locates each contact by
+## contact.date: healthy within follow-up outside bouts, unknown outside it
+dt_symptoms <- extract_data(
+  "data/flusurvey_raw_2012_2020.rds",
+  years = 2012:2013,
+  surveys = "symptom",
+  clean = c("unsuccessful.join", "remove.bad.symptom.dates")
 )
-contacts_symptoms <- contacts_symptoms[
-  is.na(symptoms.start.date), current_symptoms := FALSE
-]
-contacts_symptoms <- contacts_symptoms[
-  contact.date >= symptoms.start.date & contact.date <= symptoms.end.date,
-  current_symptoms := TRUE
-]
-contacts_symptoms <- contacts_symptoms[
-  is.na(current_symptoms), current_symptoms := FALSE
-]
-contacts_symptoms <- contacts_symptoms[,
-  list(
-    current_symptoms = any(current_symptoms),
-    current_ili_self = any(ili.self == "t" & current_symptoms, na.rm = TRUE),
-    current_ili = any(ili == "t" & current_symptoms, na.rm = TRUE),
-    current_ili_fever = any(ili.fever == "t" & current_symptoms, na.rm = TRUE),
-    current_ari = any(resp.symptoms == "t" & current_symptoms, na.rm = TRUE)
-  ), by = list(global_id, date, contact.date)
-]
 
-contacts_symptoms[,
-  current_ili_self := fifelse(current_ili_self, "ILI", "no ILI")
-]
-contacts_symptoms[, current_ili := fifelse(current_ili, "ILI", "no ILI")]
-contacts_symptoms[,
-  current_ili_fever := fifelse(current_ili_fever, "ILI", "no ILI")
-]
-contacts_symptoms[, current_ari := fifelse(current_ari, "ARI", "no ARI")]
-contacts_symptoms[,
-  current_symptoms := fifelse(current_symptoms, "symptoms", "no symptoms")
-]
-
-contacts <- merge(
-  dt_back_contacts, contacts_symptoms, by = c("global_id", "date", "contact.date")
-)
+contacts <- contact_illness(dt_back_contacts, dt_symptoms)
 
 saveRDS(contacts, here("outputs", "contacts.rds"))
 
@@ -179,7 +134,7 @@ for (type in c("conversational", "physical")) {
   save_plot(here("figures", paste0(type, "_contacts_mean_var.png")), p)
 
   ## contact with respect to background
-  bg_means <- dt_back_contacts |>
+  bg_means <- contacts |>
     group_by(participant_id) |>
     mutate(
       mean = mean(.data[[type]]),
@@ -191,12 +146,12 @@ for (type in c("conversational", "physical")) {
     pull(mean) |>
     quantile(probs = 0.95, na.rm = TRUE)
 
-  type_settings <- colnames(dt_back_contacts) |>
+  type_settings <- colnames(contacts) |>
     grep(pattern = paste0("^", type, "."), value = TRUE) |>
     grep(pattern = "^[^0-9]*$", value = TRUE)
 
   ## setting
-  bg_type_means <- dt_back_contacts |>
+  bg_type_means <- contacts |>
     group_by(participant_id) |>
     mutate(across(all_of(type_settings), mean)) |>
     pivot_longer(
