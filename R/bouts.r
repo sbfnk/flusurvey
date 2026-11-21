@@ -3,18 +3,15 @@
 ##' @param x the data to extract bouts from
 ##' @param symptomatic.only whether to only include symptomatic periods
 ##' @param as.data.frame currently has no effect
-##' @param daily.flags how to give the case-definition flags set by
-##'   \code{\link{aggregate_symptoms}} (\code{ili}, \code{ili.symptoms} and
-##'   the others) to the days of a bout. \code{"none"} (the default) returns
-##'   one row per bout. The other values return one row per day, in the column
-##'   \code{day}, from \code{symptoms.start.date} to \code{symptoms.end.date}:
-##'   \code{"carry.forward"} takes the flags from the last report on or before
-##'   the day (missing before the first report), \code{"bout"} gives every day
-##'   the flags of the bout, computed from the merged symptom columns, and
-##'   \code{"report"} sets them only on days with a report and leaves the rest
-##'   missing.
-##' @return a data table of bouts of illness, or of the days of each bout
-##'   unless \code{daily.flags} is \code{"none"}
+##' @param daily.flags how the case-definition flags set by
+##'   \code{\link{aggregate_symptoms}} reach the days of a bout.
+##'   \code{"none"} returns one row per bout. The other values return one row
+##'   per day, in the column \code{day}, from \code{symptoms.start.date} to
+##'   \code{symptoms.end.date}: \code{"carry.forward"} takes the flags from
+##'   the last report on or before the day, \code{"bout"} gives every day the
+##'   flags of the bout, and \code{"report"} sets them only on days with a
+##'   report.
+##' @return a data table of bouts of illness, or of their days
 ##' @author seb
 ##' @examples
 ##' dt <- extract_data(simulated_data, years = 2013:2014)
@@ -231,29 +228,23 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE,
   }
   dt[, id := NULL]
   if (daily.flags != "none") {
-    dt <- bout_days(dt, report.flags, flag.columns, daily.flags)
+    dt <- dt[!is.na(bout)]
+    starts <- dt$symptoms.start.date
+    ends <- pmax(dt$symptoms.end.date, starts)
+    days <- Map(function(from, to) seq(from, to, by = "day"), starts, ends)
+    dt <- dt[rep(seq_len(nrow(dt)), lengths(days))]
+    dt[, day := as.Date(unlist(days), origin = "1970-01-01")]
+    if (daily.flags != "bout" && length(flag.columns) > 0) {
+      flags <- report.flags[
+        dt,
+        flag.columns,
+        on = c("participant_id", "season", "bout", date = "day"),
+        roll = if (daily.flags == "carry.forward") TRUE else FALSE,
+        mult = "last",
+        with = FALSE
+      ]
+      dt[, (flag.columns) := flags]
+    }
   }
   dt[]
-}
-
-## One row per day of each bout, with the flags set as chosen by daily.flags.
-bout_days <- function(bouts, report.flags, flag.columns, daily.flags) {
-  bouts <- bouts[!is.na(bout)]
-  starts <- bouts$symptoms.start.date
-  ends <- pmax(bouts$symptoms.end.date, starts)
-  days <- Map(function(from, to) seq(from, to, by = "day"), starts, ends)
-  res <- bouts[rep(seq_len(nrow(bouts)), lengths(days))]
-  res[, day := as.Date(unlist(days), origin = "1970-01-01")]
-  if (daily.flags != "bout" && length(flag.columns) > 0) {
-    flags <- report.flags[
-      res,
-      flag.columns,
-      on = c("participant_id", "season", "bout", date = "day"),
-      roll = if (daily.flags == "carry.forward") TRUE else FALSE,
-      mult = "last",
-      with = FALSE
-    ]
-    res[, (flag.columns) := flags]
-  }
-  res
 }
