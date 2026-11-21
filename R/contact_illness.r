@@ -282,7 +282,8 @@ chronic_reports <- function(symptoms, chronic, chronic.days, chronic.cols) {
       stop("none of 'chronic.cols' is a column of 'symptoms'", call. = FALSE)
     }
     conditions <- lapply(present, function(col) {
-      as.character(symptoms[[col]]) %in% "t"
+      flag <- as.character(symptoms[[col]])
+      !is.na(flag) & flag == "t"
     })
     return(Reduce(`|`, conditions) & as.character(symptoms$no.symptoms) == "f")
   }
