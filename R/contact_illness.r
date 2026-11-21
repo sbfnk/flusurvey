@@ -80,7 +80,9 @@
 ##' @param chronic how to identify chronic symptom reports: \code{"none"}
 ##' (the default) flags none; \code{"duration"} flags reports with a valid
 ##' interval of more than \code{chronic.days} days; \code{"condition"} flags
-##' reports for which any of the \code{chronic.cols} is "t"
+##' reports for which any of the \code{chronic.cols} is "t". The latter flags
+##' every symptom report of a participant with such a condition, so someone
+##' with asthma who has an acute ILI never counts as ill under this rule
 ##' @param chronic.days the number of days beyond which a report counts as
 ##' chronic, for \code{chronic = "duration"}
 ##' @param chronic.cols columns of \code{symptoms} holding chronic medical
@@ -107,9 +109,9 @@
 contact_illness <- function(contacts, symptoms, min.reports = 3,
                             chronic = c("none", "duration", "condition"),
                             chronic.days = NULL,
-                            chronic.cols = c("chronic.heart.disease",
-                                             "other.chronic.lung.disease",
-                                             "other.chronic")) {
+                            chronic.cols = c("risk.asthma", "risk.diabetes",
+                                             "risk.lung", "risk.heart",
+                                             "risk.kidney", "risk.immune")) {
   chronic <- match.arg(chronic)
   flag_cols <- c(
     ili = "ili", ili_fever = "ili.fever", ili_self = "ili.self",

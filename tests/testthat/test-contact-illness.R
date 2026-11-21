@@ -399,7 +399,8 @@ test_that("chronic reports are treated as no acute illness on request", {
     report("a", "2013-01-20", start = "2013-01-02", end = "2013-01-20"),
     report("a", "2013-01-25", start = "2013-01-24", end = "2013-01-25")
   ))
-  symptoms[, other.chronic := c("f", "f", "t", "f")]
+  symptoms[, risk.asthma := c("f", "f", "f", "f")]
+  symptoms[, risk.heart := c("f", "f", "t", "f")]
   days <- as.Date(c("2013-01-10", "2013-01-24"))
   status <- function(...) {
     contact_illness(contact("a", days), symptoms, ...)$current_symptoms
@@ -412,7 +413,7 @@ test_that("chronic reports are treated as no acute illness on request", {
   expect_equal(status(chronic = "condition"), c("no symptoms", "symptoms"))
   expect_error(status(chronic = "duration"), "chronic.days")
   expect_error(
-    contact_illness(contact("a", days), symptoms[, -"other.chronic"],
+    contact_illness(contact("a", days), symptoms[, -c("risk.asthma", "risk.heart")],
                     chronic = "condition"),
     "chronic.cols"
   )
@@ -424,7 +425,7 @@ test_that("a chronic condition on a report without an answer leaves days unknown
     report("a", "2013-01-20")
   ))
   symptoms[, no.symptoms := c("t", "t", NA)]
-  symptoms[, other.chronic := c("f", "f", "t")]
+  symptoms[, risk.asthma := c("f", "f", "t")]
   day <- contact("a", as.Date("2013-01-10"))
   expect_equal(contact_illness(day, symptoms)$current_symptoms, NA_character_)
   expect_equal(
