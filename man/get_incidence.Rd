@@ -33,6 +33,7 @@ a data.table with the incidence
 }
 \description{
 This calculates incidence according to a given column in the supplied data.
+Bouts of illness with an unknown start date are not counted.
 }
 \examples{
 dt <- extract_data(simulated_data, years = 2013:2014)

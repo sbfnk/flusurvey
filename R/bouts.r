@@ -1,5 +1,8 @@
 ##' Extract bouts of illness from a flusurvey data table
 ##'
+##' Where no report of a bout gives a start date, \code{symptoms.start.date} is
+##' \code{NA}.
+##'
 ##' @param x the data to extract bouts from
 ##' @param symptomatic.only whether to only include symptomatic periods
 ##' @param as.data.frame currently has no effect
@@ -124,10 +127,6 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
     !is.na(bout) & is.na(last.symptoms.start.date) &
       !is.na(last.not.na.symptoms.start.date),
     symptoms.start.date := last.not.na.symptoms.start.date,
-    by = list(participant_id, season, bout)
-  ]
-  dt[!is.na(bout) & is.na(last.not.na.symptoms.start.date),
-    symptoms.start.date := date[1],
     by = list(participant_id, season, bout)
   ]
   dt[
