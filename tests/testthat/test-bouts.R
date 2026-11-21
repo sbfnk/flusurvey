@@ -34,8 +34,8 @@ test_that("input is sorted by participant, season and date", {
   expect_equal(shuffled, ordered)
 })
 
-test_that("bout dates preserve reports and reject inverted intervals", {
-  x <- rbind(
+dates_example <- function() {
+  rbind(
     reports(1, c("2013-01-10", "2013-01-17"), TRUE, c("no", "yes"),
             c("2013-01-05", "2013-01-06"),
             c("2013-01-08", "2013-01-12")),
@@ -44,36 +44,123 @@ test_that("bout dates preserve reports and reject inverted intervals", {
             c("2013-01-09", NA),
             c(NA, "2013-01-08"))
   )
+}
+bout_dates <- function(x, col, ...) {
+  capture.output(out <- bouts_of_illness(x, ...))
+  out[order(participant_id), get(col)]
+}
+
+test_that("the defaults keep the last reported start date", {
+  x <- dates_example()
   original <- data.table::copy(x)
-  capture.output(out <- bouts_of_illness(x))
+  expect_equal(bout_dates(x, "symptoms.start.date"),
+               as.Date(c("2013-01-06", "2013-01-10", "2013-01-09")))
+  expect_equal(bout_dates(x, "symptoms.end.date"),
+               as.Date(c("2013-01-12", "2013-01-10", "2013-01-08")))
   expect_equal(x, original)
-  expect_equal(out[participant_id == 1, symptoms.start.date], as.Date("2013-01-06"))
-  expect_equal(out[participant_id == 1, symptoms.end.date], as.Date("2013-01-12"))
-  expect_true(is.na(out[participant_id == 2, symptoms.start.date]))
-  expect_true(is.na(out[participant_id == 3, symptoms.start.date]))
-  expect_true(is.na(out[participant_id == 3, symptoms.end.date]))
 })
 
-test_that("unknown onsets do not become incidence or contact events", {
+test_that("start.date chooses the earliest reported start date", {
+  expect_equal(
+    bout_dates(dates_example(), "symptoms.start.date", start.date = "earliest"),
+    as.Date(c("2013-01-05", "2013-01-10", "2013-01-09"))
+  )
+})
+
+test_that("missing.start leaves unreported start dates missing", {
+  res <- bout_dates(dates_example(), "symptoms.start.date",
+                    missing.start = "missing")
+  expect_equal(res, as.Date(c("2013-01-06", NA, "2013-01-09")))
+})
+
+test_that("inverted.dates keeps, clears or resets inverted bounds", {
+  x <- dates_example()
+  expect_equal(
+    bout_dates(x, "symptoms.start.date", inverted.dates = "clear"),
+    as.Date(c("2013-01-06", "2013-01-10", NA))
+  )
+  expect_equal(
+    bout_dates(x, "symptoms.end.date", inverted.dates = "clear"),
+    as.Date(c("2013-01-12", "2013-01-10", NA))
+  )
+  expect_equal(
+    bout_dates(x, "symptoms.end.date", inverted.dates = "reset.end"),
+    as.Date(c("2013-01-12", "2013-01-10", "2013-01-17"))
+  )
+  expect_equal(
+    bout_dates(x, "symptoms.start.date", inverted.dates = "reset.end"),
+    as.Date(c("2013-01-06", "2013-01-10", "2013-01-09"))
+  )
+})
+
+test_that("invalid rule arguments are rejected", {
+  expect_error(bouts_of_illness(dates_example(), start.date = "middle"))
+  expect_error(bouts_of_illness(dates_example(), missing.start = "drop"))
+  expect_error(bouts_of_illness(dates_example(), inverted.dates = "swap"))
+})
+
+incidence_example <- function() {
   x <- rbind(
     reports(1, "2013-01-10", TRUE, "no", NA, NA),
-    reports(2, "2013-01-10", TRUE, "no", "2013-01-10", "2013-01-10")
+    reports(2, "2013-01-10", TRUE, "no", "2013-01-10", "2013-01-10"),
+    reports(3, "2013-01-10", TRUE, "no", "2013-01-05", "2013-01-10"),
+    reports(4, "2013-01-05", FALSE, NA, NA, NA)
   )
-  x[, ili := "t"]
+  x[, ili := ifelse(participant_id == 4, "f", "t")]
   x[, `:=`(min.date = date, max.date = date)]
-  capture.output(bouts <- bouts_of_illness(x))
+  x
+}
+total_incidence <- function(x, period, ...) {
+  capture.output(res <- get_incidence(x, aggregation = period,
+                                      denominator = "reports", ...))
+  sum(res$ili)
+}
+periods <- c("day", "week", "month", "year")
+
+test_that("get_incidence counts every bout by default", {
+  x <- incidence_example()
+  for (period in periods) {
+    expect_equal(total_incidence(x, period), 3, info = period)
+  }
+})
+
+test_that("exclude leaves out bouts with unknown onset", {
+  x <- incidence_example()
+  for (period in periods) {
+    expect_equal(
+      total_incidence(x, period, exclude = "unknown.onset",
+                      missing.start = "missing"),
+      2, info = period
+    )
+    expect_equal(
+      total_incidence(x[participant_id == 1], period,
+                      exclude = "unknown.onset", missing.start = "missing"),
+      0, info = period
+    )
+  }
+})
+
+test_that("exclude leaves out bouts ongoing at entry", {
+  x <- incidence_example()
+  for (period in periods) {
+    expect_equal(total_incidence(x, period, exclude = "ongoing.at.entry"), 2,
+                 info = period)
+    expect_equal(
+      total_incidence(x, period,
+                      exclude = c("unknown.onset", "ongoing.at.entry"),
+                      missing.start = "missing"),
+      1, info = period
+    )
+  }
+  expect_error(get_incidence(x, exclude = "other"))
+})
+
+test_that("unknown onsets are not matched to contacts by report date", {
+  x <- incidence_example()[participant_id %in% 1:2]
+  capture.output(bouts <- bouts_of_illness(x, missing.start = "missing"))
   contacts <- data.table::data.table(
     global_id = c("p1", "p2", "p2"),
     contact.date = as.Date(c("2013-01-10", "2013-01-10", "2013-01-11"))
   )
   expect_identical(flag_ill_contacts(contacts, bouts)$ill, c(FALSE, TRUE, FALSE))
-  for (period in c("day", "week", "month", "year")) {
-    capture.output(res <- get_incidence(x, aggregation = period,
-                                        denominator = "reports"))
-    expect_equal(sum(res$ili), 1, info = period)
-    capture.output(empty <- get_incidence(x[participant_id == 1],
-                                           aggregation = period,
-                                           denominator = "reports"))
-    expect_equal(sum(empty$ili), 0, info = period)
-  }
 })
