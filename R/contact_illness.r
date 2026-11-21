@@ -9,7 +9,8 @@
 ##' they filed symptom reports on at least \code{min.reports} different days
 ##' and at least one of them reported no symptoms. Follow-up runs from the
 ##' first report without symptoms to the end given by \code{follow_up_end}.
-##' Bouts are reconstructed from all symptom reports, including those of ineligible participants and those
+##' Bouts are reconstructed from all symptom reports, including those of
+##' ineligible participants and those
 ##' outside follow-up; eligibility and follow-up only decide which contact days
 ##' are classified. The column \code{follow_up} records the result:
 ##' "in follow-up", "before follow-up", "after follow-up" or "not eligible".
@@ -148,7 +149,8 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
              !is.na(bstart) & !is.na(bend) & bstart <= bend]
   symptoms[is.na(valid), valid := FALSE]
 
-  ## eligibility and follow-up: from the first report without symptoms
+  ## eligibility and follow-up: from the first report without symptoms to
+  ## the end set by follow_up_end
   follow_up <- symptoms[, list(
     n_reports = uniqueN(date),
     fu_start = if (any(healthy)) min(date[healthy]) else as.Date(NA),
