@@ -93,6 +93,15 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
     new.bout := TRUE
   ]
   dt[, previous.symptoms.end.date := NULL]
+  dt[, previous.date := c(as.Date(NA), date[-.N]),
+    by = list(participant_id, season)
+  ]
+  dt[
+    !new.bout & !is.na(previous.date) & !is.na(symptoms.start.date) &
+      no.symptoms == "f" & previous.date < symptoms.start.date,
+    new.bout := TRUE
+  ]
+  dt[, previous.date := NULL]
   dt[
     no.symptoms == "f",
     bout := cumsum(new.bout),
@@ -101,11 +110,12 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
   dt[bout == 0, bout := NA]
   dt[, new.bout := NULL]
 
-  dt[!is.na(bout), last.symptoms.start.date := last(symptoms.start.date),
-    by = list(participant_id, season, bout)
-  ]
   dt[!is.na(bout),
-    last.not.na.symptoms.start.date := last_not_na(symptoms.start.date),
+    first.symptoms.start.date := as.Date(ifelse(
+      all(is.na(symptoms.start.date)),
+      NA_character_,
+      as.character(min(symptoms.start.date, na.rm = TRUE))
+    )),
     by = list(participant_id, season, bout)
   ]
   dt[!is.na(bout), last.symptoms.end.date := last(symptoms.end.date),
@@ -116,17 +126,11 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
     by = list(participant_id, season, bout)
   ]
 
-  dt[!is.na(bout) & !is.na(last.symptoms.start.date),
-    symptoms.start.date := last.symptoms.start.date,
+  dt[!is.na(bout) & !is.na(first.symptoms.start.date),
+    symptoms.start.date := first.symptoms.start.date,
     by = list(participant_id, season, bout)
   ]
-  dt[
-    !is.na(bout) & is.na(last.symptoms.start.date) &
-      !is.na(last.not.na.symptoms.start.date),
-    symptoms.start.date := last.not.na.symptoms.start.date,
-    by = list(participant_id, season, bout)
-  ]
-  dt[!is.na(bout) & is.na(last.not.na.symptoms.start.date),
+  dt[!is.na(bout) & is.na(first.symptoms.start.date),
     symptoms.start.date := date[1],
     by = list(participant_id, season, bout)
   ]
@@ -141,8 +145,7 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
     by = list(participant_id, season, bout)
   ]
 
-  dt[, last.symptoms.start.date := NULL]
-  dt[, last.not.na.symptoms.start.date := NULL]
+  dt[, first.symptoms.start.date := NULL]
   dt[, last.symptoms.end.date := NULL]
   dt[, last.not.na.symptoms.end.date := NULL]
 
