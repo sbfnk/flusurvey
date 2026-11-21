@@ -9,6 +9,12 @@
 ##' in a week
 ##' @param min.N the minimum denominator, by default 1
 ##' @param by one or more variables by which to group
+##' @param exclude bouts to leave out of the incidence: any of
+##' "unknown.onset" (no reported start date, which needs
+##' \code{missing.start = "missing"}) and "ongoing.at.entry" (start date
+##' before the participant's first report); by default none
+##' @param start.date,missing.start,inverted.dates how bout dates are set, see
+##' \code{\link{bouts_of_illness}}
 ##' @examples
 ##' dt <- extract_data(simulated_data, years = 2013:2014)
 ##' get_incidence(dt, incidence.columns = "ili", aggregation = "week")
@@ -25,13 +31,34 @@ get_incidence <- function(
   aggregation = c("week", "day", "month", "year"),
   denominator = c("active.members", "reports"),
   min.N = 1,
-  by = NULL
+  by = NULL,
+  exclude = NULL,
+  start.date = c("last", "earliest"),
+  missing.start = c("first.report", "missing"),
+  inverted.dates = c("keep", "clear", "reset.end")
 ) {
+  if (!is.null(exclude)) {
+    exclude <- match.arg(
+      exclude, c("unknown.onset", "ongoing.at.entry"), several.ok = TRUE
+    )
+  }
   aggregation <- match.arg(aggregation)
   denominator <- match.arg(denominator)
 
   dt <- copy(data)
-  bouts <- bouts_of_illness(data)
+  bouts <- bouts_of_illness(
+    data,
+    start.date = start.date,
+    missing.start = missing.start,
+    inverted.dates = inverted.dates
+  )
+  if ("unknown.onset" %in% exclude) {
+    bouts <- bouts[!is.na(symptoms.start.date)]
+  }
+  if ("ongoing.at.entry" %in% exclude) {
+    bouts <- bouts[is.na(symptoms.start.date) |
+                     symptoms.start.date >= min.date]
+  }
   ## required date columns
   columns <- c("symptoms.start.date", "date", "min.date", "max.date")
   names(columns) <- columns
@@ -47,7 +74,7 @@ get_incidence <- function(
           paste(substr(season, 1, 4), 11, 1, sep = "-")
         )]
         bouts[, paste(date_col) := as.Date(
-          paste(substr(season, 1, 4), 11, 1, sep = "-")
+          paste(substr(season, 1, 4), 11, 1, sep = "-")[seq_along(season)]
         )]
       } else {
         dt[
