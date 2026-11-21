@@ -12,7 +12,8 @@ merge_data(
   min.reports = 3,
   ranges = "sample",
   age.breaks = c(18, 44, 64),
-  ili.sudden.unknown = NA
+  ili.sudden.unknown = NA,
+  max.symptom.days = 28
 )
 }
 \arguments{
@@ -39,9 +40,15 @@ episode with \code{\link{flag_ill_contacts}}.}
 cleans to perform (by default all):
 - 'remove.first', whether to remove reports from the first reporting day,
 - 'remove.bad.symptom.dates', whether to remove bad symptom dates: symptom
-start before date of first or end after end of last report, end of symptoms
-before start of symptoms, symptoms reported to have started or ended after
-date of report
+end of symptoms before start of symptoms, symptoms reported to have started
+or ended after date of report. Such dates are set to missing. Start dates
+are otherwise kept as reported, and two logical columns flag them:
+\code{illness.ongoing.at.entry} (start before the participant's first
+report in the season) and \code{long.running.illness} (start more than
+\code{max.symptom.days} days before the report that gives it).
+\code{\link{bouts_of_illness}} carries both flags to the bouts, and
+\code{\link{get_incidence}} does not count bouts ongoing at entry as new
+cases.
 - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 - 'limit.season', whether to limit a flu season to November -> April
 - 'remove.postcodes', whether to remove postcodes
@@ -70,6 +77,11 @@ unknown, passed to \code{\link{aggregate_symptoms}}: \code{NA} (the
 default) leaves \code{ili} and \code{ili.fever} missing where onset is
 needed to decide, \code{1} counts unknown onset as sudden and \code{0} as
 not sudden. The recorded onset is kept in \code{onset}.}
+
+\item{max.symptom.days}{maximum number of days before a report that
+symptoms can have started before illness is flagged as long-running
+(ignored if 'remove.bad.symptom.dates' is not given as a cleaning option);
+use \code{Inf} for no limit}
 }
 \value{
 a rolling-joined data table. \code{day.of.week} (1 for Monday to 7

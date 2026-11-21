@@ -33,3 +33,17 @@ test_that("input is sorted by participant, season and date", {
   )
   expect_equal(shuffled, ordered)
 })
+
+test_that("fallback start dates do not follow the bout end", {
+  x <- reports(
+    3, c("2013-03-01", "2013-03-08"), c(TRUE, TRUE), c("no", "yes"),
+    c(NA, NA), c("2013-02-01", NA)
+  )
+  capture.output(bout <- bouts_of_illness(x))
+  expect_equal(bout$symptoms.start.date, as.Date("2013-03-01"))
+  expect_equal(bout$symptoms.end.date, as.Date("2013-03-08"))
+
+  x$symptoms.end.date[1] <- as.Date("2013-03-05")
+  capture.output(bout <- bouts_of_illness(x))
+  expect_equal(bout$symptoms.end.date, as.Date("2013-03-05"))
+})
