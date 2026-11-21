@@ -44,3 +44,25 @@ test_that("max.band.count sets the limit on a band", {
   expect_true(all(is.na(small[global_id == pid, nb.household])))
   expect_true(all(large[global_id == pid, nb.household] == 6))
 })
+
+test_that("nb.household keeps a count whose indicator is missing", {
+  dt <- data.table::data.table(
+    household.0.4 = c("f", NA),
+    nb.household.0.4 = c(2, 3),
+    household.5.18 = c("f", "f"),
+    nb.household.5.18 = c(NA, NA)
+  )
+  add_household_members(dt, Inf)
+  ## a band marked as not present is zeroed, whatever its count
+  expect_equal(dt$nb.household, c(NA, 3))
+})
+
+test_that("nb.household is missing for blank counts without indicators", {
+  dt <- data.table::data.table(
+    nb.household.0.4 = c(NA, NA, 2L),
+    nb.household.5.18 = c(NA, 1L, NA)
+  )
+  fill_household_counts(dt)
+  add_household_members(dt, Inf)
+  expect_equal(dt$nb.household, c(NA, 1, 2))
+})

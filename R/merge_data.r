@@ -509,9 +509,6 @@ add_highest_education <- function(dt) {
 ## household members
 add_household_members <- function(dt, max.band.count) {
   hh_columns <- grep("^nb.household\\.", value = TRUE, colnames(dt))
-  indicator_cols <- intersect(
-    sub("nb.", "", hh_columns, fixed = TRUE), colnames(dt)
-  )
   for (col in hh_columns) {
     indicator_col <- sub("nb.", "", col, fixed = TRUE)
     if (indicator_col %in% colnames(dt)) {
@@ -524,12 +521,9 @@ add_household_members <- function(dt, max.band.count) {
   dt[, nb.household := rowSums(.SD),
     .SDcols = hh_columns
   ]
-  if (length(indicator_cols) > 0) {
-    ## if no band is ticked the count is missing, because a household
-    ## has at least one member
-    ticked <- dt[, lapply(.SD, `%in%`, "t"), .SDcols = indicator_cols]
-    dt[rowSums(ticked) == 0, nb.household := NA_real_]
-  }
+  ## a total of zero means no band was filled in, and the count is missing
+  ## because a household has at least one member
+  dt[nb.household %in% 0, nb.household := NA_real_]
   dt[, nb.household.children := rowSums(.SD),
     .SDcols = c("nb.household.0.4", "nb.household.5.18")
   ]
