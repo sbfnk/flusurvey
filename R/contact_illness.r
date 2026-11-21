@@ -265,7 +265,7 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
   merge(contacts, status[, keep, with = FALSE], by = key_cols, all.x = TRUE)
 }
 
-## Flags the reports that are chronic rather than acute, by `chronic`.
+## Flags chronic (as opposed to acute) reports, using the `chronic` rule.
 chronic_reports <- function(symptoms, chronic, chronic.days, chronic.cols) {
   if (chronic == "duration") {
     if (!(is.numeric(chronic.days) && length(chronic.days) == 1 &&
