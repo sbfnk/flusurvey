@@ -22,6 +22,7 @@ utils::globalVariables(c(
   "fu_start",
   "healthy_day",
   "in_follow_up",
+  "is_chronic",
   "n_reports",
   "previous_date",
   "unknown_end",
