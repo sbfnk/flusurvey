@@ -211,6 +211,20 @@ test_that("limit.season does not drop symptom reports by background date", {
   expect_equal(actual$date, expected$date)
 })
 
+test_that("limit.season does not limit the contact survey when merged", {
+  d <- data.table::copy(simulated_data[["2013"]][c("background", "contact")])
+  d$background <- data.table::data.table(d$background)
+  d$contact <- data.table::data.table(d$contact)
+  d$background[global_id == "sim0002", date := as.Date("2012-10-01")]
+  d$contact[global_id == "sim0002", date := as.Date("2012-10-15")]
+  clean <- c("limit.season", "unsuccessful.join")
+  merged <- merge_data(d, clean = clean)
+  early <- merged$global_id == "sim0002" & merged$date < as.Date("2012-11-01")
+  expect_true(any(early))
+  alone <- merge_data(d["contact"], clean = clean)
+  expect_false(any(alone$date < as.Date("2012-11-01")))
+})
+
 test_that("remove.bad.health.scores is accepted by name", {
   dt <- expect_contact_warning(
     extract_data(simulated_data, years = 2013:2014,

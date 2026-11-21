@@ -26,7 +26,7 @@
 ##' date of report
 ##' - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 ##' - 'limit.season', whether to limit a flu season to November -> April
-##' (not applied to the background survey when it is merged with others)
+##' (when surveys are merged, applied to the symptom survey only)
 ##' - 'remove.postcodes', whether to remove postcodes
 ##' - 'n.reports', whether to exclude those with fewer than \code{min.reports}
 ##' reports
@@ -602,8 +602,9 @@ add_contact_totals <- function(dt, types, contact_columns) {
   invisible(dt)
 }
 
-## The background survey keeps its full date range when merged with others.
-## Limiting it would drop participants who report symptoms in the season.
+## Only the symptom survey is limited when surveys are merged. Limiting the
+## background or contact survey would drop participants who report symptoms in
+## the season.
 limits_season <- function(name, n_surveys) {
-  name != "background" || n_surveys == 1
+  name == "symptom" || n_surveys == 1
 }
