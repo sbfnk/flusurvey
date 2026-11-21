@@ -408,8 +408,6 @@ test_that("healthy = 'report' needs a later report without symptoms", {
       "no symptoms")
   )
   res <- contact_illness(contact("a", days), symptoms, healthy = "report")
-  ## the report of the 15th has symptoms, so nothing without symptoms covers
-  ## the 14th
   expect_equal(
     res$current_symptoms,
     c("no symptoms", "no symptoms", "symptoms", NA, "no symptoms",

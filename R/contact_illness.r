@@ -32,11 +32,10 @@
 ##' "symptoms" on days in a bout. With \code{healthy = "follow-up"} every
 ##' other day is "no symptoms", with or without a report that day. With
 ##' \code{healthy = "report"} a day is "no symptoms" only if a report
-##' without symptoms filed after it covers it: the weekly question asks about
-##' symptoms since the previous report, so such a report covers the days from
-##' the previous report's date up to the day before its own. Days before a
-##' participant's first report, and days with no such report, are unknown. The
-##' exception is a report with symptoms (or
+##' without symptoms filed after it covers it, from the previous report's
+##' date up to the day before its own. Days before a participant's first
+##' report, and days with no such report, are unknown. The exception is a
+##' report with symptoms (or
 ##' without a known symptom status) whose dates give no usable interval:
 ##' missing, inconsistent, or an unknown end that is not "still ill". Its
 ##' illness cannot be placed, so every day since the participant's previous
@@ -83,7 +82,7 @@
 ##' a missing column gives missing flags.
 ##' @param healthy the rule for a day outside a bout within follow-up:
 ##' "follow-up" counts it as healthy, "report" only if a later report
-##' without symptoms covers it (see above)
+##' without symptoms covers it
 ##' @param min.reports the minimum number of days with symptom reports for a
 ##' participant to be eligible in a season
 ##' @return the contact reports with added columns \code{follow_up} (see
@@ -187,7 +186,6 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
     by = group_by
   ]
 
-  ## days between the previous report and a report without symptoms
   covered <- symptoms[
     healthy & !is.na(previous_date),
     list(cover_start = previous_date, cover_end = date - 1),
