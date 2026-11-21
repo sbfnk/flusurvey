@@ -22,8 +22,9 @@ merge_data(
 contact, symptom), regardless of their order in \code{data}. The last one
 present drives a rolling join. The result has one row per report of that
 survey (the symptom reports, if present), each taking the latest report of
-the other surveys on or before its date. Any other survey name gives an
-error.
+the other surveys on or before its date. When an earlier survey has several
+reports on the same day, its last report is used. Any other survey name
+gives an error.
 
 Joining the contact and symptom surveys gives a warning. The join pairs
 each symptom report with the latest earlier contact report, however long
@@ -37,7 +38,7 @@ episode with \code{\link{flag_ill_contacts}}.}
 
 \item{clean}{cleaning options, NULL for no cleaning, otherwise a vector of
 cleans to perform (by default all):
-- 'remove.first', whether to remove everyone's first report,
+- 'remove.first', whether to remove reports from the first reporting day,
 - 'remove.bad.symptom.dates', whether to remove bad symptom dates: symptom
 end of symptoms before start of symptoms, symptoms reported to have started
 or ended after date of report. Such dates are set to missing. Start dates
@@ -52,15 +53,15 @@ cases.
 - 'limit.season', whether to limit a flu season to November -> April
 - 'remove.postcodes', whether to remove postcodes
 - 'n.reports', whether to exclude those with fewer than \code{min.reports}
-reports
+symptom reporting days
 - 'unsuccessful.join', whether to exclude those with unsuccesful joins (e.g.
 if symptoms are reported without a background survey present; the web site
 should have prevented this, but doesn't appear to have done so)
 - 'only.symptoms', whether to exclude those that have no report without
 symptoms}
 
-\item{min.reports}{minimum number of reports per user (ignored if
-'min.reports' is not given as a cleaning option)}
+\item{min.reports}{minimum number of symptom reporting days per user
+(ignored if 'min.reports' is not given as a cleaning option)}
 
 \item{ranges}{what to do if a number of contacts is given as a range: sample
 from the range ("sample"), or apply a function, given as character string
@@ -96,7 +97,7 @@ Clean and merge flusurvey data tables
 dt <- merge_data(simulated_data[["2013"]])
 table(dt$ili)
 
-## only remove each participant's first report
+## only remove each participant's first reporting day
 merge_data(simulated_data[["2013"]], clean = "remove.first")
 }
 \author{
