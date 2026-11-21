@@ -186,8 +186,8 @@ bouts_of_illness <- function(
       by = list(participant_id, season, bout)
     ]
     dt[!is.na(bout) & !is.na(symptoms.start.date) &
-         !is.na(symptoms.end.date) & symptoms.end.date < symptoms.start.date,
-       symptoms.end.date := last.report.date
+        !is.na(symptoms.end.date) & symptoms.end.date < symptoms.start.date,
+      symptoms.end.date := last.report.date
     ]
     dt[, last.report.date := NULL]
   }
