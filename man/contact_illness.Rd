@@ -4,7 +4,9 @@
 \alias{contact_illness}
 \title{Illness status of contact reports}
 \usage{
-contact_illness(contacts, symptoms, min.reports = 3)
+contact_illness(contacts, symptoms, min.reports = 3,
+  follow_up_end = c("last_healthy", "end_of_illness")
+)
 }
 \arguments{
 \item{contacts}{a data table of contact reports with columns
@@ -21,6 +23,12 @@ a missing column gives missing flags.}
 
 \item{min.reports}{the minimum number of days with symptom reports for a
 participant to be eligible in a season}
+
+\item{follow_up_end}{where follow-up ends: \code{"last_healthy"} (the
+default) at the last report without symptoms, or \code{"end_of_illness"}
+at the later of that report and the end of the last bout of illness. The
+two differ for participants who were ill at or after their last report
+without symptoms.}
 }
 \value{
 the contact reports with added columns \code{follow_up} (see
@@ -41,11 +49,9 @@ not needed on the contact day itself.
 \emph{Eligibility and follow-up.} A participant is eligible in a season if
 they filed symptom reports on at least \code{min.reports} different days
 and at least one of them reported no symptoms. Follow-up runs from the
-first to the last report without symptoms. The last report without
-symptoms is the default end of follow-up; the end of the last illness is
-not used as an alternative. All symptom reports, including those of
-ineligible participants and those outside follow-up, are used to
-reconstruct bouts; eligibility and follow-up only decide which contact days
+first report without symptoms to the end given by \code{follow_up_end}.
+Bouts are reconstructed from all symptom reports, including those of
+ineligible participants and those outside follow-up; eligibility and follow-up only decide which contact days
 are classified. The column \code{follow_up} records the result:
 "in follow-up", "before follow-up", "after follow-up" or "not eligible".
 Contact days outside follow-up have an unknown status and are never

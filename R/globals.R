@@ -49,6 +49,7 @@ utils::globalVariables(c(
   "ili.fever",
   "ili.self",
   "ili.symptoms",
+  "last_illness_end",
   "last.not.na.symptoms.end.date",
   "last.not.na.symptoms.start.date",
   "last.symptoms.end.date",
