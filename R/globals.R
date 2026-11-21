@@ -51,7 +51,6 @@ utils::globalVariables(c(
   "ili.symptoms",
   "last.not.na.symptoms.end.date",
   "last.not.na.symptoms.start.date",
-  "last.symptoms.end.date",
   "last.symptoms.start.date",
   "living.with.children",
   "max.date",
