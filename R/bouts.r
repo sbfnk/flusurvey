@@ -53,23 +53,16 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
   ),
   by = list(participant_id, season)
   ]
-  dt[,
-    min.symptoms.start.date := as.Date(ifelse(
-      all(is.na(symptoms.start.date)),
-      NA_character_,
-      as.character(min(symptoms.start.date, na.rm = TRUE))
-    )),
-    by = list(participant_id, season)
-  ]
-  dt[
-    part.symptom.id < first.no.symptoms & !is.na(symptoms.start.date) &
-      symptoms.start.date == min.symptoms.start.date,
-    new.bout := c(TRUE, new.bout[-1]),
-    by = list(participant_id, season)
-  ]
   dt[
     first.no.symptoms == 0 & part.symptom.id == min(part.symptom.id),
     new.bout := TRUE
+  ]
+  ## the first symptomatic report of a participant always starts a bout,
+  ## because `same` cannot refer to an earlier report without symptoms
+  dt[
+    no.symptoms == "f",
+    new.bout := new.bout | seq_len(.N) == 1L,
+    by = list(participant_id, season)
   ]
   dt[is.na(new.bout), new.bout := FALSE]
   dt[, previous.no.symptoms := factor(

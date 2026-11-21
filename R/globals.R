@@ -59,7 +59,6 @@ utils::globalVariables(c(
   "min.date",
   "min.health.score",
   "min.part.symptom.id",
-  "min.symptoms.start.date",
   "nReports",
   "nb.household",
   "nb.household.0.4",

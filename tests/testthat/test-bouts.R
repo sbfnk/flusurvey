@@ -1,4 +1,4 @@
-reports <- function(id, dates, symptomatic, same, start, end) {
+make_reports <- function(id, dates, symptomatic, same, start, end) {
   data.table::data.table(
     participant_id = id, global_id = paste0("p", id), season = "2012/13",
     symptom.id = seq_along(dates), date = as.Date(dates),
@@ -8,13 +8,44 @@ reports <- function(id, dates, symptomatic, same, start, end) {
   )
 }
 
-a <- reports(
+test_that("a first symptomatic report starts a bout whatever `same` says", {
+  for (same in list("yes", "dont_know", NA_character_)) {
+    x <- make_reports(
+      1, c("2013-01-03", "2013-01-10"), c(TRUE, FALSE),
+      c(same, NA), c(NA, NA), c(NA, NA)
+    )
+    out <- suppressMessages(capture.output(res <- bouts_of_illness(x)))
+    expect_equal(nrow(res), 1L)
+  }
+})
+
+test_that("a continuing report does not start a second bout", {
+  x <- make_reports(
+    1, c("2013-01-03", "2013-01-10"), c(TRUE, TRUE),
+    c("yes", "yes"), c(NA, NA), c(NA, NA)
+  )
+  capture.output(res <- bouts_of_illness(x))
+  expect_equal(nrow(res), 1L)
+})
+
+test_that("an earlier revised start date does not split a continuing bout", {
+  x <- make_reports(
+    1, c("2013-01-17", "2013-01-24", "2013-01-31"),
+    c(TRUE, TRUE, FALSE), c("yes", "yes", NA),
+    c("2013-01-15", "2013-01-10", NA), c(NA, NA, NA)
+  )
+  capture.output(res <- bouts_of_illness(x))
+  expect_equal(nrow(res), 1L)
+  expect_equal(res$symptoms.start.date, as.Date("2013-01-10"))
+})
+
+a <- make_reports(
   1, c("2013-01-03", "2013-01-10"), c(FALSE, TRUE), c(NA, "no"),
   c(NA, "2013-01-05"), c(NA, "2013-01-08")
 )
-b <- reports(
+b <- make_reports(
   2, c("2013-01-17", "2013-01-24", "2013-01-31"), c(TRUE, TRUE, FALSE),
-  c("yes", "yes", NA), c("2013-01-15", "2013-01-10", NA), c(NA, NA, NA)
+  c("yes", "yes", NA), c("2013-01-10", "2013-01-10", NA), c(NA, NA, NA)
 )
 
 test_that("the previous end date does not carry over between participants", {
