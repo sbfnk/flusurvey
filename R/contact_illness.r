@@ -37,8 +37,9 @@
 ##' report, up to and including its own date, is unknown (missing) unless
 ##' it lies in a bout. A report without symptoms is taken as no acute illness.
 ##' By default (\code{chronic = "none"}) no rule for chronic symptoms is
-##' applied. Otherwise reports flagged as chronic are treated as no acute
-##' illness: they support no bout and leave no day unknown.
+##' applied. With \code{chronic = "duration"}, reports flagged by that
+##' assumption are treated as no acute illness: they support no bout and
+##' leave no day unknown.
 ##'
 ##' The case-definition flags are known per report, not per day. A bout meeting
 ##' a definition at some point need not have had every symptom present on
@@ -77,18 +78,16 @@
 ##' a missing column gives missing flags.
 ##' @param min.reports the minimum number of days with symptom reports for a
 ##' participant to be eligible in a season
-##' @param chronic how to identify chronic symptom reports: \code{"none"}
-##' (the default) flags none; \code{"duration"} flags reports with a valid
-##' interval of more than \code{chronic.days} days; \code{"condition"} flags
-##' reports for which any of the \code{chronic.cols} is "t". The latter flags
-##' every symptom report of a participant with such a condition. Someone
-##' with asthma who has an acute ILI therefore never counts as ill under this
-##' rule.
+##' @param chronic an optional heuristic for chronic symptom reports:
+##' \code{"none"} (the default) applies no rule; \code{"duration"} treats
+##' reports with a valid interval of more than \code{chronic.days} days as
+##' chronic. This is an assumption, not a validated classifier: a long
+##' duration does not by itself show that symptoms are chronic, and no rule
+##' for identifying chronic-only reports has been agreed. A chronic condition
+##' is deliberately not used, as people with one can also have an acute
+##' illness.
 ##' @param chronic.days the number of days beyond which a report counts as
 ##' chronic, for \code{chronic = "duration"}
-##' @param chronic.cols columns of \code{symptoms} holding chronic medical
-##' conditions, for \code{chronic = "condition"}. Absent columns are ignored,
-##' but at least one must be present.
 ##' @return the contact reports with added columns \code{follow_up} (see
 ##' above), \code{current_symptoms}
 ##' ("symptoms" or "no symptoms"), and a daily column \code{current_*} and a
@@ -108,11 +107,8 @@
 ##' @import data.table
 ##' @export
 contact_illness <- function(contacts, symptoms, min.reports = 3,
-                            chronic = c("none", "duration", "condition"),
-                            chronic.days = NULL,
-                            chronic.cols = c("risk.asthma", "risk.diabetes",
-                                             "risk.lung", "risk.heart",
-                                             "risk.kidney", "risk.immune")) {
+                            chronic = c("none", "duration"),
+                            chronic.days = NULL) {
   chronic <- match.arg(chronic)
   flag_cols <- c(
     ili = "ili", ili_fever = "ili.fever", ili_self = "ili.self",
@@ -160,7 +156,7 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
              !is.na(bstart) & !is.na(bend) & bstart <= bend]
   symptoms[is.na(valid), valid := FALSE]
   symptoms[, is_chronic := chronic_reports(
-    symptoms, chronic, chronic.days, chronic.cols
+    symptoms, chronic, chronic.days
   )]
   symptoms[(is_chronic), valid := FALSE]
 
@@ -269,7 +265,7 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
 }
 
 ## Flags chronic (as opposed to acute) reports, using the `chronic` rule.
-chronic_reports <- function(symptoms, chronic, chronic.days, chronic.cols) {
+chronic_reports <- function(symptoms, chronic, chronic.days) {
   if (chronic == "duration") {
     if (!(is.numeric(chronic.days) && length(chronic.days) == 1 &&
             !is.na(chronic.days))) {
@@ -278,18 +274,6 @@ chronic_reports <- function(symptoms, chronic, chronic.days, chronic.cols) {
     }
     return(symptoms$valid & as.numeric(symptoms$bend - symptoms$bstart) + 1 >
              chronic.days)
-  }
-  if (chronic == "condition") {
-    present <- intersect(chronic.cols, colnames(symptoms))
-    if (length(present) == 0) {
-      stop("none of 'chronic.cols' is a column of 'symptoms'", call. = FALSE)
-    }
-    conditions <- lapply(present, function(col) {
-      flag <- as.character(symptoms[[col]])
-      !is.na(flag) & flag == "t"
-    })
-    no_symptoms <- as.character(symptoms$no.symptoms)
-    return(Reduce(`|`, conditions) & !is.na(no_symptoms) & no_symptoms == "f")
   }
   rep(FALSE, nrow(symptoms))
 }

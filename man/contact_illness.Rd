@@ -8,10 +8,8 @@ contact_illness(
   contacts,
   symptoms,
   min.reports = 3,
-  chronic = c("none", "duration", "condition"),
-  chronic.days = NULL,
-  chronic.cols = c("risk.asthma", "risk.diabetes", "risk.lung", "risk.heart",
-    "risk.kidney", "risk.immune")
+  chronic = c("none", "duration"),
+  chronic.days = NULL
 )
 }
 \arguments{
@@ -30,19 +28,17 @@ a missing column gives missing flags.}
 \item{min.reports}{the minimum number of days with symptom reports for a
 participant to be eligible in a season}
 
-\item{chronic}{how to identify chronic symptom reports: \code{"none"}
-(the default) flags none; \code{"duration"} flags reports with a valid
-interval of more than \code{chronic.days} days; \code{"condition"} flags
-reports for which any of the \code{chronic.cols} is "t". The latter flags
-every symptom report of a participant with such a condition, so someone
-with asthma who has an acute ILI never counts as ill under this rule.}
+\item{chronic}{an optional heuristic for chronic symptom reports:
+\code{"none"} (the default) applies no rule; \code{"duration"} treats
+reports with a valid interval of more than \code{chronic.days} days as
+chronic. This is an assumption, not a validated classifier: a long
+duration does not by itself show that symptoms are chronic, and no rule
+for identifying chronic-only reports has been agreed. A chronic condition
+is deliberately not used, as people with one can also have an acute
+illness.}
 
 \item{chronic.days}{the number of days beyond which a report counts as
 chronic, for \code{chronic = "duration"}}
-
-\item{chronic.cols}{columns of \code{symptoms} holding chronic medical
-conditions, for \code{chronic = "condition"}. Absent columns are ignored,
-but at least one must be present.}
 }
 \value{
 the contact reports with added columns \code{follow_up} (see
@@ -92,8 +88,9 @@ illness cannot be placed, so every day since the participant's previous
 report, up to and including its own date, is unknown (missing) unless
 it lies in a bout. A report without symptoms is taken as no acute illness.
 By default (\code{chronic = "none"}) no rule for chronic symptoms is
-applied. Otherwise reports flagged as chronic are treated as no acute
-illness: they support no bout and leave no day unknown.
+applied. With \code{chronic = "duration"}, reports flagged by that
+assumption are treated as no acute illness: they support no bout and
+leave no day unknown.
 
 The case-definition flags are known per report, not per day. A bout meeting
 a definition at some point need not have had every symptom present on
