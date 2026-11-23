@@ -410,3 +410,16 @@ test_that("follow-up can end at the end of the last illness", {
   expect_error(contact_illness(contact("a", days), symptoms,
                                follow_up_end = "never"))
 })
+
+test_that("a still-ill report ends follow-up at its date, not at a recovery", {
+  symptoms <- data.table::rbindlist(list(
+    well("a", c("2013-01-10", "2013-01-20", "2013-01-30")),
+    report("a", "2013-02-03", start = "2013-02-02", option = "still_ill",
+           ili = "t")
+  ))
+  days <- c("2013-02-03", "2013-02-04")
+  res <- contact_illness(contact("a", days), symptoms,
+                         follow_up_end = "end_of_illness")
+  expect_equal(res$follow_up, c("in follow-up", "after follow-up"))
+  expect_equal(res$current_symptoms, c("symptoms", NA))
+})

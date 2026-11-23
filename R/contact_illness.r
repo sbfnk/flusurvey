@@ -80,7 +80,11 @@
 ##' participant to be eligible in a season
 ##' @param follow_up_end where follow-up ends: \code{"last_healthy"} (the
 ##' default) at the last report without symptoms, or \code{"end_of_illness"}
-##' at the later of that report and the end of the last bout of illness.
+##' at the later of that report and the end of the last bout of illness. That
+##' end is an observed recovery only where a report gives
+##' \code{symptoms.end.date}. Where the participant was still ill at a
+##' report, it is the date of the last such report, and a recovery after it is
+##' not known. Days after it are "after follow-up", not classified as healthy.
 ##' @return the contact reports with added columns \code{follow_up} (see
 ##' above), \code{current_symptoms}
 ##' ("symptoms" or "no symptoms"), and a daily column \code{current_*} and a
