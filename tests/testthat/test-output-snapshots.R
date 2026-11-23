@@ -20,10 +20,10 @@ as_text <- function(column) {
   }
 }
 
-## We hash the UTF-8 text of each column, one value per line, with missing
-## values written as a marker line. tools::md5sum() hashes the bytes of a file,
-## so the result does not depend on the version of any package, unlike
-## rlang::hash(), which differs between rlang versions even for the same input.
+## Each column is hashed as UTF-8 text, one value per line, with missing values
+## written as a marker line. tools::md5sum() hashes the bytes of a file, so the
+## hash is independent of package versions. rlang::hash() gives different
+## results across rlang versions for the same input.
 hash_text <- function(text) {
   text[is.na(text)] <- "<NA>"
   path <- tempfile()
