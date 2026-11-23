@@ -74,8 +74,8 @@ does not split them.
 "symptoms" on days in a bout. With \code{healthy = "follow-up"} every
 other day is "no symptoms", with or without a report that day. With
 \code{healthy = "report"} a day is "no symptoms" only if a report
-without symptoms filed after it covers it, from the previous report's
-date up to the day before its own. Days before a participant's first
+without symptoms filed after it covers it, from the date of the previous
+report up to the day before its own. Days before a participant's first
 report, and days with no such report, are unknown. The exception is a
 report with symptoms (or
 without a known symptom status) whose dates give no usable interval:
