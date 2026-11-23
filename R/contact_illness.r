@@ -84,7 +84,8 @@
 ##' end is an observed recovery only where a report gives
 ##' \code{symptoms.end.date}. If the participant was still ill at a report,
 ##' follow-up ends at the date of the last such report. Any recovery after that
-##' date is unknown. Days after it are "after follow-up" and have unknown status.
+##' date is unknown. Days after it are "after follow-up" and have unknown
+##' status.
 ##' @return the contact reports with added columns \code{follow_up} (see
 ##' above), \code{current_symptoms}
 ##' ("symptoms" or "no symptoms"), and a daily column \code{current_*} and a
