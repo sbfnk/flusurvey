@@ -143,9 +143,12 @@ get_incidence <- function(
 ## Adds, by reference, a column holding the aggregation period of a date column.
 add_period_date <- function(dt, date_col, aggregation) {
   if (aggregation == "year") {
-    dt[, paste(date_col) := as.Date(
-      paste(substr(season, 1, 4), 11, 1, sep = "-")
-    )]
+    ## a table with no rows has no season to build a date from
+    dt[, paste(date_col) := if (.N == 0L) {
+      as.Date(character())
+    } else {
+      as.Date(paste(substr(season, 1, 4), 11, 1, sep = "-"))
+    }]
   } else {
     dt[
       ,

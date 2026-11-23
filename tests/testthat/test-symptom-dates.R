@@ -80,3 +80,17 @@ test_that("incidence excludes illness ongoing at entry only", {
   expect_equal(inc[day == as.Date("2012-12-25")]$ili, 0)
   expect_equal(sum(inc$ili), 1)
 })
+
+test_that("incidence is zero when every bout is ongoing at entry", {
+  season <- fixture_season()
+  season$background <- season$background[global_id == "early"]
+  season$symptom <- season$symptom[global_id == "early"]
+  dt <- extract_data(list("2013" = season), clean = c(
+    "remove.first", "remove.bad.symptom.dates", "unsuccessful.join"
+  ), max.symptom.days = 10)
+  for (aggregation in c("day", "week", "month", "year")) {
+    capture.output(inc <- get_incidence(dt, aggregation = aggregation))
+    expect_gt(nrow(inc), 0)
+    expect_equal(sum(inc$ili), 0, info = aggregation)
+  }
+})
