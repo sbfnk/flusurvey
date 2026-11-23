@@ -81,11 +81,10 @@
 ##' @param chronic an optional heuristic for chronic symptom reports:
 ##' \code{"none"} (the default) applies no rule; \code{"duration"} treats
 ##' reports with a valid interval of more than \code{chronic.days} days as
-##' chronic. This is an assumption, not a validated classifier: a long
-##' duration does not by itself show that symptoms are chronic, and no rule
-##' for identifying chronic-only reports has been agreed. A chronic condition
-##' is deliberately not used, as people with one can also have an acute
-##' illness.
+##' chronic. This is an assumption: a long duration alone does not show that
+##' symptoms are chronic, and no rule for identifying chronic-only reports has
+##' been agreed. A chronic condition is deliberately unused, because people
+##' with one can also have an acute illness.
 ##' @param chronic.days the number of days beyond which a report counts as
 ##' chronic, for \code{chronic = "duration"}
 ##' @return the contact reports with added columns \code{follow_up} (see
