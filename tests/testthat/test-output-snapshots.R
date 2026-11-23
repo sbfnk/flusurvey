@@ -20,6 +20,20 @@ as_text <- function(column) {
   }
 }
 
+## We hash the UTF-8 text of each column, one value per line, with missing
+## values written as a marker line. tools::md5sum() hashes the bytes of a file,
+## so the result does not depend on the version of any package, unlike
+## rlang::hash(), which differs between rlang versions even for the same input.
+hash_text <- function(text) {
+  text[is.na(text)] <- "<NA>"
+  path <- tempfile()
+  on.exit(unlink(path))
+  con <- file(path, "wb")
+  writeBin(charToRaw(paste0(paste(enc2utf8(text), collapse = "\n"), "\n")), con)
+  close(con)
+  unname(tools::md5sum(path))
+}
+
 ## We radix-order rows on the keys, then on every other column.
 summarise_table <- function(x) {
   x <- as.data.frame(x)
@@ -32,7 +46,7 @@ summarise_table <- function(x) {
   list(
     dim = dim(x),
     classes = classes,
-    hashes = vapply(text, function(column) rlang::hash(column[rows]), "")
+    hashes = vapply(text, function(column) hash_text(column[rows]), "")
   )
 }
 
