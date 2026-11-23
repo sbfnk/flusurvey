@@ -425,3 +425,15 @@ test_that("healthy = 'report' leaves days outside report coverage unknown", {
   expect_equal(res$current_symptoms,
                c(NA, "no symptoms", "no symptoms", NA))
 })
+
+test_that("neither healthy rule calls a still-ill day without onset healthy", {
+  symptoms <- rbind(
+    well("a", c("2013-01-01", "2013-01-08", "2013-01-31")),
+    report("a", "2013-01-15", option = "still_ill", ili = "t")
+  )
+  days <- c("2013-01-09", "2013-01-14", "2013-01-15", "2013-01-20")
+  for (rule in c("follow-up", "report")) {
+    res <- contact_illness(contact("a", days), symptoms, healthy = rule)
+    expect_equal(res$current_symptoms[2:3], c(NA_character_, NA_character_))
+  }
+})
