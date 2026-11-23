@@ -419,5 +419,18 @@ test_that("a chronic condition does not remove acute illness", {
   symptoms[, risk.asthma := "t"]
   day <- contact("a", as.Date("2013-01-11"))
   expect_equal(contact_illness(day, symptoms)$current_symptoms, "symptoms")
-  expect_error(contact_illness(day, symptoms, chronic = "condition"), "arg")
+  expect_equal(
+    contact_illness(day, symptoms, chronic = "duration",
+                    chronic.days = 14)$current_symptoms,
+    "symptoms"
+  )
+})
+
+test_that("an unknown chronic option is rejected", {
+  symptoms <- followed("a")
+  expect_error(
+    contact_illness(contact("a", as.Date("2013-01-11")), symptoms,
+                    chronic = "condition"),
+    "should be one of"
+  )
 })
