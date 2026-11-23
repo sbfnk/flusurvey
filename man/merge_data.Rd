@@ -22,8 +22,8 @@ merge_data(
 contact, symptom), regardless of their order in \code{data}. The last one
 present drives a rolling join. The result has one row per report of that
 survey (the symptom reports, if present), each taking the latest report of
-the other surveys on or before its date. When an earlier survey has several
-reports on the same day, its last report is used. Any other survey name
+the other surveys on or before its date. For several reports from an earlier
+survey on the same day, the last report is used. Any other survey name
 gives an error.
 
 Joining the contact and symptom surveys gives a warning. The join pairs
@@ -41,12 +41,12 @@ cleans to perform (by default all):
 - 'remove.first', whether to remove reports from the first reporting day,
 - 'remove.bad.symptom.dates', whether to remove bad symptom dates: symptom
 end of symptoms before start of symptoms, symptoms reported to have started
-or ended after date of report. Such dates are set to missing. Start dates
-are otherwise kept as reported, and two logical columns flag them:
+or ended after date of report. Such dates are set to missing. Other start
+dates are kept as reported, and two logical columns flag them:
 \code{illness.ongoing.at.entry} (start before the participant's first
 report in the season) and \code{long.running.illness} (start more than
 \code{max.symptom.days} days before the report that gives it).
-\code{\link{bouts_of_illness}} carries both flags to the bouts, and
+\code{\link{bouts_of_illness}} copies both flags to the bouts.
 \code{\link{get_incidence}} does not count bouts ongoing at entry as new
 cases.
 - 'remove.bad.health.scores', whether to remove health scores <0 or >100
@@ -60,7 +60,7 @@ should have prevented this, but doesn't appear to have done so)
 - 'only.symptoms', whether to exclude those that have no report without
 symptoms}
 
-\item{min.reports}{minimum number of symptom reporting days per user
+\item{min.reports}{minimum number of symptom reporting days per participant
 (ignored if 'min.reports' is not given as a cleaning option)}
 
 \item{ranges}{what to do if a number of contacts is given as a range: sample
@@ -78,10 +78,10 @@ default) leaves \code{ili} and \code{ili.fever} missing where onset is
 needed to decide, \code{1} counts unknown onset as sudden and \code{0} as
 not sudden. The recorded onset is kept in \code{onset}.}
 
-\item{max.symptom.days}{maximum number of days before a report that
-symptoms can have started before illness is flagged as long-running
-(ignored if 'remove.bad.symptom.dates' is not given as a cleaning option);
-use \code{Inf} for no limit}
+\item{max.symptom.days}{maximum number of days between the start of
+symptoms and the report before the illness is flagged as long-running
+(ignored unless 'remove.bad.symptom.dates' is a cleaning option); use
+\code{Inf} for no limit}
 }
 \value{
 a rolling-joined data table. \code{day.of.week} (1 for Monday to 7
