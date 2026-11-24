@@ -26,7 +26,7 @@
 ##' or ended after date of report. Such dates are set to missing. Other start
 ##' dates are kept as reported, and two logical columns flag them:
 ##' \code{illness.ongoing.at.entry} (start before the participant's first
-##' report in the season) and \code{long.running.illness} (start more than
+##' report in the data, after any season limiting) and \code{long.running.illness} (start more than
 ##' \code{max.symptom.days} days before the report that gives it).
 ##' \code{\link{bouts_of_illness}} copies both flags to the bouts.
 ##' \code{\link{get_incidence}} does not count bouts ongoing at entry as new
