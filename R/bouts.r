@@ -53,10 +53,6 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
   ),
   by = list(participant_id, season)
   ]
-  dt[
-    first.no.symptoms == 0 & part.symptom.id == min(part.symptom.id),
-    new.bout := TRUE
-  ]
   ## the first symptomatic report of a participant always starts a bout,
   ## because `same` cannot refer to an earlier report without symptoms
   dt[
