@@ -57,7 +57,7 @@
 ##' continuing illness without a start date. A continuing-illness report also
 ##' leaves the days after its date until the next report unknown unless bout
 ##' evidence covers them. A report without symptoms is taken as no acute
-##' illness. The data hold no indicator of chronic symptoms and the maintainers
+##' illness. The data have no indicator of chronic symptoms. The maintainers
 ##' have not defined one, or a duration after which symptoms count as chronic.
 ##' No rule for chronic symptoms is applied.
 ##'
