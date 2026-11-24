@@ -27,8 +27,8 @@
 ##' date of report
 ##' - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 ##' - 'limit.season', whether to limit a flu season to November -> April
-##' (when surveys are merged, this applies to the symptom survey, or to the
-##' last survey merged if there is no symptom survey)
+##' (when surveys are merged, this applies to the last survey merged, the
+##' symptom survey if present)
 ##' - 'remove.postcodes', whether to remove postcodes
 ##' - 'n.reports', whether to exclude those with fewer than \code{min.reports}
 ##' symptom reporting days
@@ -132,7 +132,7 @@ merge_data <- function(
       dt <- dt[!duplicated(dt[, list(global_id, date)], fromLast = TRUE)]
     }
 
-    if ("limit.season" %in% clean && limits_season(name, names(data))) {
+    if ("limit.season" %in% clean && name == tail(names(data), 1)) {
       dt <- limit_to_season(dt)
     }
 
@@ -623,17 +623,4 @@ add_contact_totals <- function(dt, types, contact_columns) {
     ]
   }
   invisible(dt)
-}
-
-## When surveys are merged, the season limit applies to the symptom survey,
-## or to the last (driving) survey if there is none. Its rows hold the report
-## dates. Limiting an earlier survey would drop participants who report in the
-## season.
-limits_season <- function(name, survey_names) {
-  driving <- if ("symptom" %in% survey_names) {
-    "symptom"
-  } else {
-    tail(survey_names, 1)
-  }
-  name == driving
 }
