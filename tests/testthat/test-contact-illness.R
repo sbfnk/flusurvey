@@ -434,3 +434,48 @@ test_that("an unknown chronic option is rejected", {
     "should be one of"
   )
 })
+
+test_that("healthy = 'report' needs a later report without symptoms", {
+  symptoms <- rbind(
+    well("a", c("2013-01-01", "2013-01-08", "2013-01-31")),
+    report("a", "2013-01-15", start = "2013-01-12", end = "2013-01-13",
+           ili = "t")
+  )
+  days <- c("2013-01-01", "2013-01-05", "2013-01-12", "2013-01-14",
+            "2013-01-20", "2013-01-30")
+  default <- contact_illness(contact("a", days), symptoms)
+  expect_equal(
+    default$current_symptoms,
+    c("no symptoms", "no symptoms", "symptoms", "no symptoms", "no symptoms",
+      "no symptoms")
+  )
+  res <- contact_illness(contact("a", days), symptoms, healthy = "report")
+  expect_equal(
+    res$current_symptoms,
+    c("no symptoms", "no symptoms", "symptoms", NA, "no symptoms",
+      "no symptoms")
+  )
+  expect_equal(res$bout_ili, c("no ILI", "no ILI", "ILI", NA, "no ILI",
+                               "no ILI"))
+  expect_error(contact_illness(contact("a", days), symptoms, healthy = "x"))
+})
+
+test_that("healthy = 'report' leaves days outside report coverage unknown", {
+  symptoms <- well("a", c("2013-01-05", "2013-01-10", "2013-01-20"))
+  days <- c("2013-01-04", "2013-01-05", "2013-01-19", "2013-01-20")
+  res <- contact_illness(contact("a", days), symptoms, healthy = "report")
+  expect_equal(res$current_symptoms,
+               c(NA, "no symptoms", "no symptoms", NA))
+})
+
+test_that("neither healthy rule calls a still-ill day without onset healthy", {
+  symptoms <- rbind(
+    well("a", c("2013-01-01", "2013-01-08", "2013-01-31")),
+    report("a", "2013-01-15", option = "still_ill", ili = "t")
+  )
+  days <- c("2013-01-09", "2013-01-14", "2013-01-15", "2013-01-20")
+  for (rule in c("follow-up", "report")) {
+    res <- contact_illness(contact("a", days), symptoms, healthy = rule)
+    expect_equal(res$current_symptoms[2:3], c(NA_character_, NA_character_))
+  }
+})
