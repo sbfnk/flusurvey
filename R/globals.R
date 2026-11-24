@@ -5,6 +5,7 @@ utils::globalVariables(c(
   "row_id",
   "first.day",
   "last.day",
+  "last.bout",
   "basis",
   "source",
   "fever.symptoms",
