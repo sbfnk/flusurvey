@@ -630,6 +630,10 @@ add_contact_totals <- function(dt, types, contact_columns) {
 ## dates. Limiting an earlier survey would drop participants who report in the
 ## season.
 limits_season <- function(name, survey_names) {
-  driving <- if ("symptom" %in% survey_names) "symptom" else tail(survey_names, 1)
+  driving <- if ("symptom" %in% survey_names) {
+    "symptom"
+  } else {
+    tail(survey_names, 1)
+  }
   name == driving
 }
