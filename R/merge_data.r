@@ -5,8 +5,9 @@
 ##' contact, symptom), regardless of their order in \code{data}. The last one
 ##' present drives a rolling join. The result has one row per report of that
 ##' survey (the symptom reports, if present), each taking the latest report of
-##' the other surveys on or before its date. Any other survey name gives an
-##' error.
+##' the other surveys on or before its date. For several reports from an earlier
+##' survey on the same day, the last report is used. Any other survey name
+##' gives an error.
 ##'
 ##' Joining the contact and symptom surveys gives a warning. The join pairs
 ##' each symptom report with the latest earlier contact report, however long
@@ -19,7 +20,7 @@
 ##' episode with \code{\link{flag_ill_contacts}}.
 ##' @param clean cleaning options, NULL for no cleaning, otherwise a vector of
 ##' cleans to perform (by default all):
-##' - 'remove.first', whether to remove everyone's first report,
+##' - 'remove.first', whether to remove reports from the first reporting day,
 ##' - 'remove.bad.symptom.dates', whether to remove bad symptom dates: symptom
 ##' start before date of first or end after end of last report, end of symptoms
 ##' before start of symptoms, symptoms reported to have started or ended after
@@ -28,7 +29,7 @@
 ##' - 'limit.season', whether to limit a flu season to November -> April
 ##' - 'remove.postcodes', whether to remove postcodes
 ##' - 'n.reports', whether to exclude those with fewer than \code{min.reports}
-##' reports
+##' symptom reporting days
 ##' - 'unsuccessful.join', whether to exclude those with unsuccesful joins (e.g.
 ##' if symptoms are reported without a background survey present; the web site
 ##' should have prevented this, but doesn't appear to have done so)
@@ -37,8 +38,8 @@
 ##' or reported only because they were ill, and keeping them would bias
 ##' incidence and prevalence upwards. Leave it out of \code{clean} for analyses
 ##' that need these participants.
-##' @param min.reports minimum number of reports per user (ignored if
-##' 'min.reports' is not given as a cleaning option)
+##' @param min.reports minimum number of symptom reporting days per participant
+##' (ignored if 'min.reports' is not given as a cleaning option)
 ##' @param ranges what to do if a number of contacts is given as a range: sample
 ##' from the range ("sample"), or apply a function, given as character string
 ##' (e.g., "mean")
@@ -46,6 +47,18 @@
 ##' group except the last (first age group starts at 0 years of age). The last
 ##' group is open-ended. The default gives the groups 0-18, 19-44, 45-64 and
 ##' 65+, matching the age bands of the contact questions.
+##' @param max.band.count the largest number of people accepted in a single age
+##' band of the household. There is no limit by default, as households in
+##' institutions such as care homes can be large. Larger counts are set to
+##' missing. \code{nb.household} is then missing too. The counts include the
+##' participant. A band ticked as present without a number counts as one
+##' person. A household with no band ticked gets a missing
+##' \code{nb.household}.
+##' @param ili.sudden.unknown how to interpret reports where sudden onset is
+##' unknown, passed to \code{\link{aggregate_symptoms}}: \code{NA} (the
+##' default) leaves \code{ili} and \code{ili.fever} missing where onset is
+##' needed to decide, \code{1} counts unknown onset as sudden and \code{0} as
+##' not sudden. The recorded onset is kept in \code{onset}.
 ##' @return a rolling-joined data table. \code{day.of.week} (1 for Monday to 7
 ##' for Sunday) is that of the report date. If the contact survey is included,
 ##' \code{contact.date} is the day the contacts describe (the day before the
@@ -56,7 +69,7 @@
 ##' dt <- merge_data(simulated_data[["2013"]])
 ##' table(dt$ili)
 ##'
-##' ## only remove each participant's first report
+##' ## only remove each participant's first reporting day
 ##' merge_data(simulated_data[["2013"]], clean = "remove.first")
 ##' @import data.table
 ##' @importFrom lubridate interval years
@@ -77,7 +90,9 @@ merge_data <- function(
   ),
   min.reports = 3,
   ranges = "sample",
-  age.breaks = c(18, 44, 64)
+  age.breaks = c(18, 44, 64),
+  ili.sudden.unknown = NA,
+  max.band.count = Inf
 ) {
   survey_order <- c("background", "contact", "symptom")
   if (!all(names(data) %in% survey_order)) {
@@ -112,17 +127,19 @@ merge_data <- function(
     clean <- match.arg(clean, several.ok = TRUE)
   }
   for (name in names(data)) {
-    ## only keep last report per day
     dt <- copy(data.table(data[[name]]))
-    dt <- dt[!duplicated(dt[, list(global_id, date)], fromLast = TRUE)]
+    if (name != tail(names(data), 1)) {
+      ## keep the last report per day for the rolling join
+      dt <- dt[!duplicated(dt[, list(global_id, date)], fromLast = TRUE)]
+    }
 
     if ("limit.season" %in% clean) {
       dt <- limit_to_season(dt)
     }
 
     dt <- switch(name,
-      symptom = clean_symptom(dt, clean, min.reports),
-      background = clean_background(dt, age.breaks),
+      symptom = clean_symptom(dt, clean, min.reports, ili.sudden.unknown),
+      background = clean_background(dt, age.breaks, max.band.count),
       contact = clean_contact(dt, ranges),
       dt
     )
@@ -156,11 +173,11 @@ merge_data <- function(
   convert_logical_columns(res, res)
 }
 
-## Keep the reports from the season that contains the date with most reports.
+## Keep the season containing the earliest date with the most reports.
 limit_to_season <- function(dt) {
   ## figure out date with most reports, this defines the season
   reports <- dt[, .N, date]
-  max_date <- reports[N == max(N), date]
+  max_date <- min(reports[N == max(N), date])
   ## season begins on 1 November before the maximum date
   if (lubridate::month(max_date) >= 11) {
     season_start <- as.Date(paste(year(max_date), 11, 1, sep = "-"))
@@ -225,10 +242,9 @@ convert_logical_columns <- function(res, reference) {
 
 ## ---- symptom survey ---------------------------------------------------------
 
-clean_symptom <- function(dt, clean, min.reports) {
-  dt <- aggregate_symptoms(dt)
-  ## calculate min.reports, max.reports, nReports
-  dt[, nReports := .N, by = global_id]
+clean_symptom <- function(dt, clean, min.reports, ili.sudden.unknown) {
+  dt <- aggregate_symptoms(dt, ili.sudden.unknown = ili.sudden.unknown)
+  dt[, nReports := uniqueN(date), by = global_id]
   if ("n.reports" %in% clean) {
     dt <- dt[nReports >= min.reports]
   }
@@ -236,9 +252,9 @@ clean_symptom <- function(dt, clean, min.reports) {
   dt[, min.date := min(date), by = global_id]
   dt[, max.date := max(date), by = global_id]
 
-  ## remove first survey completed by everyone
+  ## remove reports from each participant's first reporting day
   if ("remove.first" %in% clean) {
-    dt <- dt[duplicated(global_id)]
+    dt <- dt[date > min.date]
   }
 
   if ("remove.bad.symptom.dates" %in% clean) {
@@ -311,13 +327,13 @@ keep_symptom_free_reporters <- function(dt) {
 
 ## ---- background survey ------------------------------------------------------
 
-clean_background <- function(dt, age.breaks) {
+clean_background <- function(dt, age.breaks, max.band.count) {
   dt <- add_age(dt, age.breaks)
   convert_household_counts(dt)
   add_living_with_children(dt)
   dt <- add_postcode_regions(dt)
   add_highest_education(dt)
-  add_household_members(dt)
+  add_household_members(dt, max.band.count)
   dt
 }
 
@@ -494,17 +510,23 @@ add_highest_education <- function(dt) {
 }
 
 ## household members
-add_household_members <- function(dt) {
+add_household_members <- function(dt, max.band.count) {
   hh_columns <- grep("^nb.household\\.", value = TRUE, colnames(dt))
   for (col in hh_columns) {
     indicator_col <- sub("nb.", "", col, fixed = TRUE)
     if (indicator_col %in% colnames(dt)) {
       dt[get(indicator_col) == "f", paste(col) := 0]
+      ## ticked as present without a number: at least one person
+      dt[get(indicator_col) == "t" & is.na(get(col)), paste(col) := 1]
     }
+    dt[get(col) > max.band.count, paste(col) := NA]
   }
   dt[, nb.household := rowSums(.SD),
     .SDcols = hh_columns
   ]
+  ## a zero total means no band was filled in. Every household has at least
+  ## one member, so zero is recorded as missing
+  dt[nb.household == 0, nb.household := NA_real_]
   dt[, nb.household.children := rowSums(.SD),
     .SDcols = c("nb.household.0.4", "nb.household.5.18")
   ]

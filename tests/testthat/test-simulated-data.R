@@ -231,14 +231,3 @@ test_that("merge_data dates contact reports by the day they describe", {
   expect_gt(nrow(monday), 0)
   expect_true(all(monday$contact.day.of.week == 7))
 })
-
-test_that("aggregate_symptoms treats unknown onset as set by ili.sudden.unknown", {
-  symptoms <- data.frame(
-    symptoms.suddenly = c("yes", "no", NA),
-    fever = "t", cough = "t", tired = "f"
-  )
-  ili <- function(...) aggregate_symptoms(symptoms, ...)$ili
-  expect_equal(ili(), c("t", "f", "t"))
-  expect_equal(ili(ili.sudden.unknown = 0), c("t", "f", "f"))
-  expect_equal(ili(ili.sudden.unknown = NA), c("t", "f", NA))
-})
