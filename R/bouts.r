@@ -190,31 +190,31 @@ report_evidence <- function(dt) {
     rep(NA_character_, nrow(dt))
   }
   still <- !is.na(option) & option == "still_ill"
-  start <- dt$symptoms.start.date
-  end <- dt$symptoms.end.date
-  date <- dt$date
-  capped <- fifelse(!is.na(end), pmin(end, date), as.Date(NA))
+  onset <- dt$symptoms.start.date
+  recovery <- dt$symptoms.end.date
+  rdate <- dt$date
+  capped <- fifelse(!is.na(recovery), pmin(recovery, rdate), as.Date(NA))
   basis <- fcase(
-    !is.na(start) & !is.na(capped) & start <= capped, "reported",
-    !is.na(start) & is.na(end) & still & start <= date, "still.ill",
-    is.na(start) & is.na(end) & still, "still.ill.unknown.onset",
+    !is.na(onset) & !is.na(capped) & onset <= capped, "reported",
+    !is.na(onset) & is.na(recovery) & still & onset <= rdate, "still.ill",
+    is.na(onset) & is.na(recovery) & still, "still.ill.unknown.onset",
     default = "unresolved"
   )
   first.day <- fcase(
-    basis == "reported" | basis == "still.ill", start,
-    basis == "still.ill.unknown.onset", date,
+    basis == "reported" | basis == "still.ill", onset,
+    basis == "still.ill.unknown.onset", rdate,
     default = as.Date(NA)
   )
   last.day <- fcase(
     basis == "reported", capped,
-    basis == "still.ill" | basis == "still.ill.unknown.onset", date,
+    basis == "still.ill" | basis == "still.ill.unknown.onset", rdate,
     default = as.Date(NA)
   )
   res <- data.table(
     participant_id = dt$participant_id, season = dt$season, bout = dt$bout,
-    date = date, report.start = start, report.end = end, basis = basis,
-    onset.known = !is.na(start),
-    recovery.known = !is.na(end),
+    date = rdate, report.start = onset, report.end = recovery, basis = basis,
+    onset.known = !is.na(onset),
+    recovery.known = !is.na(recovery),
     first.day = first.day, last.day = last.day
   )
   if ("row_id" %in% colnames(dt)) res[, row_id := dt$row_id]
@@ -337,6 +337,29 @@ bout_evidence_from <- function(dt) {
   bouts <- merge(bouts, bout_flags(in_bout, keys), by = keys, sort = FALSE)
   setorderv(bouts, keys)
   list(bouts = bouts[], reports = reports[], days = evidence_days(reports))
+}
+
+## One row per day from symptoms.start.date to symptoms.end.date of each bout
+## report, with flags carried forward, set per bout or set per report.
+expand_to_days <- function(dt, daily.flags, report.flags, flag.columns) {
+  dt <- dt[!is.na(bout)]
+  starts <- dt$symptoms.start.date
+  ends <- pmax(dt$symptoms.end.date, starts)
+  days <- Map(function(from, to) seq(from, to, by = "day"), starts, ends)
+  dt <- dt[rep(seq_len(nrow(dt)), lengths(days))]
+  dt[, day := as.Date(unlist(days), origin = "1970-01-01")]
+  if (daily.flags != "bout" && length(flag.columns) > 0) {
+    flags <- report.flags[
+      dt,
+      flag.columns,
+      on = c("participant_id", "season", "bout", date = "day"),
+      roll = if (daily.flags == "carry.forward") TRUE else FALSE,
+      mult = "last",
+      with = FALSE
+    ]
+    dt[, (flag.columns) := flags]
+  }
+  dt
 }
 
 ##' Extract bouts of illness from a flusurvey data table
@@ -484,23 +507,7 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE,
   }
   dt[, id := NULL]
   if (daily.flags != "none") {
-    dt <- dt[!is.na(bout)]
-    starts <- dt$symptoms.start.date
-    ends <- pmax(dt$symptoms.end.date, starts)
-    days <- Map(function(from, to) seq(from, to, by = "day"), starts, ends)
-    dt <- dt[rep(seq_len(nrow(dt)), lengths(days))]
-    dt[, day := as.Date(unlist(days), origin = "1970-01-01")]
-    if (daily.flags != "bout" && length(flag.columns) > 0) {
-      flags <- report.flags[
-        dt,
-        flag.columns,
-        on = c("participant_id", "season", "bout", date = "day"),
-        roll = if (daily.flags == "carry.forward") TRUE else FALSE,
-        mult = "last",
-        with = FALSE
-      ]
-      dt[, (flag.columns) := flags]
-    }
+    dt <- expand_to_days(dt, daily.flags, report.flags, flag.columns)
   }
   dt[]
 }

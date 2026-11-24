@@ -1,4 +1,4 @@
-##' Illness status of contact reports
+#' Illness status of contact reports
 ##'
 ##' Classifies the day described by each contact report (\code{contact.date},
 ##' the day before the report) as ill, healthy or unknown, following a
@@ -26,10 +26,10 @@
 ##' supports the days from its start date to the report date, or only the report
 ##' date when it gives no start date: the onset is then unknown and the days
 ##' before it are unknown, but the report date is a day of illness, and a
-##' contact describing it is classified as ill. Recovery on that date, or illness
-##' on the following one, is not established. Days between the intervals of a
-##' bout are not called ill. A symptomatic report that belongs to no bout
-##' forms a bout of its own.
+##' contact describing it is classified as ill. Recovery on that date, or
+##' illness on the following one, is not established. Days between the
+##' intervals of a bout are not called ill. A symptomatic report that belongs
+##' to no bout forms a bout of its own.
 ##'
 ##' \emph{Case definitions of bouts.} The symptoms of all reports of a bout are
 ##' combined first and the definitions applied to the result, so symptoms
@@ -48,8 +48,9 @@
 ##' report, up to and including its own date, is unknown (missing) unless
 ##' it lies in a bout. The same holds for the days before the report date of a
 ##' continuing illness without a start date. A report without symptoms is taken
-##' as no acute illness. The data hold no indicator of chronic symptoms and the maintainers have
-##' not defined one, or a duration after which symptoms count as chronic.
+##' as no acute illness. The data hold no indicator of chronic symptoms and the
+##' maintainers have not defined one, or a duration after which symptoms count
+##' as chronic.
 ##' No rule for chronic symptoms is applied.
 ##'
 ##' The case-definition flags are known per report, not per day. A bout meeting
@@ -58,10 +59,11 @@
 ##' bout and are the ones for bout-based exposure: positive on every day of a
 ##' bout that meets the definition on the combined symptoms of its reports,
 ##' negative if it does not and no report is unresolved, and missing otherwise.
-##' A positive bout stays positive when one of its reports is unresolved. The daily
-##' \code{current_} columns are positive or negative within a bout only on days
-##' with a symptom report whose interval includes that day, assuming that such
-##' a report describes its own day, and are missing on other days of a bout:
+##' A positive bout stays positive when one of its reports is unresolved. The
+##' daily \code{current_} columns are positive or negative within a bout only
+##' on days with a symptom report whose interval includes that day, assuming
+##' that such a report describes its own day, and are missing on other days
+##' of a bout:
 ##' the symptoms of those days are not known, but the participant is known to
 ##' be ill. Several reports on a day are combined: positive if any is
 ##' positive, otherwise missing if any is unknown. Outside bouts, within
@@ -87,7 +89,11 @@
 ##' and \code{symptoms.end.option}. The columns \code{ili} (symptom-based
 ##' ILI), \code{ili.fever} (symptom-based ILI with fever), \code{ili.self}
 ##' (self-assessed ILI) and \code{resp.symptoms} (ARI) are used where present;
-##' a missing column gives missing flags. The column \code{same} (the answer to whether the symptoms are the same as in the previous report) is used where present, and the symptom columns that \code{\link{aggregate_symptoms}} derives the definitions from, so that bouts can be reconstructed and classified as in \code{\link{bouts_of_illness}}.
+##' a missing column gives missing flags. The column \code{same} (the answer to
+##' whether the symptoms are the same as in the previous report) is used where
+##' present, and the symptom columns that \code{\link{aggregate_symptoms}}
+##' derives the definitions from, so that bouts can be reconstructed and
+##' classified as in \code{\link{bouts_of_illness}}.
 ##' @param min.reports the minimum number of days with symptom reports for a
 ##' participant to be eligible in a season
 ##' @return the contact reports with added columns \code{follow_up} (see
@@ -117,18 +123,6 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
     ili = c("ILI", "no ILI"), ili_fever = c("ILI", "no ILI"),
     ili_self = c("ILI", "no ILI"), ari = c("ARI", "no ARI")
   )
-  ## positive if any report is positive, otherwise unknown if any is unknown
-  combine <- function(x) {
-    x <- as.character(x)
-    if (any(x == "t", na.rm = TRUE)) {
-      "t"
-    } else if (anyNA(x)) {
-      NA_character_
-    } else {
-      "f"
-    }
-  }
-
   contacts <- data.table(contacts)
   symptoms <- data.table(symptoms)
   ## participants are followed up per season where both tables have one
@@ -174,8 +168,9 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
 
   ## days of illness with the case definitions of their bout
   bout_cols <- paste0("bout_", names(flag_cols))
-  bout_flag_values <- copy(evidence$bouts[, c("participant_id", "season", "bout",
-                                           unname(flag_cols)), with = FALSE])
+  bout_flag_values <- copy(evidence$bouts[
+    , c("participant_id", "season", "bout", unname(flag_cols)), with = FALSE
+  ])
   setnames(bout_flag_values, unname(flag_cols), bout_cols)
   bout_days <- merge(evidence$days, bout_flag_values,
                      by = c("participant_id", "season", "bout"))
@@ -213,7 +208,7 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
 
   ## a contact day in two bouts takes the combined flags of both
   in_bout <- merge(keys[, key_cols, with = FALSE], bout_days, by = key_cols)
-  in_bout <- in_bout[, c(list(bouted = TRUE), lapply(.SD, combine)),
+  in_bout <- in_bout[, c(list(bouted = TRUE), lapply(.SD, combine_flags)),
                      by = key_cols, .SDcols = bout_cols]
 
   unknown <- merge(keys[, key_cols, with = FALSE], unresolved,
@@ -229,7 +224,7 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
     symptoms[, c("row_id", group_by, "date", unname(flag_cols)), with = FALSE],
     usable[first.day <= date & last.day >= date, "row_id", with = FALSE],
     by = "row_id"
-  )[, lapply(.SD, combine), by = c(group_by, "date"),
+  )[, lapply(.SD, combine_flags), by = c(group_by, "date"),
     .SDcols = unname(flag_cols)]
   setnames(same_day, c("date", unname(flag_cols)),
            c("contact.date", paste0("day_", names(flag_cols))))
@@ -269,4 +264,16 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
             paste0("current_", names(flag_cols)),
             paste0("bout_", names(flag_cols)))
   merge(contacts, status[, keep, with = FALSE], by = key_cols, all.x = TRUE)
+}
+
+## Positive if any report is positive, otherwise unknown if any is unknown.
+combine_flags <- function(x) {
+  x <- as.character(x)
+  if (any(x == "t", na.rm = TRUE)) {
+    "t"
+  } else if (anyNA(x)) {
+    NA_character_
+  } else {
+    "f"
+  }
 }
