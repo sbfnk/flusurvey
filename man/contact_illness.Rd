@@ -4,7 +4,12 @@
 \alias{contact_illness}
 \title{Illness status of contact reports}
 \usage{
-contact_illness(contacts, symptoms, min.reports = 3)
+contact_illness(
+  contacts,
+  symptoms,
+  min.reports = 3,
+  healthy = c("follow-up", "report")
+)
 }
 \arguments{
 \item{contacts}{a data table of contact reports with columns
@@ -25,6 +30,10 @@ classified as in \code{\link{bouts_of_illness}}.}
 
 \item{min.reports}{the minimum number of days with symptom reports for a
 participant to be eligible in a season}
+
+\item{healthy}{the rule for a day outside a bout within follow-up:
+"follow-up" counts it as healthy, "report" only if a later report
+without symptoms covers it}
 }
 \value{
 the contact reports with added columns \code{follow_up} (see
@@ -79,8 +88,13 @@ the bout is. Two adjacent illnesses that the answers separate keep their
 own definitions.
 
 \emph{Daily status.} Within follow-up, \code{current_symptoms} is
-"symptoms" on days in a bout and "no symptoms" on every other day, with or
-without a report that day. The exception is a report with symptoms (or
+"symptoms" on days in a bout. With \code{healthy = "follow-up"} every
+other day is "no symptoms", with or without a report that day. With
+\code{healthy = "report"} a day is "no symptoms" only if a report
+without symptoms filed after it covers it, from the date of the previous
+report up to the day before its own. Days before a participant's first
+report, and days with no such report, are unknown. The exception is a
+report with symptoms (or
 without a known symptom status) whose dates give no usable interval:
 missing, inconsistent, or an unknown end that is not "still ill". Its
 illness cannot be placed, so every day since the participant's previous
@@ -88,10 +102,9 @@ report, up to and including its own date, is unknown (missing) unless
 it lies in a bout. The same holds for the days before the report date of a
 continuing illness without a start date. A continuing-illness report also
 leaves the days after its date until the next report unknown unless bout
-evidence covers them. A report without symptoms is taken
-as no acute illness. The data have no indicator of chronic symptoms, and
-the maintainers have defined neither one nor a duration after which
-symptoms count as chronic.
+evidence covers them. A report without symptoms is taken as no acute illness.
+The data hold no indicator of chronic symptoms and the maintainers have
+not defined one, or a duration after which symptoms count as chronic.
 No rule for chronic symptoms is applied.
 
 The case-definition flags are known per report, not per day. A bout meeting
