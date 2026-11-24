@@ -70,6 +70,22 @@ test_that("daily.flags = 'report' is missing on days without a report", {
   )
 })
 
+test_that("daily.flags covers bouts whose reports have no start or end date", {
+  ## the dates of such a bout come from the dates of its reports
+  none <- reports(
+    3, c("2013-01-17", "2013-01-24"), c(TRUE, TRUE), c("yes", "yes"),
+    c(NA, NA), c(NA, NA)
+  )
+  for (mode in c("carry.forward", "bout", "report")) {
+    capture.output(res <- bouts_of_illness(none, daily.flags = mode))
+    expect_equal(
+      res$day, seq(as.Date("2013-01-17"), as.Date("2013-01-24"), by = "day")
+    )
+  }
+  capture.output(res <- bouts_of_illness(b, daily.flags = "bout"))
+  expect_false(anyNA(res$day))
+})
+
 test_that("input is sorted by participant, season and date", {
   capture.output(
     ordered <- bouts_of_illness(rbind(a, b)),
