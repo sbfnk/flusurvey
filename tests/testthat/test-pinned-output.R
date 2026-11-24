@@ -185,5 +185,5 @@ test_that("bouts_of_illness handles missing values in no.symptoms", {
   expect_identical(dim(complete), c(411L, 262L))
   dt[sample(.N, 300), no.symptoms := NA]
   invisible(capture.output(res <- bouts_of_illness(dt)))
-  expect_identical(dim(res), c(369L, 262L))
+  expect_identical(dim(res), c(381L, 262L))
 })

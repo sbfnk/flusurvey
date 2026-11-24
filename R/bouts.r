@@ -69,14 +69,8 @@ bouts_of_illness <- function(
 
   dt[, new.bout := (same == "no")]
   dt[, part.symptom.id := seq_len(.N), by = list(participant_id, season)]
-  ## any() alone would ignore missing values next to a "t"; a participant with
-  ## a missing value gets a missing first.no.symptoms
-  dt[, first.no.symptoms := ifelse(
-    if (anyNA(no.symptoms)) NA else any(no.symptoms == "t"),
-    min(which(no.symptoms == "t")),
-    0
-  ),
-  by = list(participant_id, season)
+  dt[, first.no.symptoms := first_symptom_free(no.symptoms),
+    by = list(participant_id, season)
   ]
   dt[,
     min.symptoms.start.date := as.Date(ifelse(
@@ -257,4 +251,16 @@ bouts_of_illness <- function(
   }
   dt[, id := NULL]
   dt[]
+}
+
+## The position of the first report without symptoms, 0 if there is none, and
+## missing if any answer is missing: any() alone would ignore missing values
+## next to a "t". It always returns an integer, because data.table fixes the
+## column type from the first group it evaluates.
+first_symptom_free <- function(no.symptoms) {
+  if (anyNA(no.symptoms)) {
+    return(NA_integer_)
+  }
+  free <- which(no.symptoms == "t")
+  if (length(free) == 0L) 0L else free[1]
 }

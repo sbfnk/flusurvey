@@ -26,6 +26,19 @@ test_that("the previous end date does not carry over between participants", {
   expect_identical(together[participant_id == 2, .N], 1L)
 })
 
+test_that("a missing answer of one participant leaves the others unchanged", {
+  missing <- reports(
+    0, c("2013-01-03", "2013-01-10"), c(FALSE, TRUE), c(NA, "no"),
+    c(NA, "2013-01-05"), c(NA, "2013-01-08")
+  )
+  missing[1, no.symptoms := NA]
+  capture.output(alone <- bouts_of_illness(b))
+  expect_no_warning(capture.output(
+    together <- bouts_of_illness(rbind(missing, b))
+  ))
+  expect_identical(together[participant_id == 2, .N], nrow(alone))
+})
+
 test_that("input is sorted by participant, season and date", {
   capture.output(
     ordered <- bouts_of_illness(rbind(a, b)),
