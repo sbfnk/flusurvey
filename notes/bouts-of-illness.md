@@ -61,7 +61,7 @@ The reports are sorted by participant, season and report date. Same-day ties ret
 - S5. Its start date is after the end date of the previous report of the participant in the season.
 - S6. Its start date is after the date of the previous report of the participant in the season.
 
-S2 and S3 apply only to participants who answer `no.symptoms` in every report of the season. An absent `same` column is treated as unanswered. A missing `same` is not a start under S1, and a missing start date or end date is not a start under S2 or S5. A missing start date or previous report date is not a start under S6. A report with a missing `no.symptoms` answer is neither symptomatic nor symptom-free. It belongs to no bout, and it does not count as the symptom-free report before a start under S4.
+S2 and S3 apply only to participants who answer `no.symptoms` in every report of the season. An absent `same` column is treated as unanswered. A missing `same` is not a start under S1. A missing start date or end date is not a start under S2 or S5, and a missing start date or previous report date is not a start under S6. A report with a missing `no.symptoms` answer is neither symptomatic nor symptom-free. It belongs to no bout. It does not count as the symptom-free report before a start under S4.
 
 Each symptomatic report then belongs to the bout of the last start at or before it. A symptomatic report with no start at or before it belongs to no bout.
 
