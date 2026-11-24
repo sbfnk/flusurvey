@@ -12,7 +12,8 @@ merge_data(
   min.reports = 3,
   ranges = "sample",
   age.breaks = c(18, 44, 64),
-  ili.sudden.unknown = NA
+  ili.sudden.unknown = NA,
+  max.band.count = Inf
 )
 }
 \arguments{
@@ -71,6 +72,14 @@ unknown, passed to \code{\link{aggregate_symptoms}}: \code{NA} (the
 default) leaves \code{ili} and \code{ili.fever} missing where onset is
 needed to decide, \code{1} counts unknown onset as sudden and \code{0} as
 not sudden. The recorded onset is kept in \code{onset}.}
+
+\item{max.band.count}{the largest number of people accepted in a single age
+band of the household. There is no limit by default, as households in
+institutions such as care homes can be large. Larger counts are set to
+missing. \code{nb.household} is then missing too. The counts include the
+participant. A band ticked as present without a number counts as one
+person. A household with no band ticked gets a missing
+\code{nb.household}.}
 }
 \value{
 a rolling-joined data table. \code{day.of.week} (1 for Monday to 7
