@@ -211,7 +211,7 @@ test_that("limit.season does not drop symptom reports by background date", {
   expect_equal(actual$date, expected$date)
 })
 
-test_that("limit.season does not limit the contact survey when merged", {
+test_that("limit.season limits the contact survey when no symptom survey is merged", {
   d <- data.table::copy(simulated_data[["2013"]][c("background", "contact")])
   d$background <- data.table::data.table(d$background)
   d$contact <- data.table::data.table(d$contact)
@@ -220,7 +220,7 @@ test_that("limit.season does not limit the contact survey when merged", {
   clean <- c("limit.season", "unsuccessful.join")
   merged <- merge_data(d, clean = clean)
   early <- merged$global_id == "sim0002" & merged$date < as.Date("2012-11-01")
-  expect_true(any(early))
+  expect_false(any(early))
   alone <- merge_data(d["contact"], clean = clean)
   expect_false(any(alone$date < as.Date("2012-11-01")))
 })

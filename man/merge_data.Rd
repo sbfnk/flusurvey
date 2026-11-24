@@ -45,7 +45,8 @@ before start of symptoms, symptoms reported to have started or ended after
 date of report
 - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 - 'limit.season', whether to limit a flu season to November -> April
-(when surveys are merged, applied to the symptom survey only)
+(when surveys are merged, applied to the symptom survey, or to the last
+survey merged if there is no symptom survey)
 - 'remove.postcodes', whether to remove postcodes
 - 'n.reports', whether to exclude those with fewer than \code{min.reports}
 symptom reporting days
