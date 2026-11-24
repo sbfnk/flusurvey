@@ -345,3 +345,24 @@ test_that("conflicting onset evidence remains visible", {
   expect_equal(e$bouts$onset, "sudden")
   expect_equal(e$reports$onset, c("sudden", "not.sudden"))
 })
+
+test_that("empty input returns empty shared evidence without warnings", {
+  symptoms <- jointly()[0]
+  expect_warning(e <- bout_evidence(symptoms), NA)
+  expect_true(all(vapply(e, nrow, integer(1)) == 0L))
+  expect_warning(capture.output(b <- bouts_of_illness(symptoms)), NA)
+  expect_equal(nrow(b), 0L)
+})
+
+test_that("a later onset answer cannot erase an earlier still-ill observation", {
+  symptoms <- do.call(prepare, c(wellness(), list(
+    flu("2013-01-05", "cough", option = "still_ill"),
+    flu("2013-01-10", "cough", same = "yes", start = "2013-01-08",
+        end = "2013-01-09")
+  )))
+  e <- bout_evidence(symptoms)
+  expect_true(as.Date("2013-01-05") %in% e$days$day)
+  contact <- data.table::data.table(global_id = "a",
+                                   contact.date = as.Date("2013-01-05"))
+  expect_equal(contact_illness(contact, symptoms)$current_symptoms, "symptoms")
+})

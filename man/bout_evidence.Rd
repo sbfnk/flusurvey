@@ -25,8 +25,8 @@ report. These policies do not replace the original report evidence.}
 individual days. Set FALSE for interval matching without daily expansion.}
 }
 \value{
-a list of data tables: \code{bouts}, \code{reports} and
-  \code{days}
+a list of data tables: \code{bouts}, \code{reports},
+  \code{intervals} and \code{days}
 }
 \description{
 \code{\link{bouts_of_illness}} gives one row per bout. The evidence it
@@ -54,8 +54,8 @@ established illness days of the same bout. Selected fallback boundaries
 are not used to establish illness. The \code{intervals} table contains
 the first and last established day per bout without daily expansion.
 
-\code{bouts} has a row for each bout with the dates
-\code{bouts_of_illness} gives it, and \code{onset.known} and
+\code{bouts} has a row per bout with dates selected by the supplied
+date policies, and \code{onset.known} and
 \code{recovery.known}, which say whether any report of the bout gave a
 matching start or end date for the selected boundary. The columns
 \code{onset.source} and \code{recovery.source} distinguish reported

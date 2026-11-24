@@ -335,8 +335,8 @@ reconstruct_bouts <- function(x) {
 ##' are not used to establish illness. The \code{intervals} table contains
 ##' the first and last established day per bout without daily expansion.
 ##'
-##' \code{bouts} has a row for each bout with the dates
-##' \code{bouts_of_illness} gives it, and \code{onset.known} and
+##' \code{bouts} has a row per bout with dates selected by the supplied
+##' date policies, and \code{onset.known} and
 ##' \code{recovery.known}, which say whether any report of the bout gave a
 ##' matching start or end date for the selected boundary. The columns
 ##' \code{onset.source} and \code{recovery.source} distinguish reported
@@ -362,8 +362,8 @@ reconstruct_bouts <- function(x) {
 ##'   report. These policies do not replace the original report evidence.
 ##' @param expand.days whether to expand established illness intervals to
 ##'   individual days. Set FALSE for interval matching without daily expansion.
-##' @return a list of data tables: \code{bouts}, \code{reports} and
-##'   \code{days}
+##' @return a list of data tables: \code{bouts}, \code{reports},
+##'   \code{intervals} and \code{days}
 ##' @examples
 ##' dt <- extract_data(simulated_data, years = 2013:2014)
 ##' evidence <- bout_evidence(dt)
@@ -530,12 +530,12 @@ bouts_of_illness <- function(
 
   dt[
     !is.na(bout),
-    min.part.symptom.id := min(part.symptom.id),
+    min.part.symptom.id := part.symptom.id[1L],
     by = list(participant_id, season, bout)
   ]
   dt[
     !is.na(bout),
-    max.part.symptom.id := max(part.symptom.id),
+    max.part.symptom.id := part.symptom.id[.N],
     by = list(participant_id, season, bout)
   ]
 
