@@ -10,7 +10,11 @@ get_incidence(
   aggregation = c("week", "day", "month", "year"),
   denominator = c("active.members", "reports"),
   min.N = 1,
-  by = NULL
+  by = NULL,
+  exclude = NULL,
+  start.date = c("last", "earliest"),
+  missing.start = c("missing", "first.report"),
+  inverted.dates = c("keep", "clear", "reset.end")
 )
 }
 \arguments{
@@ -27,13 +31,21 @@ in a week}
 \item{min.N}{the minimum denominator, by default 1}
 
 \item{by}{one or more variables by which to group}
+
+\item{exclude}{bouts to leave out of the incidence: any of
+"unknown.onset" and "ongoing.at.entry" (start date before the
+participant's first report); by default none. Bouts without a reported
+start date are never counted, whatever this is set to, unless
+\code{missing.start = "first.report"} gives them one.}
+
+\item{start.date, missing.start, inverted.dates}{how bout dates are set, see
+\code{\link{bouts_of_illness}}}
 }
 \value{
 a data.table with the incidence
 }
 \description{
 This calculates incidence according to a given column in the supplied data.
-Bouts of illness with an unknown start date are not counted.
 }
 \examples{
 dt <- extract_data(simulated_data, years = 2013:2014)
