@@ -254,12 +254,15 @@ reconstruct_bouts <- function(x, singletons = FALSE) {
   assign_bouts(dt)
   if (singletons) {
     ## symptomatic reports outside any bout stay as episodes of their own
+    ## numbered after the highest real bout of the participant and season
+    dt[, last.bout := max(c(0L, bout), na.rm = TRUE),
+       by = list(participant_id, season)]
     dt[
       no.symptoms == "f" & is.na(bout),
-      bout := (if (all(is.na(bout))) 0L else max(bout, na.rm = TRUE)) +
-        seq_len(.N),
+      bout := last.bout + seq_len(.N),
       by = list(participant_id, season)
     ]
+    dt[, last.bout := NULL]
   }
   dt
 }

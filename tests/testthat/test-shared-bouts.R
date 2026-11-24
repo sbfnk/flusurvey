@@ -218,3 +218,16 @@ test_that("extraction, shared bouts and contacts agree", {
   expect_equal(res$bout_ili, c("ILI", "no ILI"))
   expect_equal(res$current_symptoms, c("symptoms", "no symptoms"))
 })
+
+test_that("orphan symptomatic reports are numbered after the real bouts", {
+  symptoms <- prepare(
+    flu("2013-01-02", "cough", same = "yes"),
+    flu("2013-01-10"),
+    flu("2013-01-15", c("fever", "cough"), start = "2013-01-14",
+        end = "2013-01-16"),
+    flu("2013-01-31")
+  )
+  res <- reconstruct_bouts(symptoms, singletons = TRUE)
+  res <- res[no.symptoms == "f"]
+  expect_equal(res$bout[order(res$date)], c(2L, 1L))
+})
