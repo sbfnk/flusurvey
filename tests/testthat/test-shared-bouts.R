@@ -156,7 +156,7 @@ test_that("a bout with a recovery date before the report and no onset is kept", 
   capture.output(bouts <- bouts_of_illness(symptoms))
   expect_equal(nrow(bouts), 1)
   expect_equal(bouts$symptoms.start.date, as.Date("2013-01-10"))
-  ## the onset is not invented: the days up to the report are unknown
+  ## the days up to the report are unknown, as the onset is
   contacts <- data.table::data.table(
     global_id = "a", season = "2012/13",
     contact.date = as.Date(c("2013-01-05", "2013-01-09", "2013-01-20"))

@@ -181,8 +181,8 @@ fill_bout_dates <- function(dt) {
 ## end date supports the days between them (the end date counted no later
 ## than the report). A report of continuing illness supports the days from its
 ## start date, or its own date alone when it gives no start. The recovery of a
-## continuing illness is not known and neither is the onset of one without a
-## start date. A report with no usable interval supports no day.
+## continuing illness is unknown, as is the onset of one without a start date.
+## A report with no usable interval supports no day.
 report_evidence <- function(dt) {
   option <- if ("symptoms.end.option" %in% colnames(dt)) {
     as.character(dt$symptoms.end.option)
@@ -291,8 +291,8 @@ reconstruct_bouts <- function(x, singletons = FALSE) {
 ##' \code{bouts} has a row for each bout with the dates
 ##' \code{bouts_of_illness} gives it, and \code{onset.known} and
 ##' \code{recovery.known}, which say whether any report of the bout gave a
-##' start or an end date. Where one is \code{FALSE} the date is the date of a
-##' report, not an observed date of onset or recovery. The columns
+##' start or an end date. Where one is \code{FALSE} the date is that of a
+##' report. The columns
 ##' \code{n.reports} and the case definitions follow: the symptom columns of
 ##' all reports of a bout are combined (a symptom counts if any report has it,
 ##' the onset if any report records it as sudden) and the definitions applied
@@ -354,7 +354,7 @@ bout_evidence_from <- function(dt) {
 ##'   report.
 ##' @details The flags of a bout (those of the case definitions in
 ##'   \code{\link{aggregate_symptoms}}) are computed from the symptoms of all
-##'   its reports together, not combined from the flags of the reports: a
+##'   its reports together: a
 ##'   bout meets the symptom-based ILI definition if its reports jointly have
 ##'   the symptoms and a sudden onset, even if no single report does. The
 ##'   flags describe the bout and do not say that the symptoms were present
@@ -458,8 +458,7 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE,
         by = list(participant_id, season, bout)
       ]
     }
-    ## the case definitions of a bout come from its combined symptoms, not from
-    ## the flags of its reports
+    ## the case definitions of a bout come from its combined symptoms
     key.columns <- c("participant_id", "season", "bout")
     in.bout <- which(!is.na(dt$bout))
     bout.index <- match(
