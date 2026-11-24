@@ -260,7 +260,7 @@ bouts_of_illness <- function(
   dt[]
 }
 
-# A bout carries a date flag when any of its reports does.
+# A bout is flagged for a date problem if any of its reports is.
 merge_bout_flags <- function(dt) {
   for (flag in intersect(
     c("illness.ongoing.at.entry", "long.running.illness"), colnames(dt)
