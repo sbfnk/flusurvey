@@ -60,7 +60,7 @@ The reports are sorted by participant, season and report date. Same-day ties ret
 - S4. The immediately preceding report was symptom-free. Character and factor answers are normalised to the same representation.
 - S5. Its start date is after the end date of the previous report of the participant in the season.
 
-Missing `same` is not a start under S1, and missing boundary dates do not trigger S5. A report with missing `no.symptoms` belongs to no bout and does not itself separate two symptomatic reports into different bouts. Every explicitly symptomatic report belongs to a bout. Reports with unknown symptom status remain available to the contact classifier as unresolved observations.
+An absent `same` column is treated as unanswered. Missing `same` is not a start under S1, and missing boundary dates do not trigger S5. A report with missing `no.symptoms` belongs to no bout and does not itself separate two symptomatic reports into different bouts. Every explicitly symptomatic report belongs to a bout. Reports with unknown symptom status remain available to the contact classifier as unresolved observations.
 
 ## Dates of a bout
 

@@ -289,3 +289,18 @@ test_that("unknown onset preserves a recovery before the first illness report", 
   expect_true(is.na(b$symptoms.start.date))
   expect_equal(b$symptoms.end.date, as.Date("2013-01-08"))
 })
+
+test_that("surveys without the same-illness question use the other start rules", {
+  x <- dates_example()
+  x[, same := NULL]
+  original <- data.table::copy(x)
+  unanswered <- data.table::copy(x)
+  unanswered[, same := NA_character_]
+  capture.output(
+    absent <- bouts_of_illness(x, missing.start = "missing"),
+    expected <- bouts_of_illness(unanswered, missing.start = "missing")
+  )
+  expect_equal(absent, expected)
+  expect_equal(x, original)
+  expect_equal(nrow(absent), 3L)
+})
