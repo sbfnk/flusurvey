@@ -9,6 +9,12 @@
 ##' in a week
 ##' @param min.N the minimum denominator, by default 1
 ##' @param by one or more variables by which to group
+##' @param exclude bouts to leave out of the incidence: any of
+##' "unknown.onset" (no reported start date, which needs
+##' \code{missing.start = "missing"}) and "ongoing.at.entry" (start date
+##' before the participant's first report); by default none
+##' @param start.date,missing.start,inverted.dates how bout dates are set, see
+##' \code{\link{bouts_of_illness}}
 ##' @examples
 ##' dt <- extract_data(simulated_data, years = 2013:2014)
 ##' get_incidence(dt, incidence.columns = "ili", aggregation = "week")
@@ -25,13 +31,25 @@ get_incidence <- function(
   aggregation = c("week", "day", "month", "year"),
   denominator = c("active.members", "reports"),
   min.N = 1,
-  by = NULL
+  by = NULL,
+  exclude = NULL,
+  start.date = c("last", "earliest"),
+  missing.start = c("first.report", "missing"),
+  inverted.dates = c("keep", "clear", "reset.end")
 ) {
+  exclude <- check_exclude(exclude)
   aggregation <- match.arg(aggregation)
   denominator <- match.arg(denominator)
 
   dt <- copy(data)
-  bouts <- bouts_of_illness(data)
+  bouts <- bouts_of_illness(
+    data,
+    start.date = start.date,
+    missing.start = missing.start,
+    inverted.dates = inverted.dates
+  )
+  bouts <- exclude_bouts(bouts, exclude)
+
   ## required date columns
   columns <- c("symptoms.start.date", "date", "min.date", "max.date")
   names(columns) <- columns
@@ -39,38 +57,94 @@ get_incidence <- function(
   ## create new date columns if aggregation is not by day
   if (aggregation != "day") {
     columns <- sub("date$", paste(aggregation, "date", sep = "."), columns)
-
-    for (col_id in seq_along(columns)) {
-      date_col <- columns[col_id]
-      if (aggregation == "year") {
-        dt[, paste(date_col) := as.Date(
-          paste(substr(season, 1, 4), 11, 1, sep = "-")
-        )]
-        bouts[, paste(date_col) := as.Date(
-          paste(substr(season, 1, 4), 11, 1, sep = "-")
-        )]
-      } else {
-        dt[
-          ,
-          paste(date_col) := floor_date(
-            get(names(date_col)),
-            unit = aggregation
-          )
-        ]
-        bouts[
-          ,
-          paste(date_col) := floor_date(
-            get(names(date_col)),
-            unit = aggregation
-          )
-        ]
-      }
-    }
+    add_aggregated_dates(dt, bouts, columns, aggregation)
   }
 
   id_column <- grep("_id$", colnames(dt), value = TRUE)
 
-  ## calculate incidence based on symptom start date
+  incidence <- count_new_cases(
+    bouts, incidence.columns, columns, aggregation, id_column, by
+  )
+
+  if (denominator == "active.members") {
+    incidence <- merge_active_members(
+      incidence, dt, columns, aggregation, id_column, by
+    )
+  } else {
+    incidence <- merge_reports(
+      incidence, dt, columns, aggregation, id_column, by
+    )
+  }
+  for (incidence_column in incidence.columns) {
+    if (incidence_column %in% colnames(incidence)) {
+      incidence[is.na(get(incidence_column)), paste(incidence_column) := 0]
+    } else {
+      incidence[, paste(incidence_column) := 0]
+    }
+  }
+
+  incidence <- incidence[N >= min.N]
+
+  setkeyv(incidence, aggregation)
+
+  incidence
+}
+
+check_exclude <- function(exclude) {
+  if (is.null(exclude)) return(exclude)
+  match.arg(
+    exclude, c("unknown.onset", "ongoing.at.entry"), several.ok = TRUE
+  )
+}
+
+exclude_bouts <- function(bouts, exclude) {
+  if ("unknown.onset" %in% exclude) {
+    bouts <- bouts[!is.na(symptoms.start.date)]
+  }
+  if ("ongoing.at.entry" %in% exclude) {
+    bouts <- bouts[is.na(symptoms.start.date) |
+                     symptoms.start.date >= min.date]
+  }
+  bouts
+}
+
+## adds the aggregated date columns to dt and bouts by reference
+add_aggregated_dates <- function(dt, bouts, columns, aggregation) {
+  for (col_id in seq_along(columns)) {
+    date_col <- columns[col_id]
+    if (aggregation == "year") {
+      dt[, paste(date_col) := as.Date(
+        paste(substr(season, 1, 4), 11, 1, sep = "-")
+      )]
+      ## the subscript keeps this empty when there are no bouts, because
+      ## paste() would otherwise return a single "-11-1"
+      bouts[, paste(date_col) := as.Date(
+        paste(substr(season, 1, 4), 11, 1, sep = "-")[seq_along(season)]
+      )]
+    } else {
+      dt[
+        ,
+        paste(date_col) := floor_date(
+          get(names(date_col)),
+          unit = aggregation
+        )
+      ]
+      bouts[
+        ,
+        paste(date_col) := floor_date(
+          get(names(date_col)),
+          unit = aggregation
+        )
+      ]
+    }
+  }
+  invisible(NULL)
+}
+
+## count new cases by symptom start date
+count_new_cases <- function(
+  bouts, incidence.columns, columns, aggregation, id_column, by
+) {
   incidence <- list()
   for (incidence_column in incidence.columns) {
     id_incidence <-
@@ -96,68 +170,60 @@ get_incidence <- function(
   for (incidence_column in intersect(incidence.columns, colnames(incidence))) {
     incidence[is.na(get(incidence_column)), paste(incidence_column) := 0]
   }
-
-  ## work out denominator of active members
-  if (denominator == "active.members") {
-    ## use every period between the first and last report of a season, to
-    ## keep periods without new cases
-    period_start <- dt[,
-      list(first = min(get(columns[["min.date"]])),
-           last = max(get(columns[["max.date"]]))),
-      by = season
-    ]
-    periods <- period_start[,
-      list(period = if (aggregation == "year") {
-        unique(first)
-      } else {
-        seq(first, last, by = aggregation)
-      }),
-      by = season
-    ]
-    setnames(periods, "period", aggregation)
-    active_reports <- lapply(unique(
-      periods[, get(aggregation)]
-    ), function(x) {
-      id_active <- dt[
-        get(columns[["min.date"]]) <= x &
-          get(columns[["max.date"]]) >= x,
-        list(reports = .N),
-        by = c(id_column, "season", by)
-      ]
-      id_active <- id_active[, .N, by = c("season", by)]
-      id_active[, paste(aggregation) := x]
-      id_active
-    })
-    active_reports <- rbindlist(active_reports)
-    active_reports <- merge(active_reports, periods,
-      by = c(aggregation, "season")
-    )
-    incidence <-
-      merge(incidence, active_reports,
-        by = c(aggregation, "season", by), all.y = TRUE
-      )
-  } else {
-    id_reports <- dt[,
-      list(reports = .N),
-      by = c(columns[["date"]], id_column, "season", by)
-    ]
-    reports <- id_reports[, .N, by = c(columns[["date"]], "season", by)]
-    setnames(reports, columns[["date"]], aggregation)
-    incidence <- merge(incidence, reports,
-      by = c(aggregation, "season", by), all.y = TRUE
-    )
-  }
-  for (incidence_column in incidence.columns) {
-    if (incidence_column %in% colnames(incidence)) {
-      incidence[is.na(get(incidence_column)), paste(incidence_column) := 0]
-    } else {
-      incidence[, paste(incidence_column) := 0]
-    }
-  }
-
-  incidence <- incidence[N >= min.N]
-
-  setkeyv(incidence, aggregation)
-
   incidence
+}
+
+## compute the denominator from active members
+merge_active_members <- function(
+  incidence, dt, columns, aggregation, id_column, by
+) {
+  ## use every period between the first and last report of a season, to
+  ## keep periods without new cases
+  period_start <- dt[,
+    list(first = min(get(columns[["min.date"]])),
+         last = max(get(columns[["max.date"]]))),
+    by = season
+  ]
+  periods <- period_start[,
+    list(period = if (aggregation == "year") {
+      unique(first)
+    } else {
+      seq(first, last, by = aggregation)
+    }),
+    by = season
+  ]
+  setnames(periods, "period", aggregation)
+  active_reports <- lapply(unique(
+    periods[, get(aggregation)]
+  ), function(x) {
+    id_active <- dt[
+      get(columns[["min.date"]]) <= x &
+        get(columns[["max.date"]]) >= x,
+      list(reports = .N),
+      by = c(id_column, "season", by)
+    ]
+    id_active <- id_active[, .N, by = c("season", by)]
+    id_active[, paste(aggregation) := x]
+    id_active
+  })
+  active_reports <- rbindlist(active_reports)
+  active_reports <- merge(active_reports, periods,
+    by = c(aggregation, "season")
+  )
+  merge(incidence, active_reports,
+    by = c(aggregation, "season", by), all.y = TRUE
+  )
+}
+
+## compute the denominator from all reports
+merge_reports <- function(incidence, dt, columns, aggregation, id_column, by) {
+  id_reports <- dt[,
+    list(reports = .N),
+    by = c(columns[["date"]], id_column, "season", by)
+  ]
+  reports <- id_reports[, .N, by = c(columns[["date"]], "season", by)]
+  setnames(reports, columns[["date"]], aggregation)
+  merge(incidence, reports,
+    by = c(aggregation, "season", by), all.y = TRUE
+  )
 }
