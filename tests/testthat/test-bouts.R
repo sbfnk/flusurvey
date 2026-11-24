@@ -221,3 +221,11 @@ test_that("unknown onsets are not matched to contacts by report date", {
   )
   expect_identical(flag_ill_contacts(contacts, bouts)$ill, c(FALSE, TRUE, FALSE))
 })
+
+test_that("unknown onset preserves a recovery before the first illness report", {
+  x <- reports(1, "2013-01-10", TRUE, "no", NA, "2013-01-08")
+  capture.output(b <- bouts_of_illness(x, missing.start = "missing"))
+  expect_equal(nrow(b), 1L)
+  expect_true(is.na(b$symptoms.start.date))
+  expect_equal(b$symptoms.end.date, as.Date("2013-01-08"))
+})
