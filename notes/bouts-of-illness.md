@@ -62,7 +62,7 @@ Three arguments of `bouts_of_illness()` set the dates of a bout. `get_incidence(
 - `"first.report"` (the default): the date of the first report of the bout. This is the date the participant first reported symptoms, so it is not an observed onset.
 - `"missing"`: the start date stays missing.
 
-The end date of a bout is the last end date given in any of its reports, and every report of the bout gets it. If no report gives one, it is the date of the last symptomatic report of the bout. This is the last report that gives symptoms, not the first symptom-free report that follows. The date of the first symptom-free report is the earliest date by which the participant reported being well, and the code does not use it. A date taken from the last symptomatic report is a fallback, not a reported or observed recovery date. The earlier rule kept the end date of the first report when the last report gave one, which could be missing or a different date, and used the last reported date only when the last report gave none. The rule applies without any argument, and it changes the output of `bouts_of_illness()` for bouts whose reports give different end dates.
+The end date of a bout is the last end date given in any of its reports, and every report of the bout gets it. If no report gives one, it is the date of the last symptomatic report of the bout. The first symptom-free report that follows is not used, although its date is the earliest by which the participant reported being well. A date taken from the last symptomatic report is a fallback that the participant never reported as a recovery date. The earlier rule kept the end date of the first report when the last report gave one, which could be missing or a different date. It used the last reported date only when the last report gave none. The rule applies without any argument and changes the output of `bouts_of_illness()` for bouts whose reports give different end dates.
 
 `inverted.dates` sets what happens when the end date of a bout is before its start date:
 
@@ -81,7 +81,7 @@ The reports of a participant with `same` set to "no" then "yes", with these date
 | 10 January | 5 January | 8 January |
 | 17 January | 6 January | 12 January |
 
-The bout starts on 6 January with the default and on 5 January with `start.date = "earliest"`. It ends on 12 January, the last reported end date, not 8 January.
+The bout starts on 6 January with the default and on 5 January with `start.date = "earliest"`. It ends on 12 January, the last reported end date.
 
 A participant whose reports give no start date, and whose end date is reported only in the last report (16 January), has a bout that starts on the date of its first report (10 January) by default and has no start date with `missing.start = "missing"`. It ends on 16 January.
 

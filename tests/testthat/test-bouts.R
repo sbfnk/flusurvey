@@ -105,7 +105,7 @@ end_example <- function() {
     ## only the last report gives an end date
     reports(3, c("2013-01-10", "2013-01-17"), TRUE, c("no", "yes"),
             "2013-01-08", c(NA, "2013-01-16")),
-    ## no end date: the last symptomatic report, not the symptom-free one
+    ## no end date: the date of the last symptomatic report is used
     reports(4, c("2013-01-10", "2013-01-17", "2013-01-24"),
             c(TRUE, TRUE, FALSE), c("no", "yes", NA), "2013-01-08", NA)
   )
