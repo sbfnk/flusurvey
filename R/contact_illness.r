@@ -207,7 +207,7 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
 
   ## a contact day in two bouts takes the combined flags of both
   in_bout <- merge(keys[, key_cols, with = FALSE], bout_days, by = key_cols)
-  in_bout <- in_bout[, c(list(bouted = TRUE), lapply(.SD, combine_flags)),
+  in_bout <- in_bout[, c(list(bouted = TRUE), lapply(.SD, any_t)),
                      by = key_cols, .SDcols = bout_cols]
 
   unknown <- merge(keys[, key_cols, with = FALSE], unresolved,
@@ -223,7 +223,7 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
     symptoms[, c("row_id", group_by, "date", unname(flag_cols)), with = FALSE],
     usable[first.day <= date & last.day >= date, "row_id", with = FALSE],
     by = "row_id"
-  )[, lapply(.SD, combine_flags), by = c(group_by, "date"),
+  )[, lapply(.SD, any_t), by = c(group_by, "date"),
     .SDcols = unname(flag_cols)]
   setnames(same_day, c("date", unname(flag_cols)),
            c("contact.date", paste0("day_", names(flag_cols))))
@@ -263,16 +263,4 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
             paste0("current_", names(flag_cols)),
             paste0("bout_", names(flag_cols)))
   merge(contacts, status[, keep, with = FALSE], by = key_cols, all.x = TRUE)
-}
-
-## Positive if any report is positive, otherwise unknown if any is unknown.
-combine_flags <- function(x) {
-  x <- as.character(x)
-  if (any(x == "t", na.rm = TRUE)) {
-    "t"
-  } else if (anyNA(x)) {
-    NA_character_
-  } else {
-    "f"
-  }
 }
