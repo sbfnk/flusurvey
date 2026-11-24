@@ -2,6 +2,16 @@
 # bundled data sets, which R CMD check would otherwise report as undefined.
 utils::globalVariables(c(
   "N",
+  "row_id",
+  "first.day",
+  "last.day",
+  "basis",
+  "source",
+  "fever.symptoms",
+  "systemic.symptoms",
+  "onset.known",
+  "recovery.known",
+  "n.reports",
   "age",
   "agegroup",
   "birthdate",

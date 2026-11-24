@@ -18,13 +18,13 @@ bouts_of_illness(
 
 \item{as.data.frame}{currently has no effect}
 
-\item{daily.flags}{how the case-definition flags set by
-\code{\link{aggregate_symptoms}} reach the days of a bout.
+\item{daily.flags}{how to assign the case-definition flags set by
+\code{\link{aggregate_symptoms}} to the days of a bout.
 \code{"none"} returns one row per bout. The other values return one row
 per day, in the column \code{day}, from \code{symptoms.start.date} to
-\code{symptoms.end.date}: \code{"carry.forward"} takes the flags from
-the last report on or before the day, \code{"bout"} gives every day the
-flags of the bout, and \code{"report"} sets them only on days with a
+\code{symptoms.end.date}. \code{"carry.forward"} takes the flags from
+the last report on or before the day. \code{"bout"} gives every day the
+flags of the bout. \code{"report"} sets flags only on days with a
 report.}
 }
 \value{
@@ -32,6 +32,17 @@ a data table of bouts of illness, or of their days
 }
 \description{
 Extract bouts of illness from a flusurvey data table
+}
+\details{
+The flags of a bout (those of the case definitions in
+  \code{\link{aggregate_symptoms}}) are computed from the symptoms of all
+  its reports together, not combined from the flags of the reports: a
+  bout meets the symptom-based ILI definition if its reports jointly have
+  the symptoms and a sudden onset, even if no single report does. The
+  flags describe the bout and do not say that the symptoms were present
+  together on one day. The days of illness that the reports establish, and
+  which dates are reported and which only the date of a report, are in
+  \code{\link{bout_evidence}}.
 }
 \examples{
 dt <- extract_data(simulated_data, years = 2013:2014)
