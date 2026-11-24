@@ -22,8 +22,8 @@ merge_data(
 contact, symptom), regardless of their order in \code{data}. The last one
 present drives a rolling join. The result has one row per report of that
 survey (the symptom reports, if present), each taking the latest report of
-the other surveys on or before its date. When an earlier survey has several
-reports on the same day, its last report is used. Any other survey name
+the other surveys on or before its date. For several reports from an earlier
+survey on the same day, the last report is used. Any other survey name
 gives an error.
 
 Joining the contact and symptom surveys gives a warning. The join pairs
@@ -45,8 +45,8 @@ before start of symptoms, symptoms reported to have started or ended after
 date of report
 - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 - 'limit.season', whether to limit a flu season to November -> April
-(when surveys are merged, this applies to the last survey merged, the
-symptom survey if present)
+(when surveys are merged, the limit applies to the last survey merged:
+the symptom survey, if present)
 - 'remove.postcodes', whether to remove postcodes
 - 'n.reports', whether to exclude those with fewer than \code{min.reports}
 symptom reporting days
@@ -56,7 +56,7 @@ should have prevented this, but doesn't appear to have done so)
 - 'only.symptoms', whether to exclude those that have no report without
 symptoms}
 
-\item{min.reports}{minimum number of symptom reporting days per user
+\item{min.reports}{minimum number of symptom reporting days per participant
 (ignored if 'min.reports' is not given as a cleaning option)}
 
 \item{ranges}{what to do if a number of contacts is given as a range: sample
