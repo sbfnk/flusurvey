@@ -30,8 +30,13 @@
 ##' does not split them.
 ##'
 ##' \emph{Daily status.} Within follow-up, \code{current_symptoms} is
-##' "symptoms" on days in a bout and "no symptoms" on every other day, with or
-##' without a report that day. The exception is a report with symptoms (or
+##' "symptoms" on days in a bout. With \code{healthy = "follow-up"} every
+##' other day is "no symptoms", with or without a report that day. With
+##' \code{healthy = "report"} a day is "no symptoms" only if a report
+##' without symptoms filed after it covers it, from the date of the previous
+##' report up to the day before its own. Days before a participant's first
+##' report, and days with no such report, are unknown. The exception is a
+##' report with symptoms (or
 ##' without a known symptom status) whose dates give no usable interval:
 ##' missing, inconsistent, or an unknown end that is not "still ill". Its
 ##' illness cannot be placed, so every day since the participant's previous
@@ -76,6 +81,9 @@
 ##' ILI), \code{ili.fever} (symptom-based ILI with fever), \code{ili.self}
 ##' (self-assessed ILI) and \code{resp.symptoms} (ARI) are used where present;
 ##' a missing column gives missing flags.
+##' @param healthy the rule for a day outside a bout within follow-up:
+##' "follow-up" counts it as healthy, "report" only if a later report
+##' without symptoms covers it
 ##' @param min.reports the minimum number of days with symptom reports for a
 ##' participant to be eligible in a season
 ##' @param follow_up_end where follow-up ends: \code{"last_healthy"} (the
@@ -105,8 +113,10 @@
 ##' @import data.table
 ##' @export
 contact_illness <- function(contacts, symptoms, min.reports = 3,
+                            healthy = c("follow-up", "report"),
                             follow_up_end = c("last_healthy",
                                               "end_of_illness")) {
+  healthy_rule <- match.arg(healthy)
   follow_up_end <- match.arg(follow_up_end)
   flag_cols <- c(
     ili = "ili", ili_fever = "ili.fever", ili_self = "ili.self",
@@ -192,6 +202,12 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
     by = group_by
   ]
 
+  covered <- symptoms[
+    healthy & !is.na(previous_date),
+    list(cover_start = previous_date, cover_end = date - 1),
+    by = group_by
+  ]
+
   key_cols <- c(group_by, "contact.date")
   keys <- unique(contacts[has_key(contacts) & !is.na(contact.date),
                           key_cols, with = FALSE])
@@ -218,6 +234,14 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
   ])
   unknown[, unresolved := TRUE]
 
+  covered <- merge(keys[, key_cols, with = FALSE], covered,
+                   by = group_by, allow.cartesian = TRUE)
+  covered <- unique(covered[
+    contact.date >= cover_start & contact.date <= cover_end,
+    key_cols, with = FALSE
+  ])
+  covered[, reported_healthy := TRUE]
+
   ## reports of the contact day whose interval includes that day
   same_day <- reports[bstart <= date & bend >= date,
                       lapply(.SD, combine), by = c(group_by, "date"),
@@ -228,11 +252,14 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
   status <- merge(keys, in_bout, by = key_cols, all.x = TRUE)
   status <- merge(status, unknown, by = key_cols, all.x = TRUE)
   status <- merge(status, same_day, by = key_cols, all.x = TRUE)
+  status <- merge(status, covered, by = key_cols, all.x = TRUE)
   ## days outside follow-up are unknown, never healthy
   status[, in_follow_up := follow_up == "in follow-up"]
   status[is.na(bouted) | !in_follow_up, bouted := FALSE]
   status[is.na(unresolved), unresolved := FALSE]
-  status[, healthy_day := in_follow_up & !bouted & !unresolved]
+  status[is.na(reported_healthy), reported_healthy := FALSE]
+  status[, healthy_day := in_follow_up & !bouted & !unresolved &
+           (healthy_rule == "follow-up" | reported_healthy)]
   status[, current_symptoms := fcase(
     bouted, "symptoms",
     healthy_day, "no symptoms",

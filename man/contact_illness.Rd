@@ -8,6 +8,7 @@ contact_illness(
   contacts,
   symptoms,
   min.reports = 3,
+  healthy = c("follow-up", "report"),
   follow_up_end = c("last_healthy", "end_of_illness")
 )
 }
@@ -26,6 +27,10 @@ a missing column gives missing flags.}
 
 \item{min.reports}{the minimum number of days with symptom reports for a
 participant to be eligible in a season}
+
+\item{healthy}{the rule for a day outside a bout within follow-up:
+"follow-up" counts it as healthy, "report" only if a later report
+without symptoms covers it}
 
 \item{follow_up_end}{where follow-up ends: \code{"last_healthy"} (the
 default) at the last report without symptoms, or \code{"end_of_illness"}
@@ -77,8 +82,13 @@ and a participant reporting no symptoms between two overlapping intervals
 does not split them.
 
 \emph{Daily status.} Within follow-up, \code{current_symptoms} is
-"symptoms" on days in a bout and "no symptoms" on every other day, with or
-without a report that day. The exception is a report with symptoms (or
+"symptoms" on days in a bout. With \code{healthy = "follow-up"} every
+other day is "no symptoms", with or without a report that day. With
+\code{healthy = "report"} a day is "no symptoms" only if a report
+without symptoms filed after it covers it, from the date of the previous
+report up to the day before its own. Days before a participant's first
+report, and days with no such report, are unknown. The exception is a
+report with symptoms (or
 without a known symptom status) whose dates give no usable interval:
 missing, inconsistent, or an unknown end that is not "still ill". Its
 illness cannot be placed, so every day since the participant's previous
