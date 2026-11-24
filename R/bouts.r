@@ -1,8 +1,22 @@
 ##' Extract bouts of illness from a flusurvey data table
 ##'
+##' The end date of a bout is the last reported end date, or the last report
+##' date if none was reported. This applies to every row of the bout, whatever
+##' the other arguments are. The earlier rule only filled in the end date of a
+##' bout whose last report had none. The other arguments set how the start date
+##' is chosen where the reports leave a choice. Their defaults keep the earlier
+##' behaviour.
+##'
 ##' @param x the data to extract bouts from
 ##' @param symptomatic.only whether to only include symptomatic periods
 ##' @param as.data.frame currently has no effect
+##' @param start.date which reported start date to use for a bout: the
+##' "last" one reported, or the "earliest"
+##' @param missing.start what to use as start date if none was reported for a
+##' bout: the date of its "first.report", or "missing"
+##' @param inverted.dates what to do if the end date is before the start date:
+##' "keep" both, set both to "clear" (missing), or "reset.end" to the last
+##' report date of the bout
 ##' @return a data table of bouts of illness
 ##' @author seb
 ##' @examples
@@ -14,8 +28,19 @@
 ##' @import data.table
 ##' @importFrom stats median
 ##' @export
-bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
-  dt <- data.table(x)
+bouts_of_illness <- function(
+  x,
+  symptomatic.only = TRUE,
+  as.data.frame = TRUE,
+  start.date = c("last", "earliest"),
+  missing.start = c("first.report", "missing"),
+  inverted.dates = c("keep", "clear", "reset.end")
+) {
+  start.date <- match.arg(start.date)
+  missing.start <- match.arg(missing.start)
+  inverted.dates <- match.arg(inverted.dates)
+  dt <- copy(data.table(x))
+  if (!"same" %in% colnames(dt)) dt[, same := NA_character_]
 
   if ("health.score" %in% colnames(dt)) {
     baselines <-
@@ -108,31 +133,44 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
     last.not.na.symptoms.start.date := last_not_na(symptoms.start.date),
     by = list(participant_id, season, bout)
   ]
-  dt[!is.na(bout), last.symptoms.end.date := last(symptoms.end.date),
-    by = list(participant_id, season, bout)
-  ]
   dt[!is.na(bout),
     last.not.na.symptoms.end.date := last_not_na(symptoms.end.date),
     by = list(participant_id, season, bout)
   ]
 
-  dt[!is.na(bout) & !is.na(last.symptoms.start.date),
-    symptoms.start.date := last.symptoms.start.date,
-    by = list(participant_id, season, bout)
-  ]
+  if (start.date == "earliest") {
+    dt[!is.na(bout),
+      first.not.na.symptoms.start.date := as.Date(ifelse(
+        all(is.na(symptoms.start.date)),
+        NA_character_,
+        as.character(min(symptoms.start.date, na.rm = TRUE))
+      )),
+      by = list(participant_id, season, bout)
+    ]
+    dt[!is.na(bout) & !is.na(first.not.na.symptoms.start.date),
+      symptoms.start.date := first.not.na.symptoms.start.date
+    ]
+    dt[, first.not.na.symptoms.start.date := NULL]
+  } else {
+    dt[!is.na(bout) & !is.na(last.symptoms.start.date),
+      symptoms.start.date := last.symptoms.start.date,
+      by = list(participant_id, season, bout)
+    ]
+    dt[
+      !is.na(bout) & is.na(last.symptoms.start.date) &
+        !is.na(last.not.na.symptoms.start.date),
+      symptoms.start.date := last.not.na.symptoms.start.date,
+      by = list(participant_id, season, bout)
+    ]
+  }
+  if (missing.start == "first.report") {
+    dt[!is.na(bout) & is.na(last.not.na.symptoms.start.date),
+      symptoms.start.date := date[1],
+      by = list(participant_id, season, bout)
+    ]
+  }
   dt[
-    !is.na(bout) & is.na(last.symptoms.start.date) &
-      !is.na(last.not.na.symptoms.start.date),
-    symptoms.start.date := last.not.na.symptoms.start.date,
-    by = list(participant_id, season, bout)
-  ]
-  dt[!is.na(bout) & is.na(last.not.na.symptoms.start.date),
-    symptoms.start.date := date[1],
-    by = list(participant_id, season, bout)
-  ]
-  dt[
-    !is.na(bout) & is.na(last.symptoms.end.date) &
-      !is.na(last.not.na.symptoms.end.date),
+    !is.na(bout) & !is.na(last.not.na.symptoms.end.date),
     symptoms.end.date := last.not.na.symptoms.end.date,
     by = list(participant_id, season, bout)
   ]
@@ -140,16 +178,25 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
     symptoms.end.date := last(date),
     by = list(participant_id, season, bout)
   ]
-  dt[
-    !is.na(bout) & is.na(last.not.na.symptoms.start.date) &
-      symptoms.end.date < symptoms.start.date,
-    symptoms.end.date := last(date),
-    by = list(participant_id, season, bout)
-  ]
+  if (inverted.dates == "clear") {
+    dt[!is.na(bout) & !is.na(symptoms.start.date) &
+         !is.na(symptoms.end.date) & symptoms.end.date < symptoms.start.date,
+       c("symptoms.start.date", "symptoms.end.date") := list(
+         as.Date(NA_character_), as.Date(NA_character_)
+       )]
+  } else if (inverted.dates == "reset.end") {
+    dt[!is.na(bout), last.report.date := last(date),
+      by = list(participant_id, season, bout)
+    ]
+    dt[!is.na(bout) & !is.na(symptoms.start.date) &
+        !is.na(symptoms.end.date) & symptoms.end.date < symptoms.start.date,
+      symptoms.end.date := last.report.date
+    ]
+    dt[, last.report.date := NULL]
+  }
 
   dt[, last.symptoms.start.date := NULL]
   dt[, last.not.na.symptoms.start.date := NULL]
-  dt[, last.symptoms.end.date := NULL]
   dt[, last.not.na.symptoms.end.date := NULL]
 
 

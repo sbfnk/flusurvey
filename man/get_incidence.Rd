@@ -10,7 +10,11 @@ get_incidence(
   aggregation = c("week", "day", "month", "year"),
   denominator = c("active.members", "reports"),
   min.N = 1,
-  by = NULL
+  by = NULL,
+  exclude = NULL,
+  start.date = c("last", "earliest"),
+  missing.start = c("first.report", "missing"),
+  inverted.dates = c("keep", "clear", "reset.end")
 )
 }
 \arguments{
@@ -27,6 +31,14 @@ in a week}
 \item{min.N}{the minimum denominator, by default 1}
 
 \item{by}{one or more variables by which to group}
+
+\item{exclude}{bouts to leave out of the incidence: any of
+"unknown.onset" (no reported start date, which needs
+\code{missing.start = "missing"}) and "ongoing.at.entry" (start date
+before the participant's first report); by default none}
+
+\item{start.date, missing.start, inverted.dates}{how bout dates are set, see
+\code{\link{bouts_of_illness}}}
 }
 \value{
 a data.table with the incidence
