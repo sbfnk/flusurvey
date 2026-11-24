@@ -34,7 +34,6 @@ utils::globalVariables(c(
   "fever.quickly",
   "fever.suddenly",
   "fever.temperature.range",
-  "first.no.symptoms",
   "flag.row",
   "general.symptoms",
   "gi",

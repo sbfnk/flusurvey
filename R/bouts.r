@@ -44,15 +44,6 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE) {
 
   dt[, new.bout := (same == "no")]
   dt[, part.symptom.id := seq_len(.N), by = list(participant_id, season)]
-  ## any() alone would ignore missing values next to a "t"; a participant with
-  ## a missing value gets a missing first.no.symptoms
-  dt[, first.no.symptoms := ifelse(
-    if (anyNA(no.symptoms)) NA else any(no.symptoms == "t"),
-    min(which(no.symptoms == "t")),
-    0
-  ),
-  by = list(participant_id, season)
-  ]
   ## the first symptomatic report of a participant always starts a bout,
   ## because `same` cannot refer to an earlier report without symptoms
   dt[
