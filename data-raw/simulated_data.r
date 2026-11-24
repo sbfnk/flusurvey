@@ -1,11 +1,11 @@
 ## Simulated FluSurvey data for examples and tests.
 ##
 ## The script uses only the questionnaire definitions in the package
-## (`questions` and `options`) and the postcode lookup tables. It has no access
-## to survey responses and is written without reference to any summary of
-## them: every distribution below is an arbitrary choice that is merely
-## plausible enough for extract_data(), get_incidence() and bouts_of_illness()
-## to return sensible-looking results.
+## (`questions` and `options`) and the postcode lookup tables. Every
+## distribution below is an arbitrary choice, not an estimate from survey
+## responses. The choices make sure that the cases the package handles occur
+## often enough to be tested: bouts that run over several reports, reporting
+## at irregular intervals, and symptom reports with missing dates.
 ##
 ## The answers are first written as one CSV file per questionnaire and season
 ## with the question codes as column names, which is the form read_data()
@@ -233,12 +233,14 @@ make_background <- function(people, join_date, season) {
 
 ## Episodes of three kinds (influenza-like, common cold, gastrointestinal) over
 ## the season. Influenza-like episodes follow an epidemic curve that peaks at a
-## different time in each season; the others occur at a constant rate.
+## different time in each season; the others occur at a constant rate. Some
+## episodes linger for weeks (a cough that does not clear), so that a bout
+## runs over several weekly reports.
 simulate_episodes <- function(days, peak, age, susceptibility) {
   epidemic <- dnorm(as.numeric(days - peak), sd = 18) / dnorm(0, sd = 18)
   child <- if (age < 18) 2 else 1
-  p_ili <- 0.007 * epidemic * susceptibility * child
-  p_cold <- 0.0015 * child
+  p_ili <- 0.015 * epidemic * susceptibility * child
+  p_cold <- 0.004 * child
   p_gi <- 0.0007
   episodes <- list()
   d <- 1L
@@ -256,8 +258,9 @@ simulate_episodes <- function(days, peak, age, susceptibility) {
       d <- d + 1L
       next
     }
-    duration <- switch(type, ili = sample(4:10, 1), cold = sample(3:8, 1),
+    duration <- switch(type, ili = sample(4:14, 1), cold = sample(3:14, 1),
                        gi = sample.int(4, 1))
+    if (type != "gi" && runif(1) < 0.1) duration <- duration + sample(7:28, 1)
     episodes[[length(episodes) + 1L]] <-
       list(type = type, start = days[d], end = days[d] + duration - 1L)
     d <- d + duration + 1L
@@ -296,15 +299,17 @@ draw_symptoms <- function(type) {
   s
 }
 
-## Weekly report dates for one participant: some weeks are missed and
-## participants drop out at random.
+## Mostly weekly report dates for one participant: some weeks are missed,
+## some reports come a few days after the previous one, some after a break of
+## several weeks, and participants drop out at random.
 make_report_dates <- function(join_date, end_date) {
   dates <- as.Date(character())
   d <- join_date
   while (d <= end_date) {
-    if (length(dates) == 0 || runif(1) > 0.1) dates <- c(dates, d)
+    if (length(dates) == 0 || runif(1) > 0.15) dates <- c(dates, d)
     if (runif(1) > 0.94) break
-    d <- d + 7L + sample(c(-1L, 0L, 1L), 1, prob = c(0.15, 0.7, 0.15))
+    d <- d + sample(c(3L, 6L, 7L, 8L, 14L, 21L), 1,
+                    prob = c(0.05, 0.1, 0.6, 0.1, 0.1, 0.05))
   }
   unique(dates)
 }
@@ -399,7 +404,15 @@ make_symptom_rows <- function(person, dates, episodes) {
       symptom_profile <- episodes[[ep]]$profile
       ans[names(symptom_profile)] <- as.list(symptom_profile)
       ans$same <- if (first) 1L else 0L
-      if (first) ans <- first_report_answers(ans, e, symptom_profile)
+      if (first) {
+        ans <- first_report_answers(ans, e, symptom_profile)
+      } else if (runif(1) < 0.85) {
+        ## the start date is filled in again from the previous report
+        ans$symptoms.start.option <- 0L
+        ans$symptoms.start.date <- date_string(e$start)
+      } else {
+        ans$symptoms.start.option <- 1L
+      }
 
       if (e$end <= d) {
         ans$symptoms.end.option <- 0L
