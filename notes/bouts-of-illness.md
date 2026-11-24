@@ -2,7 +2,7 @@
 
 This file states in prose the rules that `bouts_of_illness()` uses to turn weekly symptom reports into bouts of illness. It also describes the cleaning in `merge_data()` that decides which reports reach it. A change to either should change this file in the same pull request. The rules can then be reviewed as rules, and the code checked against them.
 
-This version describes the code at commit `af3f969` (12 November 2026), before the fixes of November 2026. It records what the code did, including behaviour that is clearly unintended. The section "Known problems" lists those cases with the issue that covers each.
+The sections on reports reaching `bouts_of_illness()` and on the start of a bout describe the code at commit `af3f969` (12 November 2026), which includes behaviour that is clearly unintended. The section "Dates of a bout" describes the current code, which has the options for the date rules and the corrected end date. The section "Known problems" lists the remaining cases with the issue that covers each.
 
 ## Terms
 
@@ -50,11 +50,53 @@ Each symptomatic report then belongs to the bout of the last start at or before 
 
 ## Dates of a bout
 
-The start date of a bout is the start date given in its last report. If the last report gives none, it is the last start date given in any of its reports. If no report gives one, it is the date of the first report.
+Three arguments of `bouts_of_illness()` set the dates of a bout. `get_incidence()` passes them on. The defaults keep the start-date behaviour of the code before the end-date fix. The end date differs from that code whatever the arguments.
 
-The end date of a bout depends on whether its last report gives one. If it does, the bout keeps the end date of its first report, which may be missing or different. If it does not, the end date is the last end date given in any of its reports, and if no report gives one, the date of the last report.
+`start.date` chooses among the start dates reported in the bout:
 
-The start and end dates are not checked against each other. A bout can end before it starts.
+- `"last"` (the default): the start date given in the last report of the bout. If the last report gives none, the last start date given in any report of the bout.
+- `"earliest"`: the earliest start date given in any report of the bout.
+
+`missing.start` sets the start date of a bout in which no report gives one:
+
+- `"first.report"` (the default): the date of the first report of the bout. This is the date the participant first reported symptoms, so it is not an observed onset.
+- `"missing"`: the start date stays missing.
+
+The end date of a bout is the last end date given in any of its reports, and every report of the bout gets it. If no report gives one, it is the date of the last symptomatic report of the bout. This is the last report that gives symptoms, not the first symptom-free report that follows. The date of the first symptom-free report is the earliest date by which the participant reported being well, and the code does not use it. A date taken from the last symptomatic report is a fallback, not a reported or observed recovery date. The earlier rule kept the end date of the first report when the last report gave one, which could be missing or a different date, and used the last reported date only when the last report gave none. The rule applies without any argument, and it changes the output of `bouts_of_illness()` for bouts whose reports give different end dates.
+
+`inverted.dates` sets what happens when the end date of a bout is before its start date:
+
+- `"keep"` (the default): both dates stay.
+- `"clear"`: both dates become missing.
+- `"reset.end"`: the end date becomes the date of the last report of the bout.
+
+A bout with a missing start or end date is never inverted.
+
+### Examples
+
+The reports of a participant with `same` set to "no" then "yes", with these dates:
+
+| Report | Start date | End date |
+|---|---|---|
+| 10 January | 5 January | 8 January |
+| 17 January | 6 January | 12 January |
+
+The bout starts on 6 January with the default and on 5 January with `start.date = "earliest"`. It ends on 12 January, the last reported end date, not 8 January.
+
+A participant whose reports give no start date, and whose end date is reported only in the last report (16 January), has a bout that starts on the date of its first report (10 January) by default and has no start date with `missing.start = "missing"`. It ends on 16 January.
+
+A participant whose bout starts on 9 January and whose only reported end date is 8 January has an inverted bout. The default keeps both dates, `"clear"` sets both to missing, and `"reset.end"` moves the end to the date of the last report.
+
+The tests in `tests/testthat/test-bouts.R` run these examples, and cases with several distinct reported end dates, with the end date reported only in the first or only in the last report, and with no end date reported. They also run participants who report no onset in any report.
+
+### Incidence
+
+`get_incidence()` counts bouts by the week, day, month or year of their start date. Its `exclude` argument leaves bouts out of the counts. It takes any of:
+
+- `"unknown.onset"`: bouts with no reported start date. This needs `missing.start = "missing"`. With the default `"first.report"`, no bout has a missing start date and nothing is excluded.
+- `"ongoing.at.entry"`: bouts whose start date is before the participant's first report.
+
+By default `exclude` is empty and every bout is counted. A bout with an unknown onset and `missing.start = "missing"` is not matched to contacts by report date.
 
 ## One row per bout
 
@@ -74,9 +116,8 @@ With `symptomatic.only = TRUE` (the default) only the bout rows are returned. Wi
 - S2 can start the bout at a later leading report. The leading reports before it are then dropped.
 - S5 compares a participant's first report with another participant's last report. Where that end date is before this participant's start date, the first report starts a bout by chance (#22).
 - Without a `health.score` column, a table sorted by date makes S4 and S5 compare reports of different participants. The rules depend on the input order, and `bouts_of_illness()` sorts only by participant and season, and only when there is a `health.score` column.
-- The end date of a bout is lost when only its last report gives one, and wrong when its first report gives a different one (#18).
-- The start date of a bout comes from its last report without a check against the other reports (#20).
-- A bout with no reported start date takes the date of its first report as its start. If the end date it keeps is earlier, the bout ends before it starts (#76, #77).
+- With the default `start.date = "last"`, the start date of a bout comes from its last report without a check against the other reports (#20). `start.date = "earliest"` avoids this.
+- With the default `missing.start = "first.report"`, a bout with no reported start date takes the date of its first report as its start. If its end date is earlier, the bout ends before it starts. `missing.start = "missing"` and `inverted.dates` avoid this (#76, #77).
 - With `symptomatic.only = FALSE` the reports outside any bout share their "t"/"f" values. A dropped symptomatic report makes the symptom-free reports of the participant show its symptoms, and the dropped report itself is marked as symptom-free (#87).
 - When the symptom survey is not the last one joined, its character "t"/"f" columns stay character (#15). S4 then never applies. Those columns are not merged within a bout, nor across the reports outside any bout.
 - `only.symptoms` also drops participants with any missing `no.symptoms` answer (#88).

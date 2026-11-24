@@ -93,6 +93,63 @@ test_that("inverted.dates keeps, clears or resets inverted bounds", {
   )
 })
 
+end_example <- function() {
+  rbind(
+    ## three distinct reported end dates: the last one is used for every row
+    reports(1, c("2013-01-10", "2013-01-17", "2013-01-24"), TRUE,
+            c("no", "yes", "yes"), "2013-01-08",
+            c("2013-01-09", "2013-01-15", "2013-01-20")),
+    ## only the first report gives an end date
+    reports(2, c("2013-01-10", "2013-01-17"), TRUE, c("no", "yes"),
+            "2013-01-08", c("2013-01-12", NA)),
+    ## only the last report gives an end date
+    reports(3, c("2013-01-10", "2013-01-17"), TRUE, c("no", "yes"),
+            "2013-01-08", c(NA, "2013-01-16")),
+    ## no end date: the last symptomatic report, not the symptom-free one
+    reports(4, c("2013-01-10", "2013-01-17", "2013-01-24"),
+            c(TRUE, TRUE, FALSE), c("no", "yes", NA), "2013-01-08", NA)
+  )
+}
+
+test_that("a bout ends on its last reported end date, whatever the arguments", {
+  x <- end_example()
+  expected <- as.Date(c("2013-01-20", "2013-01-12", "2013-01-16",
+                        "2013-01-17"))
+  expect_equal(bout_dates(x, "symptoms.end.date"), expected)
+  expect_equal(
+    bout_dates(x, "symptoms.end.date", start.date = "earliest",
+               missing.start = "missing", inverted.dates = "reset.end"),
+    expected
+  )
+})
+
+test_that("every report of a bout keeps the same end date", {
+  capture.output(
+    res <- bouts_of_illness(end_example(), symptomatic.only = FALSE)
+  )
+  expect_equal(
+    res[participant_id == 1, unique(symptoms.end.date)],
+    as.Date("2013-01-20")
+  )
+})
+
+test_that("participants with no reported onset each get one bout", {
+  x <- rbind(
+    reports(1, c("2013-01-10", "2013-01-17"), TRUE, c("no", "yes"), NA, NA),
+    reports(2, c("2013-01-10", "2013-01-17"), TRUE, c("no", "yes"), NA, NA)
+  )
+  expect_equal(
+    bout_dates(x, "symptoms.start.date", missing.start = "missing"),
+    as.Date(c(NA, NA))
+  )
+  expect_equal(
+    bout_dates(x, "symptoms.start.date"),
+    as.Date(c("2013-01-10", "2013-01-10"))
+  )
+  expect_equal(bout_dates(x, "symptoms.end.date"),
+               as.Date(c("2013-01-17", "2013-01-17")))
+})
+
 test_that("invalid rule arguments are rejected", {
   expect_error(bouts_of_illness(dates_example(), start.date = "middle"))
   expect_error(bouts_of_illness(dates_example(), missing.start = "drop"))
