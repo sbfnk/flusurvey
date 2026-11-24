@@ -42,21 +42,39 @@ merge_onset <- function(x) {
 bout_flags <- function(reports, by = c("participant_id", "season", "bout")) {
   present <- intersect(bout_flag_columns, colnames(reports))
   merged <- reports[, lapply(.SD, any_t), by = by, .SDcols = present]
+  groups <- list(
+    fever.symptoms = c("fever", "fever.symptom"),
+    systemic.symptoms = c("tired", "weakness", "headache"),
+    resp.symptoms = c("sore.throat", "cough", "shortness.breath"),
+    gi = c("vomiting", "diarrhoea")
+  )
+  for (flag in names(groups)) {
+    cols <- intersect(groups[[flag]], colnames(reports))
+    if (length(cols) == 0) next
+    raw_flags <- reports[, list(value = any_t(unlist(lapply(.SD, function(x) {
+      x <- as.character(x)
+      fcase(is.na(x), NA_character_, x %in% c("t", "1"), "t", default = "f")
+    })))), by = by, .SDcols = cols]
+    merged[raw_flags, on = by, (flag) := i.value]
+  }
   has <- function(...) all(c(...) %in% colnames(merged))
-  if (has("general.symptoms", "fever.symptoms", "systemic.symptoms")) {
+  if (has("fever.symptoms", "systemic.symptoms")) {
     merged[, general.symptoms := or3(fever.symptoms, systemic.symptoms)]
   }
-  if (has("ili.symptoms", "general.symptoms", "resp.symptoms")) {
+  if (has("general.symptoms", "resp.symptoms")) {
     merged[, ili.symptoms := and3(general.symptoms, resp.symptoms)]
   }
-  if (has("ili", "ili.symptoms", "suddenly")) {
+  if (has("ili.symptoms", "suddenly")) {
     merged[, ili := and3(ili.symptoms, suddenly)]
   }
-  if (has("ili.fever", "fever.symptoms", "ili")) {
+  if (has("fever.symptoms", "ili")) {
     merged[, ili.fever := and3(fever.symptoms, ili)]
   }
   if ("onset" %in% colnames(reports)) {
-    onset <- reports[, list(onset = merge_onset(onset)), by = by]
+    onset <- reports[, list(
+      onset = merge_onset(onset),
+      onset.conflict = all(c("sudden", "not.sudden") %in% onset)
+    ), by = by]
     merged <- merge(merged, onset, by = by, sort = FALSE)
   }
   merged
@@ -76,24 +94,10 @@ assign_bouts <- function(dt) {
   ),
   by = list(participant_id, season)
   ]
-  dt[,
-    min.symptoms.start.date := as.Date(ifelse(
-      all(is.na(symptoms.start.date)),
-      NA_character_,
-      as.character(min(symptoms.start.date, na.rm = TRUE))
-    )),
-    by = list(participant_id, season)
-  ]
-  dt[
-    part.symptom.id < first.no.symptoms & !is.na(symptoms.start.date) &
-      symptoms.start.date == min.symptoms.start.date,
-    new.bout := c(TRUE, new.bout[-1]),
-    by = list(participant_id, season)
-  ]
-  dt[
-    first.no.symptoms == 0 & part.symptom.id == min(part.symptom.id),
-    new.bout := TRUE
-  ]
+  ## A continuing illness at the first observed symptomatic report is still
+  ## a bout; its onset may predate observation or remain unknown.
+  dt[no.symptoms == "f", new.bout := new.bout | seq_len(.N) == 1L,
+     by = list(participant_id, season)]
   dt[is.na(new.bout), new.bout := FALSE]
   dt[, previous.no.symptoms := factor(
     c(NA_character_, as.character(no.symptoms[-.N])),
@@ -127,7 +131,9 @@ assign_bouts <- function(dt) {
 }
 
 ## Set the start and end date of each bout on its reports, in place.
-fill_bout_dates <- function(dt) {
+fill_bout_dates <- function(dt, start.date = "last",
+                            missing.start = "first.report",
+                            inverted.dates = "keep") {
   last <- function(x) x[length(x)]
   last_not_na <- function(x) x[!is.na(x)][sum(!is.na(x))]
   dt[!is.na(bout), last.symptoms.start.date := last(symptoms.start.date),
@@ -137,31 +143,44 @@ fill_bout_dates <- function(dt) {
     last.not.na.symptoms.start.date := last_not_na(symptoms.start.date),
     by = list(participant_id, season, bout)
   ]
-  dt[!is.na(bout), last.symptoms.end.date := last(symptoms.end.date),
-    by = list(participant_id, season, bout)
-  ]
   dt[!is.na(bout),
     last.not.na.symptoms.end.date := last_not_na(symptoms.end.date),
     by = list(participant_id, season, bout)
   ]
 
-  dt[!is.na(bout) & !is.na(last.symptoms.start.date),
-    symptoms.start.date := last.symptoms.start.date,
-    by = list(participant_id, season, bout)
-  ]
+  if (start.date == "earliest") {
+    dt[!is.na(bout),
+      first.not.na.symptoms.start.date := as.Date(ifelse(
+        all(is.na(symptoms.start.date)),
+        NA_character_,
+        as.character(min(symptoms.start.date, na.rm = TRUE))
+      )),
+      by = list(participant_id, season, bout)
+    ]
+    dt[!is.na(bout) & !is.na(first.not.na.symptoms.start.date),
+      symptoms.start.date := first.not.na.symptoms.start.date
+    ]
+    dt[, first.not.na.symptoms.start.date := NULL]
+  } else {
+    dt[!is.na(bout) & !is.na(last.symptoms.start.date),
+      symptoms.start.date := last.symptoms.start.date,
+      by = list(participant_id, season, bout)
+    ]
+    dt[
+      !is.na(bout) & is.na(last.symptoms.start.date) &
+        !is.na(last.not.na.symptoms.start.date),
+      symptoms.start.date := last.not.na.symptoms.start.date,
+      by = list(participant_id, season, bout)
+    ]
+  }
+  if (missing.start == "first.report") {
+    dt[!is.na(bout) & is.na(last.not.na.symptoms.start.date),
+      symptoms.start.date := date[1],
+      by = list(participant_id, season, bout)
+    ]
+  }
   dt[
-    !is.na(bout) & is.na(last.symptoms.start.date) &
-      !is.na(last.not.na.symptoms.start.date),
-    symptoms.start.date := last.not.na.symptoms.start.date,
-    by = list(participant_id, season, bout)
-  ]
-  dt[!is.na(bout) & is.na(last.not.na.symptoms.start.date),
-    symptoms.start.date := date[1],
-    by = list(participant_id, season, bout)
-  ]
-  dt[
-    !is.na(bout) & is.na(last.symptoms.end.date) &
-      !is.na(last.not.na.symptoms.end.date),
+    !is.na(bout) & !is.na(last.not.na.symptoms.end.date),
     symptoms.end.date := last.not.na.symptoms.end.date,
     by = list(participant_id, season, bout)
   ]
@@ -169,11 +188,27 @@ fill_bout_dates <- function(dt) {
     symptoms.end.date := last(date),
     by = list(participant_id, season, bout)
   ]
+  if (inverted.dates == "clear") {
+    dt[!is.na(bout) & !is.na(symptoms.start.date) &
+         !is.na(symptoms.end.date) & symptoms.end.date < symptoms.start.date,
+       c("symptoms.start.date", "symptoms.end.date") := list(
+         as.Date(NA_character_), as.Date(NA_character_)
+       )]
+  } else if (inverted.dates == "reset.end") {
+    dt[!is.na(bout), last.report.date := last(date),
+      by = list(participant_id, season, bout)
+    ]
+    dt[!is.na(bout) & !is.na(symptoms.start.date) &
+        !is.na(symptoms.end.date) & symptoms.end.date < symptoms.start.date,
+      symptoms.end.date := last.report.date
+    ]
+    dt[, last.report.date := NULL]
+  }
 
   dt[, last.symptoms.start.date := NULL]
   dt[, last.not.na.symptoms.start.date := NULL]
-  dt[, last.symptoms.end.date := NULL]
   dt[, last.not.na.symptoms.end.date := NULL]
+
   invisible(dt)
 }
 
@@ -190,14 +225,21 @@ report_evidence <- function(dt) {
     rep(NA_character_, nrow(dt))
   }
   still <- !is.na(option) & option == "still_ill"
-  onset <- dt$symptoms.start.date
+  original_onset <- dt$symptoms.start.date
+  recovered <- dt[, list(onset = if (all(is.na(symptoms.start.date))) {
+    as.Date(NA)
+  } else {
+    min(symptoms.start.date, na.rm = TRUE)
+  }), by = list(participant_id, season, bout)]
+  onset <- recovered[dt, on = c("participant_id", "season", "bout")]$onset
+  onset[!is.na(original_onset)] <- original_onset[!is.na(original_onset)]
   recovery <- dt$symptoms.end.date
   rdate <- dt$date
   capped <- fifelse(!is.na(recovery), pmin(recovery, rdate), as.Date(NA))
   basis <- fcase(
     !is.na(onset) & !is.na(capped) & onset <= capped, "reported",
     !is.na(onset) & is.na(recovery) & still & onset <= rdate, "still.ill",
-    is.na(onset) & is.na(recovery) & still, "still.ill.unknown.onset",
+    is.na(recovery) & still, "still.ill.unknown.onset",
     default = "unresolved"
   )
   first.day <- fcase(
@@ -212,17 +254,21 @@ report_evidence <- function(dt) {
   )
   res <- data.table(
     participant_id = dt$participant_id, season = dt$season, bout = dt$bout,
-    date = rdate, report.start = onset, report.end = recovery, basis = basis,
-    onset.known = !is.na(onset),
+    date = rdate, report.start = original_onset, report.end = recovery,
+    basis = basis,
+    onset.known = !is.na(original_onset),
     recovery.known = !is.na(recovery),
     first.day = first.day, last.day = last.day
   )
-  if ("row_id" %in% colnames(dt)) res[, row_id := dt$row_id]
+  res[, row_id := if ("row_id" %in% colnames(dt)) dt$row_id else dt$id]
+  if ("onset" %in% colnames(dt)) res[, onset := as.character(dt$onset)]
   res
 }
 
-## One row per day of illness supported by the reports of a bout.
+## A bout is continuous between its established illness days. The inferred
+## gap days are labelled separately from direct report evidence.
 evidence_days <- function(reports) {
+  keys <- c("participant_id", "season", "bout")
   usable <- reports[basis != "unresolved"]
   if (nrow(usable) == 0) {
     return(data.table(
@@ -230,40 +276,36 @@ evidence_days <- function(reports) {
       bout = integer(), day = as.Date(character()), source = character()
     ))
   }
+  spans <- usable[, list(first.day = min(first.day), last.day = max(last.day)),
+                  by = keys]
   days <- Map(function(from, to) seq(from, to, by = "day"),
-              usable$first.day, usable$last.day)
-  res <- usable[rep(seq_len(nrow(usable)), lengths(days)),
-                c("participant_id", "season", "bout", "basis"), with = FALSE]
+              spans$first.day, spans$last.day)
+  res <- spans[rep(seq_len(nrow(spans)), lengths(days)), keys, with = FALSE]
   res[, day := as.Date(unlist(days), origin = "1970-01-01")]
-  res[, source := ifelse(basis == "still.ill.unknown.onset",
-                         "report.date", "reported")]
-  ## a day backed by a reported interval is not downgraded by a report
-  ## that only places the illness on its own date
-  res <- res[order(participant_id, season, bout, day, source == "report.date")]
-  res <- res[!duplicated(res[, c("participant_id", "season", "bout", "day")])]
-  res[, basis := NULL]
+  res[, source := "within.bout"]
+  ## A direct interval takes precedence over a report-day observation.
+  for (basis_type in c("still.ill.unknown.onset", "still.ill", "reported")) {
+    intervals <- usable[basis == basis_type]
+    res[intervals, on = c(keys, "day>=first.day", "day<=last.day"),
+        source := if (basis_type == "still.ill.unknown.onset") {
+          "report.date"
+        } else {
+          "reported"
+        }]
+  }
   res[]
 }
 
 ## Prepare reports for bout assignment: sorted, numbered, with the bout of
 ## each symptomatic report. Returns the table before any dates are filled in.
-reconstruct_bouts <- function(x, singletons = FALSE) {
-  dt <- data.table(x)
+reconstruct_bouts <- function(x) {
+  dt <- copy(data.table(x))
+  dt[, no.symptoms := factor(as.character(no.symptoms), levels = c("f", "t"))]
+  if (!"same" %in% colnames(dt)) dt[, same := NA_character_]
   setorderv(dt, c("participant_id", "season", "date"))
   dt[, id := seq_len(.N)]
   assign_bouts(dt)
-  if (singletons) {
-    ## symptomatic reports outside any bout stay as episodes of their own
-    ## numbered after the highest real bout of the participant and season
-    dt[, last.bout := max(c(0L, bout), na.rm = TRUE),
-       by = list(participant_id, season)]
-    dt[
-      no.symptoms == "f" & is.na(bout),
-      bout := last.bout + seq_len(.N),
-      by = list(participant_id, season)
-    ]
-    dt[, last.bout := NULL]
-  }
+
   dt
 }
 
@@ -271,8 +313,8 @@ reconstruct_bouts <- function(x, singletons = FALSE) {
 ##'
 ##' \code{\link{bouts_of_illness}} gives one row per bout. The evidence it
 ##' rests on is in the list returned here, from the same reconstruction. The
-##' bouts are those of \code{bouts_of_illness(x)}; \code{x} can be the same
-##' data.
+##' bout membership is the same as in \code{bouts_of_illness(x)}. Date
+##' policies affect selected boundaries, not the original report evidence.
 ##'
 ##' \code{reports} has a row for each symptomatic report that belongs to a
 ##' bout, with the bout it belongs to, the dates it reported
@@ -288,14 +330,17 @@ reconstruct_bouts <- function(x, singletons = FALSE) {
 ##' \code{source} "reported" for days within a reported or continuing
 ##' interval and "report.date" for days established only by a report of
 ##' continuing illness without a start date. Days between the intervals of a
-##' bout are not added, and the bout dates of \code{bouts_of_illness} are not
-##' spread over days.
+##' bout are included with source "within.bout": illness persists between
+##' established illness days of the same bout. Selected fallback boundaries
+##' are not used to establish illness. The \code{intervals} table contains
+##' the first and last established day per bout without daily expansion.
 ##'
 ##' \code{bouts} has a row for each bout with the dates
 ##' \code{bouts_of_illness} gives it, and \code{onset.known} and
 ##' \code{recovery.known}, which say whether any report of the bout gave a
-##' start or an end date. Where one is \code{FALSE} the date is that of a
-##' report. The columns
+##' matching start or end date for the selected boundary. The columns
+##' \code{onset.source} and \code{recovery.source} distinguish reported
+##' dates, missing boundaries and first/last-report fallbacks. The columns
 ##' \code{n.reports} and the case definitions follow: the symptom columns of
 ##' all reports of a bout are combined (a symptom counts if any report has it,
 ##' the onset if any report records it as sudden) and the definitions applied
@@ -303,13 +348,20 @@ reconstruct_bouts <- function(x, singletons = FALSE) {
 ##' that the symptoms were present together on a day. The definitions are
 ##' \code{ili}, \code{ili.fever}, \code{ili.self}, \code{resp.symptoms} (ARI)
 ##' and the others of \code{\link{aggregate_symptoms}} that are in the data;
-##' \code{onset} keeps the most informative onset answer ("sudden",
+##' \code{onset.conflict} records conflicting explicit onset answers;
+##' \code{onset} keeps the highest-precedence onset answer ("sudden",
 ##' "not.sudden", "dont_know", "not.answered", "no.question").
 ##' Where the columns that a definition is built from are not in the data,
 ##' it is positive if any report of the bout is.
 ##'
 ##' @param x the data to extract bouts from, as for
 ##'   \code{\link{bouts_of_illness}}
+##' @param start.date,missing.start,inverted.dates Date policies as in
+##'   \code{\link{bouts_of_illness}}. Evidence defaults to leaving an
+##'   unreported onset missing; the summary interface defaults to the first
+##'   report. These policies do not replace the original report evidence.
+##' @param expand.days whether to expand established illness intervals to
+##'   individual days. Set FALSE for interval matching without daily expansion.
 ##' @return a list of data tables: \code{bouts}, \code{reports} and
 ##'   \code{days}
 ##' @examples
@@ -318,14 +370,20 @@ reconstruct_bouts <- function(x, singletons = FALSE) {
 ##' head(evidence$days)
 ##' @import data.table
 ##' @export
-bout_evidence <- function(x) {
+bout_evidence <- function(
+  x, start.date = c("last", "earliest"),
+  missing.start = c("missing", "first.report"),
+  inverted.dates = c("keep", "clear", "reset.end"), expand.days = TRUE
+) {
   dt <- reconstruct_bouts(x)
-  bout_evidence_from(dt)
+  bout_evidence_from(dt, match.arg(start.date), match.arg(missing.start),
+                     match.arg(inverted.dates), expand.days)
 }
 
-bout_evidence_from <- function(dt) {
+bout_evidence_from <- function(dt, start.date, missing.start, inverted.dates,
+                               expand.days) {
   reports <- report_evidence(dt[!is.na(bout)])
-  fill_bout_dates(dt)
+  fill_bout_dates(dt, start.date, missing.start, inverted.dates)
   keys <- c("participant_id", "season", "bout")
   in_bout <- dt[!is.na(bout)]
   bouts <- in_bout[, list(
@@ -333,22 +391,42 @@ bout_evidence_from <- function(dt) {
     symptoms.end.date = symptoms.end.date[1],
     n.reports = .N
   ), by = keys]
-  known <- reports[, list(
-    onset.known = any(onset.known), recovery.known = any(recovery.known)
+  selected <- merge(reports, bouts, by = keys)
+  known <- selected[, list(
+    onset.known = any(!is.na(symptoms.start.date) &
+                        symptoms.start.date == report.start, na.rm = TRUE),
+    recovery.known = any(!is.na(symptoms.end.date) &
+                           symptoms.end.date == report.end, na.rm = TRUE)
   ), by = keys]
   bouts <- merge(bouts, known, by = keys, sort = FALSE)
+  bouts[, onset.source := fcase(
+    is.na(symptoms.start.date), "missing", onset.known, "reported",
+    default = "first.report"
+  )]
+  bouts[, recovery.source := fcase(
+    is.na(symptoms.end.date), "missing", recovery.known, "reported",
+    default = "last.report"
+  )]
   bouts <- merge(bouts, bout_flags(in_bout, keys), by = keys, sort = FALSE)
   setorderv(bouts, keys)
-  list(bouts = bouts[], reports = reports[], days = evidence_days(reports))
+  intervals <- reports[basis != "unresolved",
+    if (.N) list(first.day = min(first.day), last.day = max(last.day)) else
+      list(first.day = as.Date(character()), last.day = as.Date(character())),
+    by = keys
+  ]
+  list(bouts = bouts[], reports = reports[], intervals = intervals[],
+       days = evidence_days(if (expand.days) reports else reports[0]))
 }
 
 ## One row per day from symptoms.start.date to symptoms.end.date of each bout
 ## report. The flags are carried forward, taken from the bout or taken from
 ## the report, as daily.flags says.
 expand_to_days <- function(dt, daily.flags, report.flags, flag.columns) {
-  dt <- dt[!is.na(bout)]
+  dt <- dt[!is.na(bout) & !is.na(symptoms.start.date) &
+             !is.na(symptoms.end.date) &
+             symptoms.start.date <= symptoms.end.date]
   starts <- dt$symptoms.start.date
-  ends <- pmax(dt$symptoms.end.date, starts)
+  ends <- dt$symptoms.end.date
   days <- Map(function(from, to) seq(from, to, by = "day"), starts, ends)
   dt <- dt[rep(seq_len(nrow(dt)), lengths(days))]
   dt[, day := as.Date(unlist(days), origin = "1970-01-01")]
@@ -371,6 +449,13 @@ expand_to_days <- function(dt, daily.flags, report.flags, flag.columns) {
 ##' @param x the data to extract bouts from
 ##' @param symptomatic.only whether to only include symptomatic periods
 ##' @param as.data.frame currently has no effect
+##' @param start.date which reported start date to use for a bout: the
+##' "last" one reported, or the "earliest"
+##' @param missing.start what to use as start date if none was reported for a
+##' bout: the date of its "first.report", or "missing"
+##' @param inverted.dates what to do if the end date is before the start date:
+##' "keep" both, set both to "clear" (missing), or "reset.end" to the last
+##' report date of the bout
 ##' @param daily.flags how to assign the case-definition flags set by
 ##'   \code{\link{aggregate_symptoms}} to the days of a bout.
 ##'   \code{"none"} returns one row per bout. The other values return one row
@@ -378,7 +463,7 @@ expand_to_days <- function(dt, daily.flags, report.flags, flag.columns) {
 ##'   \code{symptoms.end.date}. \code{"carry.forward"} takes the flags from
 ##'   the last report on or before the day. \code{"bout"} gives every day the
 ##'   flags of the bout. \code{"report"} sets flags only on days with a
-##'   report.
+##'   report. Missing or inverted selected intervals are not expanded.
 ##' @details The flags of a bout (those of the case definitions in
 ##'   \code{\link{aggregate_symptoms}}) are computed from the symptoms of all
 ##'   its reports together: a
@@ -399,12 +484,18 @@ expand_to_days <- function(dt, daily.flags, report.flags, flag.columns) {
 ##' @import data.table
 ##' @importFrom stats median
 ##' @export
-bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE,
-                             daily.flags = c(
-                               "none", "carry.forward", "bout", "report"
-                             )) {
+bouts_of_illness <- function(
+  x, symptomatic.only = TRUE, as.data.frame = TRUE,
+  start.date = c("last", "earliest"),
+  missing.start = c("first.report", "missing"),
+  inverted.dates = c("keep", "clear", "reset.end"),
+  daily.flags = c("none", "carry.forward", "bout", "report")
+) {
+  start.date <- match.arg(start.date)
+  missing.start <- match.arg(missing.start)
+  inverted.dates <- match.arg(inverted.dates)
   daily.flags <- match.arg(daily.flags)
-  dt <- data.table(x)
+  dt <- copy(data.table(x))
 
   if ("health.score" %in% colnames(dt)) {
     baselines <-
@@ -426,7 +517,7 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE,
       length(setdiff(c("t", "f"), levels(dt[[x]]))) == 0
     }, TRUE)]
 
-  fill_bout_dates(dt)
+  fill_bout_dates(dt, start.date, missing.start, inverted.dates)
 
   flag.columns <- intersect(bout_flag_columns, colnames(dt))
   report.flags <- dt[!is.na(bout),
@@ -437,75 +528,73 @@ bouts_of_illness <- function(x, symptomatic.only = TRUE, as.data.frame = TRUE,
     dt[!is.na(bout)], c("participant_id", "season", "bout")
   )
 
-  symptoms.id.column <- which(colnames(dt) == "symptom.id")
-  if (symptoms.id.column > 1) {
-    dt[
-      !is.na(bout),
-      min.part.symptom.id := min(part.symptom.id),
-      by = list(participant_id, season, bout)
-    ]
-    dt[
-      !is.na(bout),
-      max.part.symptom.id := max(part.symptom.id),
-      by = list(participant_id, season, bout)
-    ]
+  dt[
+    !is.na(bout),
+    min.part.symptom.id := min(part.symptom.id),
+    by = list(participant_id, season, bout)
+  ]
+  dt[
+    !is.na(bout),
+    max.part.symptom.id := max(part.symptom.id),
+    by = list(participant_id, season, bout)
+  ]
 
-    tf_columns <- intersect(colnames(dt), tf)
+  tf_columns <- intersect(colnames(dt), tf)
 
-    cat("Merging columns:\n")
-    for (column in tf_columns) {
-      cat("  ", column, "\n")
-      if (grepl("\\.no(ne)?$", column)) {
-        dt[,
-          paste(column) := factor(
-            as.integer(all(get(column) == "t")),
-            levels = 0:1,
-            labels = c("f", "t")
-          ),
-          by = list(participant_id, season, bout)
-        ]
-      } else {
-        dt[,
-          paste(column) := factor(
-            as.integer(any(get(column) == "t")),
-            levels = 0:1,
-            labels = c("f", "t")
-          ),
-          by = list(participant_id, season, bout)
-        ]
-      }
-    }
-    if ("health.score" %in% colnames(dt)) {
+  cat("Merging columns:\n")
+  for (column in tf_columns) {
+    cat("  ", column, "\n")
+    if (grepl("\\.no(ne)?$", column)) {
       dt[!is.na(bout),
-        min.health.score := ifelse(
-          all(is.na(health.score)),
-          NA_integer_,
-          min(health.score, na.rm = TRUE)
+        paste(column) := factor(
+          as.integer(all(get(column) == "t")),
+          levels = 0:1,
+          labels = c("f", "t")
+        ),
+        by = list(participant_id, season, bout)
+      ]
+    } else {
+      dt[!is.na(bout),
+        paste(column) := factor(
+          as.integer(any(get(column) == "t")),
+          levels = 0:1,
+          labels = c("f", "t")
         ),
         by = list(participant_id, season, bout)
       ]
     }
-    ## the case definitions of a bout come from its combined symptoms
-    key.columns <- c("participant_id", "season", "bout")
-    in.bout <- which(!is.na(dt$bout))
-    bout.index <- match(
-      do.call(paste, c(dt[in.bout, key.columns, with = FALSE], sep = "\r")),
-      do.call(paste, c(bout.flags[, key.columns, with = FALSE], sep = "\r"))
-    )
-    for (column in setdiff(colnames(bout.flags), key.columns)) {
-      if (!column %in% colnames(dt)) next
-      current <- dt[[column]]
-      updated <- as.character(current)
-      updated[in.bout] <- bout.flags[[column]][bout.index]
-      if (is.factor(current)) {
-        updated <- factor(updated, levels = levels(current))
-      }
-      set(dt, j = column, value = updated)
-    }
-    dt <- dt[
-      is.na(min.part.symptom.id) | part.symptom.id == min.part.symptom.id
+  }
+  if ("health.score" %in% colnames(dt)) {
+    dt[!is.na(bout),
+      min.health.score := ifelse(
+        all(is.na(health.score)),
+        NA_integer_,
+        min(health.score, na.rm = TRUE)
+      ),
+      by = list(participant_id, season, bout)
     ]
   }
+  ## the case definitions of a bout come from its combined symptoms
+  key.columns <- c("participant_id", "season", "bout")
+  in.bout <- which(!is.na(dt$bout))
+  bout.index <- match(
+    do.call(paste, c(dt[in.bout, key.columns, with = FALSE], sep = "\r")),
+    do.call(paste, c(bout.flags[, key.columns, with = FALSE], sep = "\r"))
+  )
+  for (column in setdiff(colnames(bout.flags), key.columns)) {
+    if (!column %in% colnames(dt)) next
+    current <- dt[[column]]
+    updated <- as.character(current)
+    updated[in.bout] <- bout.flags[[column]][bout.index]
+    if (is.factor(current)) {
+      updated <- factor(updated, levels = union(levels(current),
+                                                na.omit(updated)))
+    }
+    set(dt, j = column, value = updated)
+  }
+  dt <- dt[
+    is.na(min.part.symptom.id) | part.symptom.id == min.part.symptom.id
+  ]
   if (symptomatic.only) {
     dt <- dt[!is.na(min.part.symptom.id)]
   }

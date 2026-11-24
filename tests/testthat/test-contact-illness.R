@@ -232,11 +232,10 @@ test_that("a symptom report without a usable interval leaves days unknown", {
                c("no ILI", "no ILI", NA, NA, "no ILI"))
   expect_equal(res$current_symptoms[6:20],
                rep(c("no symptoms", "no symptoms", NA, NA, "no symptoms"), 3))
-  ## a still-ill report is placed: its bout ends on the report date
+  ## a still-ill report establishes its own day, but not recovery
   still <- contact_illness(contact("e", days), symptoms)
   expect_equal(still$current_symptoms,
-               c("no symptoms", "no symptoms", "no symptoms", "symptoms",
-                 "no symptoms"))
+               c("no symptoms", "no symptoms", "no symptoms", "symptoms", NA))
 })
 
 test_that("an unplaced report makes the flags of an overlapping bout unknown", {

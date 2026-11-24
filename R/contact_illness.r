@@ -27,9 +27,11 @@
 ##' date when it gives no start date: the onset is then unknown and the days
 ##' before it are unknown, but the report date is a day of illness, and a
 ##' contact describing it is classified as ill. Recovery on that date, or
-##' illness on the following one, is not established. Days between the
-##' intervals of a bout are not called ill. A symptomatic report that belongs
-##' to no bout forms a bout of its own.
+##' illness on the following one, is not established. Days between known
+##' illness days of the same bout are included as continuing illness. The
+##' first symptomatic report is retained by the shared reconstruction even
+##' when onset is unknown. Missing onset may be recovered from other reports
+##' assigned to that same bout.
 ##'
 ##' \emph{Case definitions of bouts.} The symptoms of all reports of a bout are
 ##' combined first and the definitions applied to the result, so symptoms
@@ -47,7 +49,9 @@
 ##' illness cannot be placed, so every day since the participant's previous
 ##' report, up to and including its own date, is unknown (missing) unless
 ##' it lies in a bout. The same holds for the days before the report date of a
-##' continuing illness without a start date. A report without symptoms is taken
+##' continuing illness without a start date. A continuing-illness report also
+##' leaves the days after its date until the next report unknown unless bout
+##' evidence covers them. A report without symptoms is taken
 ##' as no acute illness. The data have no indicator of chronic symptoms, and
 ##' the maintainers have defined neither one nor a duration after which
 ##' symptoms count as chronic.
@@ -58,10 +62,11 @@
 ##' every day of it. The \code{bout_} columns therefore describe the whole
 ##' bout and are the ones for bout-based exposure: positive on every day of a
 ##' bout that meets the definition on the combined symptoms of its reports,
-##' negative if it does not and no report is unresolved, and missing otherwise.
-##' A positive bout stays positive when one of its reports is unresolved. The
+##' negative if the combined evidence rules it out, and missing otherwise.
+##' Uncertain report dates do not change a bout flag on only some days. The
 ##' daily \code{current_} columns are positive or negative within a bout only
-##' on days covered by the interval of a symptom report, assuming that such a
+##' on dates with a symptom report whose interval covers that date, assuming
+##' that such a
 ##' report describes its own day, and are missing on other days of a bout:
 ##' the symptoms of those days are not known, but the participant is known to
 ##' be ill. Several reports on a day are combined: positive if any is
@@ -122,15 +127,15 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
     ili = c("ILI", "no ILI"), ili_fever = c("ILI", "no ILI"),
     ili_self = c("ILI", "no ILI"), ari = c("ARI", "no ARI")
   )
-  contacts <- data.table(contacts)
-  symptoms <- data.table(symptoms)
+  contacts <- copy(data.table(contacts))
+  symptoms <- copy(data.table(symptoms))
   ## participants are followed up per season where both tables have one
   group_by <- "global_id"
   if ("season" %in% colnames(contacts) && "season" %in% colnames(symptoms)) {
     group_by <- c(group_by, "season")
   }
   has_key <- function(x) {
-    Reduce(`&`, lapply(x[, group_by, with = FALSE], function(col) !is.na(col)))
+    !Reduce(`|`, lapply(x[, group_by, with = FALSE], is.na))
   }
   symptoms <- symptoms[has_key(symptoms) & !is.na(date)]
   for (col in flag_cols) {
@@ -151,8 +156,7 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
   } else {
     factor(NA_character_, levels = c("yes", "no", "dont_know"))
   }]
-  work <- reconstruct_bouts(work, singletons = TRUE)
-  evidence <- bout_evidence_from(work)
+  evidence <- bout_evidence(work, expand.days = FALSE)
   usable <- evidence$reports[basis != "unresolved"]
   symptoms[, basis := usable$basis[match(row_id, usable$row_id)]]
   symptoms[, valid := !is.na(basis)]
@@ -171,12 +175,11 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
     , c("participant_id", "season", "bout", unname(flag_cols)), with = FALSE
   ])
   setnames(bout_flag_values, unname(flag_cols), bout_cols)
-  bout_days <- merge(evidence$days, bout_flag_values,
+  bout_days <- merge(evidence$intervals, bout_flag_values,
                      by = c("participant_id", "season", "bout"))
   bout_days[, season := NULL]
   bout_days <- merge(bout_days, ids, by = "participant_id")
   bout_days[, c("participant_id", "bout") := NULL]
-  setnames(bout_days, "day", "contact.date")
 
   ## a report that cannot be placed in time leaves every day since the
   ## previous report unknown
@@ -193,6 +196,20 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
     by = group_by
   ]
 
+  ## Continuing illness gives no recovery date. Until the next observation,
+  ## days after that report are uncertain unless shared bout evidence covers
+  ## them; absence of another report cannot establish recovery.
+  symptoms[, next_date := c(unique(date)[-1], as.Date(NA))[
+    match(date, unique(date))
+  ], by = group_by]
+  continuing <- symptoms[
+    !healthy & !is.na(symptoms.end.option) &
+      symptoms.end.option == "still_ill" & is.na(symptoms.end.date) &
+      !is.na(next_date) & next_date > date + 1,
+    list(unknown_start = date + 1, unknown_end = next_date - 1), by = group_by
+  ]
+  unresolved <- rbind(unresolved, continuing)
+
   key_cols <- c(group_by, "contact.date")
   keys <- unique(contacts[has_key(contacts) & !is.na(contact.date),
                           key_cols, with = FALSE])
@@ -206,7 +223,9 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
   )]
 
   ## a contact day in two bouts takes the combined flags of both
-  in_bout <- merge(keys[, key_cols, with = FALSE], bout_days, by = key_cols)
+  in_bout <- merge(keys[, key_cols, with = FALSE], bout_days,
+                   by = group_by, allow.cartesian = TRUE)
+  in_bout <- in_bout[contact.date >= first.day & contact.date <= last.day]
   in_bout <- in_bout[, c(list(bouted = TRUE), lapply(.SD, any_t)),
                      by = key_cols, .SDcols = bout_cols]
 
@@ -254,7 +273,7 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
     )]
     status[, (paste0("bout_", nm)) := fcase(
       bouted & bout_flag == "t", lab[1],
-      bouted & !unresolved & bout_flag != "t", lab[2],
+      bouted & bout_flag != "t", lab[2],
       healthy_day, lab[2],
       default = NA_character_
     )]

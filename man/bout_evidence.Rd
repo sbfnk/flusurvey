@@ -4,11 +4,25 @@
 \alias{bout_evidence}
 \title{Evidence behind the bouts of illness}
 \usage{
-bout_evidence(x)
+bout_evidence(
+  x,
+  start.date = c("last", "earliest"),
+  missing.start = c("missing", "first.report"),
+  inverted.dates = c("keep", "clear", "reset.end"),
+  expand.days = TRUE
+)
 }
 \arguments{
 \item{x}{the data to extract bouts from, as for
 \code{\link{bouts_of_illness}}}
+
+\item{start.date, missing.start, inverted.dates}{Date policies as in
+\code{\link{bouts_of_illness}}. Evidence defaults to leaving an
+unreported onset missing; the summary interface defaults to the first
+report. These policies do not replace the original report evidence.}
+
+\item{expand.days}{whether to expand established illness intervals to
+individual days. Set FALSE for interval matching without daily expansion.}
 }
 \value{
 a list of data tables: \code{bouts}, \code{reports} and
@@ -17,8 +31,8 @@ a list of data tables: \code{bouts}, \code{reports} and
 \description{
 \code{\link{bouts_of_illness}} gives one row per bout. The evidence it
 rests on is in the list returned here, from the same reconstruction. The
-bouts are those of \code{bouts_of_illness(x)}; \code{x} can be the same
-data.
+bout membership is the same as in \code{bouts_of_illness(x)}. Date
+policies affect selected boundaries, not the original report evidence.
 }
 \details{
 \code{reports} has a row for each symptomatic report that belongs to a
@@ -35,14 +49,17 @@ the recovery) or "unresolved" (no usable interval, so no day).
 \code{source} "reported" for days within a reported or continuing
 interval and "report.date" for days established only by a report of
 continuing illness without a start date. Days between the intervals of a
-bout are not added, and the bout dates of \code{bouts_of_illness} are not
-spread over days.
+bout are included with source "within.bout": illness persists between
+established illness days of the same bout. Selected fallback boundaries
+are not used to establish illness. The \code{intervals} table contains
+the first and last established day per bout without daily expansion.
 
 \code{bouts} has a row for each bout with the dates
 \code{bouts_of_illness} gives it, and \code{onset.known} and
 \code{recovery.known}, which say whether any report of the bout gave a
-start or an end date. Where one is \code{FALSE} the date is the date of a
-report, not an observed date of onset or recovery. The columns
+matching start or end date for the selected boundary. The columns
+\code{onset.source} and \code{recovery.source} distinguish reported
+dates, missing boundaries and first/last-report fallbacks. The columns
 \code{n.reports} and the case definitions follow: the symptom columns of
 all reports of a bout are combined (a symptom counts if any report has it,
 the onset if any report records it as sudden) and the definitions applied
@@ -50,7 +67,8 @@ to the result. The classification belongs to the bout and does not say
 that the symptoms were present together on a day. The definitions are
 \code{ili}, \code{ili.fever}, \code{ili.self}, \code{resp.symptoms} (ARI)
 and the others of \code{\link{aggregate_symptoms}} that are in the data;
-\code{onset} keeps the most informative onset answer ("sudden",
+\code{onset.conflict} records conflicting explicit onset answers;
+\code{onset} keeps the highest-precedence onset answer ("sudden",
 "not.sudden", "dont_know", "not.answered", "no.question").
 Where the columns that a definition is built from are not in the data,
 it is positive if any report of the bout is.

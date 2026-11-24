@@ -10,13 +10,17 @@ export(get_incidence)
 export(merge_data)
 export(read_data)
 import(data.table)
-importFrom(lubridate,floor_date)
-importFrom(lubridate,interval)
-importFrom(lubridate,parse_date_time)
-importFrom(lubridate,years)
+importFrom(lubridate,
+  floor_date,
+  interval,
+  parse_date_time,
+  years
+)
 importFrom(plyr,revalue)
-importFrom(stats,as.formula)
-importFrom(stats,median)
-importFrom(stats,na.omit)
-importFrom(stats,runif)
+importFrom(stats,
+  as.formula,
+  median,
+  na.omit,
+  runif
+)
 importFrom(utils,read.csv)

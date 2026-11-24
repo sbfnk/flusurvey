@@ -48,7 +48,7 @@ test_that("a still-ill report without onset establishes only its own day", {
   )
   res <- contact_illness(contacts, symptoms)
   data.table::setkey(res, contact.date)
-  expect_equal(res$current_symptoms, c(NA, "symptoms", "no symptoms"))
+  expect_equal(res$current_symptoms, c(NA, "symptoms", NA))
   expect_equal(res$bout_ili[2], "ILI")
 })
 
@@ -219,7 +219,7 @@ test_that("extraction, shared bouts and contacts agree", {
   expect_equal(res$current_symptoms, c("symptoms", "no symptoms"))
 })
 
-test_that("orphan symptomatic reports are numbered after the real bouts", {
+test_that("leading symptomatic reports use the same reconstruction for all consumers", {
   symptoms <- prepare(
     flu("2013-01-02", "cough", same = "yes"),
     flu("2013-01-10"),
@@ -227,7 +227,121 @@ test_that("orphan symptomatic reports are numbered after the real bouts", {
         end = "2013-01-16"),
     flu("2013-01-31")
   )
-  res <- reconstruct_bouts(symptoms, singletons = TRUE)
+  res <- reconstruct_bouts(symptoms)
   res <- res[no.symptoms == "f"]
-  expect_equal(res$bout[order(res$date)], c(2L, 1L))
+  expect_equal(res$bout[order(res$date)], c(1L, 2L))
+})
+
+test_that("one bout stays ill between established illness days", {
+  symptoms <- do.call(prepare, c(wellness(), list(
+    flu("2013-01-05", "fever", option = "still_ill"),
+    flu("2013-01-10", "cough", same = "yes", option = "still_ill")
+  )))
+  evidence <- bout_evidence(symptoms)
+  expect_equal(nrow(evidence$bouts), 1L)
+  expect_true(all(is.na(evidence$bouts$symptoms.start.date)))
+  expect_equal(evidence$days$day, seq(as.Date("2013-01-05"),
+                                     as.Date("2013-01-10"), by = "day"))
+  expect_equal(evidence$days$source[2:5], rep("within.bout", 4))
+  contacts <- data.table::data.table(global_id = "a",
+    contact.date = as.Date(c("2013-01-06", "2013-01-09")))
+  res <- contact_illness(contacts, symptoms)
+  expect_equal(res$current_symptoms, rep("symptoms", 2))
+  expect_equal(res$bout_ili, rep("ILI", 2))
+})
+
+test_that("negative bout flags do not vary with unresolved report dates", {
+  symptoms <- do.call(prepare, c(wellness(), list(
+    flu("2013-01-05", "cough", start = "2013-01-03", option = "still_ill"),
+    flu("2013-01-10", "cough", same = "yes"),
+    flu("2013-01-15", "cough", same = "yes", start = "2013-01-03",
+        end = "2013-01-14")
+  )))
+  contacts <- data.table::data.table(global_id = "a",
+    contact.date = as.Date(c("2013-01-04", "2013-01-09", "2013-01-14")))
+  res <- contact_illness(contacts, symptoms)
+  expect_equal(res$current_symptoms, rep("symptoms", 3))
+  expect_equal(res$bout_ili, rep("no ILI", 3))
+})
+
+test_that("date policies preserve report evidence and do not invent daily rows", {
+  symptoms <- prepare(flu("2013-01-10", "cough", end = "2013-01-08"))
+  for (policy in c("keep", "clear", "reset.end")) {
+    e <- bout_evidence(symptoms, missing.start = "first.report",
+                       inverted.dates = policy)
+    expect_equal(e$reports$report.end, as.Date("2013-01-08"))
+    expect_false(e$bouts$onset.known)
+    expect_equal(e$bouts$recovery.known, policy == "keep")
+  }
+  capture.output(daily <- bouts_of_illness(symptoms, missing.start = "missing",
+                                          daily.flags = "bout"))
+  expect_equal(nrow(daily), 0L)
+  capture.output(daily <- bouts_of_illness(symptoms, daily.flags = "bout"))
+  expect_equal(nrow(daily), 0L)
+})
+
+test_that("unknown component answers are not silently negative for the bout", {
+  symptoms <- jointly()
+  symptoms[, fever := NA_character_]
+  e <- bout_evidence(symptoms)
+  expect_true(is.na(e$bouts$ili))
+})
+
+test_that("unknown-onset contact evidence survives actual incidence exclusion", {
+  symptoms <- do.call(prepare, c(wellness(), list(
+    flu("2013-01-15", c("fever", "cough"), option = "still_ill")
+  )))
+  symptoms[, `:=`(min.date = min(date), max.date = max(date))]
+  for (period in c("day", "week", "month", "year")) {
+    capture.output(inc <- get_incidence(symptoms, aggregation = period,
+      missing.start = "missing", exclude = "unknown.onset"))
+    expect_equal(sum(inc$ili), 0)
+  }
+  contact <- data.table::data.table(global_id = "a",
+                                   contact.date = as.Date("2013-01-15"))
+  expect_equal(contact_illness(contact, symptoms)$bout_ili, "ILI")
+})
+
+test_that("leading reports stay in one bout when its onset is revised", {
+  for (answer in c("yes", "dont_know", NA_character_)) {
+    symptoms <- prepare(
+      flu("2013-01-17", "fever", same = answer, start = "2013-01-15",
+          option = "still_ill"),
+      flu("2013-01-24", "cough", same = "yes", start = "2013-01-10",
+          option = "still_ill"),
+      flu("2013-01-31")
+    )
+    e <- bout_evidence(symptoms)
+    expect_equal(nrow(e$bouts), 1L)
+    expect_equal(nrow(e$reports), 2L)
+    expect_equal(e$bouts$ili, "t")
+  }
+})
+
+test_that("onset from a later report can locate an earlier still-ill report", {
+  symptoms <- do.call(prepare, c(wellness(), list(
+    flu("2013-01-05", "fever", option = "still_ill"),
+    flu("2013-01-10", "cough", same = "yes", start = "2013-01-03",
+        end = "2013-01-09")
+  )))
+  original <- data.table::copy(symptoms)
+  e <- bout_evidence(symptoms)
+  expect_true(is.na(e$reports$report.start[1]))
+  expect_equal(e$reports$first.day[1], as.Date("2013-01-03"))
+  expect_equal(range(e$days$day), as.Date(c("2013-01-03", "2013-01-09")))
+  expect_equal(symptoms, original)
+  capture.output(b <- bouts_of_illness(symptoms, missing.start = "missing"))
+  expect_equal(b$symptoms.start.date, e$bouts$symptoms.start.date)
+  expect_equal(b$symptoms.end.date, e$bouts$symptoms.end.date)
+  expect_equal(as.character(b$ili), e$bouts$ili)
+})
+
+test_that("conflicting onset evidence remains visible", {
+  symptoms <- jointly()
+  symptoms[date == as.Date("2013-01-09"), onset := "not.sudden"]
+  symptoms[date == as.Date("2013-01-09"), suddenly := "f"]
+  e <- bout_evidence(symptoms)
+  expect_true(e$bouts$onset.conflict)
+  expect_equal(e$bouts$onset, "sudden")
+  expect_equal(e$reports$onset, c("sudden", "not.sudden"))
 })
