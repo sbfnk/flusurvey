@@ -40,6 +40,7 @@ bouts_of_illness <- function(
   missing.start <- match.arg(missing.start)
   inverted.dates <- match.arg(inverted.dates)
   dt <- copy(data.table(x))
+  if (!"same" %in% colnames(dt)) dt[, same := NA_character_]
 
   if ("health.score" %in% colnames(dt)) {
     baselines <-
