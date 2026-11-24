@@ -16,17 +16,28 @@
 ##' Contact days outside follow-up have an unknown status and are never
 ##' called healthy.
 ##'
-##' \emph{Bouts.} A bout is built from all symptom reports of a participant
-##' in a season: each report with symptoms supports the interval from its
-##' \code{symptoms.start.date} to its \code{symptoms.end.date}, or to the
-##' report \code{date} if the participant was still ill. Overlapping or
-##' adjacent intervals are merged into one bout. This differs from
-##' \code{\link{bouts_of_illness}}, which splits and joins reports by the
-##' answer to whether the symptoms are the same as at the previous report and
-##' by intervening reports without symptoms, and keeps one row per bout. Here
-##' a bout is a period of days, so that contact days can be located within it,
-##' and a participant reporting no symptoms between two overlapping intervals
-##' does not split them.
+##' \emph{Bouts.} Bouts and the days of illness come from
+##' \code{\link{bout_evidence}}, the same reconstruction as in
+##' \code{\link{bouts_of_illness}}: the answer to whether the symptoms are the
+##' same as at the previous report, the dates of onset and recovery, and
+##' intervening reports without symptoms decide which reports form a bout. A
+##' report with a start and an end date (the end counted no later than the
+##' report) supports the days between them. A report of continuing illness
+##' supports the days from its start date to the report date, or only the report
+##' date when it gives no start date: the onset is then unknown and the days
+##' before it are unknown, but the report date is a day of illness, and a
+##' contact describing it is classified as ill. Recovery on that date, or illness
+##' on the following one, is not established. Days between the intervals of a
+##' bout are not called ill. A symptomatic report that belongs to no bout
+##' forms a bout of its own.
+##'
+##' \emph{Case definitions of bouts.} The symptoms of all reports of a bout are
+##' combined first and the definitions applied to the result, so symptoms
+##' reported in different questionnaires of one bout can jointly meet a
+##' definition (see \code{\link{bout_evidence}}). Where the data lack the
+##' symptom columns a definition is built from, it is positive if any report of
+##' the bout is. Two adjacent illnesses that the answers separate keep their
+##' own definitions.
 ##'
 ##' \emph{Daily status.} Within follow-up, \code{current_symptoms} is
 ##' "symptoms" on days in a bout and "no symptoms" on every other day, with or
@@ -35,8 +46,9 @@
 ##' missing, inconsistent, or an unknown end that is not "still ill". Its
 ##' illness cannot be placed, so every day since the participant's previous
 ##' report, up to and including its own date, is unknown (missing) unless
-##' it lies in a bout. A report without symptoms is taken as no acute illness.
-##' The data hold no indicator of chronic symptoms and the maintainers have
+##' it lies in a bout. The same holds for the days before the report date of a
+##' continuing illness without a start date. A report without symptoms is taken
+##' as no acute illness. The data hold no indicator of chronic symptoms and the maintainers have
 ##' not defined one, or a duration after which symptoms count as chronic.
 ##' No rule for chronic symptoms is applied.
 ##'
@@ -44,8 +56,9 @@
 ##' a definition at some point need not have had every symptom present on
 ##' every day of it. The \code{bout_} columns therefore describe the whole
 ##' bout and are the ones for bout-based exposure: positive on every day of a
-##' bout if any report in it meets the definition, negative if all reports have
-##' it unmet and none is unresolved, and missing otherwise. The daily
+##' bout that meets the definition on the combined symptoms of its reports,
+##' negative if it does not and no report is unresolved, and missing otherwise.
+##' A positive bout stays positive when one of its reports is unresolved. The daily
 ##' \code{current_} columns are positive or negative within a bout only on days
 ##' with a symptom report whose interval includes that day, assuming that such
 ##' a report describes its own day, and are missing on other days of a bout:
@@ -74,7 +87,7 @@
 ##' and \code{symptoms.end.option}. The columns \code{ili} (symptom-based
 ##' ILI), \code{ili.fever} (symptom-based ILI with fever), \code{ili.self}
 ##' (self-assessed ILI) and \code{resp.symptoms} (ARI) are used where present;
-##' a missing column gives missing flags.
+##' a missing column gives missing flags. The column \code{same} (the answer to whether the symptoms are the same as in the previous report) is used where present, and the symptom columns that \code{\link{aggregate_symptoms}} derives the definitions from, so that bouts can be reconstructed and classified as in \code{\link{bouts_of_illness}}.
 ##' @param min.reports the minimum number of days with symptom reports for a
 ##' participant to be eligible in a season
 ##' @return the contact reports with added columns \code{follow_up} (see
@@ -130,17 +143,26 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
   for (col in flag_cols) {
     if (!col %in% colnames(symptoms)) symptoms[, (col) := NA_character_]
   }
-  symptoms[, bstart := symptoms.start.date]
-  symptoms[, bend := fcase(
-    !is.na(symptoms.end.date), pmin(symptoms.end.date, date),
-    !is.na(symptoms.end.option) & symptoms.end.option == "still_ill", date,
-    default = as.Date(NA)
-  )]
+  symptoms[, row_id := seq_len(.N)]
   symptoms[, healthy := as.character(no.symptoms) == "t"]
   symptoms[is.na(healthy), healthy := FALSE]
-  symptoms[, valid := as.character(no.symptoms) == "f" &
-             !is.na(bstart) & !is.na(bend) & bstart <= bend]
-  symptoms[is.na(valid), valid := FALSE]
+
+  ## bouts and the days they establish come from the shared reconstruction
+  work <- copy(symptoms)
+  work[, participant_id := .GRP, by = group_by]
+  ids <- unique(work[, c("participant_id", group_by), with = FALSE])
+  work[, season := if ("season" %in% group_by) season else "all"]
+  work[, no.symptoms := factor(as.character(no.symptoms), levels = c("f", "t"))]
+  work[, same := if ("same" %in% colnames(work)) {
+    factor(as.character(same), levels = c("yes", "no", "dont_know"))
+  } else {
+    factor(NA_character_, levels = c("yes", "no", "dont_know"))
+  }]
+  work <- reconstruct_bouts(work, singletons = TRUE)
+  evidence <- bout_evidence_from(work)
+  usable <- evidence$reports[basis != "unresolved"]
+  symptoms[, basis := usable$basis[match(row_id, usable$row_id)]]
+  symptoms[, valid := !is.na(basis)]
 
   ## eligibility and follow-up: first to last report without symptoms
   follow_up <- symptoms[, list(
@@ -150,18 +172,17 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
   ), by = group_by]
   follow_up[, eligible := n_reports >= min.reports & !is.na(fu_start)]
 
-  ## bouts from all reports with a valid interval
-  reports <- symptoms[(valid)]
-  setorderv(reports, c(group_by, "bstart", "bend"))
-  reports[, bout := cumsum(
-    c(TRUE, bstart[-1] > head(cummax(as.numeric(bend)), -1) + 1)
-  ), by = group_by]
-  bouts <- reports[, c(
-    ## reports are sorted by start; the first start is the earliest
-    list(bout_start = bstart[1], bout_end = bend[which.max(as.numeric(bend))]),
-    lapply(.SD, combine)
-  ), by = c(group_by, "bout"), .SDcols = unname(flag_cols)]
-  setnames(bouts, unname(flag_cols), paste0("bout_", names(flag_cols)))
+  ## days of illness with the case definitions of their bout
+  bout_cols <- paste0("bout_", names(flag_cols))
+  bout_flag_values <- copy(evidence$bouts[, c("participant_id", "season", "bout",
+                                           unname(flag_cols)), with = FALSE])
+  setnames(bout_flag_values, unname(flag_cols), bout_cols)
+  bout_days <- merge(evidence$days, bout_flag_values,
+                     by = c("participant_id", "season", "bout"))
+  bout_days[, season := NULL]
+  bout_days <- merge(bout_days, ids, by = "participant_id")
+  bout_days[, c("participant_id", "bout") := NULL]
+  setnames(bout_days, "day", "contact.date")
 
   ## a report that cannot be placed in time leaves every day since the
   ## previous report unknown
@@ -169,10 +190,12 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
   symptoms[, previous_date := c(as.Date(NA), unique(date))[
     match(date, unique(date))
   ], by = group_by]
+  ## A continuing illness without a start date places only the report day:
+  ## the days before it are unknown, as the onset is.
   unresolved <- symptoms[
-    !healthy & !valid,
+    !healthy & (!valid | basis == "still.ill.unknown.onset"),
     list(unknown_start = fifelse(is.na(previous_date), date, previous_date + 1),
-         unknown_end = date),
+         unknown_end = fifelse(valid, date - 1, date)),
     by = group_by
   ]
 
@@ -188,11 +211,10 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
     default = "in follow-up"
   )]
 
-  in_bout <- merge(keys[, key_cols, with = FALSE], bouts,
-                   by = group_by, allow.cartesian = TRUE)
-  in_bout <- in_bout[contact.date >= bout_start & contact.date <= bout_end]
-  in_bout[, c("bout", "bout_start", "bout_end") := NULL]
-  in_bout[, bouted := TRUE]
+  ## a contact day in two bouts takes the combined flags of both
+  in_bout <- merge(keys[, key_cols, with = FALSE], bout_days, by = key_cols)
+  in_bout <- in_bout[, c(list(bouted = TRUE), lapply(.SD, combine)),
+                     by = key_cols, .SDcols = bout_cols]
 
   unknown <- merge(keys[, key_cols, with = FALSE], unresolved,
                    by = group_by, allow.cartesian = TRUE)
@@ -203,9 +225,12 @@ contact_illness <- function(contacts, symptoms, min.reports = 3) {
   unknown[, unresolved := TRUE]
 
   ## reports of the contact day whose interval includes that day
-  same_day <- reports[bstart <= date & bend >= date,
-                      lapply(.SD, combine), by = c(group_by, "date"),
-                      .SDcols = unname(flag_cols)]
+  same_day <- merge(
+    symptoms[, c("row_id", group_by, "date", unname(flag_cols)), with = FALSE],
+    usable[first.day <= date & last.day >= date, "row_id", with = FALSE],
+    by = "row_id"
+  )[, lapply(.SD, combine), by = c(group_by, "date"),
+    .SDcols = unname(flag_cols)]
   setnames(same_day, c("date", unname(flag_cols)),
            c("contact.date", paste0("day_", names(flag_cols))))
 

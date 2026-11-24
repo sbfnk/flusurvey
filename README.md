@@ -77,6 +77,12 @@ incidence_by_age <- get_incidence(dt, by = "agegroup")
 bouts <- bouts_of_illness(dt)
 ```
 
+`bout_evidence()` returns the evidence behind the bouts: which reports belong to each, the days of illness they establish, and whether the onset and recovery dates were reported. `contact_illness()` classifies contact days from it.
+
+```r
+evidence <- bout_evidence(dt)
+```
+
 `aggregate_symptoms()` derives the case definitions from the individual symptoms; `merge_data()` calls it for you. `ili` requires sudden onset, a respiratory symptom (sore throat, cough or shortness of breath) and either fever or a systemic symptom (tiredness, weakness or headache). `ili.fever` requires the fever as well. `ili.self` is the participant's own assessment, and `gi` is vomiting or diarrhoea.
 
 ## Bundled data

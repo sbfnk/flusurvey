@@ -248,7 +248,8 @@ test_that("an unplaced report makes the flags of an overlapping bout unknown", {
   res <- contact_illness(contact("a", c("2013-01-09", "2013-01-11")),
                          symptoms)
   expect_equal(res$current_symptoms, c(NA, "symptoms"))
-  expect_equal(res$bout_ili, c(NA_character_, NA_character_))
+  ## a positive report of the bout stays positive; only a negative is open
+  expect_equal(res$bout_ili, c(NA_character_, "ILI"))
 })
 
 test_that("contacts are located by contact date, not report date", {

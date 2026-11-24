@@ -17,7 +17,7 @@ symptom reports have one}
 and \code{symptoms.end.option}. The columns \code{ili} (symptom-based
 ILI), \code{ili.fever} (symptom-based ILI with fever), \code{ili.self}
 (self-assessed ILI) and \code{resp.symptoms} (ARI) are used where present;
-a missing column gives missing flags.}
+a missing column gives missing flags. The column \code{same} (the answer to whether the symptoms are the same as in the previous report) is used where present, and the symptom columns that \code{\link{aggregate_symptoms}} derives the definitions from, so that bouts can be reconstructed and classified as in \code{\link{bouts_of_illness}}.}
 
 \item{min.reports}{the minimum number of days with symptom reports for a
 participant to be eligible in a season}
@@ -41,27 +41,36 @@ not needed on the contact day itself.
 \emph{Eligibility and follow-up.} A participant is eligible in a season if
 they filed symptom reports on at least \code{min.reports} different days
 and at least one of them reported no symptoms. Follow-up runs from the
-first to the last report without symptoms. The last report without
-symptoms is the default end of follow-up; the end of the last illness is
-not used as an alternative. All symptom reports, including those of
-ineligible participants and those outside follow-up, are used to
-reconstruct bouts; eligibility and follow-up only decide which contact days
+first to the last report without symptoms. Bouts are reconstructed from all
+symptom reports, including those of ineligible participants and those
+outside follow-up; eligibility and follow-up only decide which contact days
 are classified. The column \code{follow_up} records the result:
 "in follow-up", "before follow-up", "after follow-up" or "not eligible".
 Contact days outside follow-up have an unknown status and are never
 called healthy.
 
-\emph{Bouts.} A bout is built from all symptom reports of a participant
-in a season: each report with symptoms supports the interval from its
-\code{symptoms.start.date} to its \code{symptoms.end.date}, or to the
-report \code{date} if the participant was still ill. Overlapping or
-adjacent intervals are merged into one bout. This differs from
-\code{\link{bouts_of_illness}}, which splits and joins reports by the
-answer to whether the symptoms are the same as at the previous report and
-by intervening reports without symptoms, and keeps one row per bout. Here
-a bout is a period of days, so that contact days can be located within it,
-and a participant reporting no symptoms between two overlapping intervals
-does not split them.
+\emph{Bouts.} Bouts and the days of illness come from
+\code{\link{bout_evidence}}, the same reconstruction as in
+\code{\link{bouts_of_illness}}: the answer to whether the symptoms are the
+same as at the previous report, the dates of onset and recovery, and
+intervening reports without symptoms decide which reports form a bout. A
+report with a start and an end date (the end counted no later than the
+report) supports the days between them. A report of continuing illness
+supports the days from its start date to the report date, or only the report
+date when it gives no start date: the onset is then unknown and the days
+before it are unknown, but the report date is a day of illness, and a
+contact describing it is classified as ill. Recovery on that date, or illness
+on the following one, is not established. Days between the intervals of a
+bout are not called ill. A symptomatic report that belongs to no bout
+forms a bout of its own.
+
+\emph{Case definitions of bouts.} The symptoms of all reports of a bout are
+combined first and the definitions applied to the result, so symptoms
+reported in different questionnaires of one bout can jointly meet a
+definition (see \code{\link{bout_evidence}}). Where the data lack the
+symptom columns a definition is built from, it is positive if any report of
+the bout is. Two adjacent illnesses that the answers separate keep their
+own definitions.
 
 \emph{Daily status.} Within follow-up, \code{current_symptoms} is
 "symptoms" on days in a bout and "no symptoms" on every other day, with or
@@ -70,17 +79,19 @@ without a known symptom status) whose dates give no usable interval:
 missing, inconsistent, or an unknown end that is not "still ill". Its
 illness cannot be placed, so every day since the participant's previous
 report, up to and including its own date, is unknown (missing) unless
-it lies in a bout. A report without symptoms is taken as no acute illness.
-The data hold no indicator of chronic symptoms, and the maintainers have
-not defined one (nor a duration after which symptoms count as chronic), so
-no rule for them is applied.
+it lies in a bout. The same holds for the days before the report date of a
+continuing illness without a start date. A report without symptoms is taken
+as no acute illness. The data hold no indicator of chronic symptoms and the maintainers have
+not defined one, or a duration after which symptoms count as chronic.
+No rule for chronic symptoms is applied.
 
 The case-definition flags are known per report, not per day. A bout meeting
 a definition at some point need not have had every symptom present on
 every day of it. The \code{bout_} columns therefore describe the whole
 bout and are the ones for bout-based exposure: positive on every day of a
-bout if any report in it meets the definition, negative if all reports have
-it unmet and none is unresolved, and missing otherwise. The daily
+bout that meets the definition on the combined symptoms of its reports,
+negative if it does not and no report is unresolved, and missing otherwise.
+A positive bout stays positive when one of its reports is unresolved. The daily
 \code{current_} columns are positive or negative within a bout only on days
 with a symptom report whose interval includes that day, assuming that such
 a report describes its own day, and are missing on other days of a bout:

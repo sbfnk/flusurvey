@@ -61,12 +61,21 @@ The start and end dates are not checked against each other. A bout can end befor
 When the input has a `symptom.id` column, each bout becomes one row, unless `symptom.id` is the first column and there is no `health.score` column (see below). This is the row of its first report, with these changes:
 
 - Every factor column with levels "t" and "f" becomes "t" if any report of the bout has "t". For columns with names ending in `.no` or `.none`, all reports must have "t". Otherwise the column becomes "f", unless a missing answer leaves the result open, in which case it is missing.
+- The columns that hold case definitions are then recomputed from the combined symptoms of the bout, not taken from the merge above: `general.symptoms`, `ili.symptoms`, `ili` and `ili.fever` are derived again from the merged `fever.symptoms`, `systemic.symptoms`, `resp.symptoms` and `suddenly`, so that symptoms in different reports of one bout can meet a definition together. `ili.self` and `gi` are positive if any report of the bout is. A derived column whose components are not in the data keeps the merge above. The result describes the bout. It does not say that the symptoms were present together on one day.
 - `min.health.score` is the lowest health score in the bout, and `baseline.health.score` is the median health score of the participant's symptom-free reports in the season.
 - `min.part.symptom.id` and `max.part.symptom.id` give the positions of the first and last report of the bout among the participant's reports in the season.
 
 The "t"/"f" columns of the rows outside any bout are combined in the same way, per participant and season. All these rows take "t" if any of them has "t" (for `.no` and `.none` columns, if all of them have "t"), with missing answers handled as in a bout. Their other columns stay as they are.
 
 With `symptomatic.only = TRUE` (the default) only the bout rows are returned. Without a `symptom.id` column the function stops with an error. With `symptom.id` as the first column and no `health.score` column, no bout rows are built: the function stops if `symptomatic.only = TRUE`, and otherwise returns every report. A `health.score` column moves `participant_id` and `season` to the front, through the merge that adds `baseline.health.score`, and the bout rows are then built.
+
+## Evidence behind the bouts
+
+`bout_evidence()` runs the same reconstruction and returns three tables: `reports` (the symptomatic reports that belong to a bout, with their reported dates and the days of illness each supports), `days` (one row per day of illness established) and `bouts` (one row per bout, with its dates, whether any report gave a start and an end date, its report count and its case definitions). `contact_illness()` takes its bouts and days from this output instead of building its own intervals.
+
+A report supports days as follows. With a start date and an end date, with the end counted no later than the report date, it supports the days between them ("reported"). With a start date and an end option of "still_ill", it supports the days from the start date to the report date ("still.ill"). With "still_ill" and no start date it supports the report date only ("still.ill.unknown.onset"): the onset and recovery are unknown, and no day before or after is established. Any other report supports no day ("unresolved"). Days between the intervals of a bout are not added.
+
+The bout dates of `bouts_of_illness()` stay as described above, including the date of the first or last report where no date was reported. `onset.known` and `recovery.known` in `bouts` say whether any report of the bout gave one, so that a date taken from a report can be told from an observed one. The onset of a bout is the most informative answer of its reports ("sudden", "not.sudden", "dont_know", "not.answered", "no.question", in that order). Which bouts count towards incidence is a separate decision from which bouts and days the evidence retains.
 
 ## Known problems
 
