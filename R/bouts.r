@@ -238,13 +238,7 @@ bouts_of_illness <- function(
         ]
       }
     }
-    for (flag in intersect(
-      c("illness.ongoing.at.entry", "long.running.illness"), colnames(dt)
-    )) {
-      dt[!is.na(bout), paste(flag) := any(get(flag)),
-        by = list(participant_id, season, bout)
-      ]
-    }
+    merge_bout_flags(dt)
     if ("health.score" %in% colnames(dt)) {
       dt[!is.na(bout),
         min.health.score := ifelse(
@@ -264,4 +258,16 @@ bouts_of_illness <- function(
   }
   dt[, id := NULL]
   dt[]
+}
+
+# A bout carries a date flag when any of its reports does.
+merge_bout_flags <- function(dt) {
+  for (flag in intersect(
+    c("illness.ongoing.at.entry", "long.running.illness"), colnames(dt)
+  )) {
+    dt[!is.na(bout), paste(flag) := any(get(flag)),
+      by = list(participant_id, season, bout)
+    ]
+  }
+  invisible(dt)
 }
