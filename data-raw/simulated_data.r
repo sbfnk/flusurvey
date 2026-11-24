@@ -314,9 +314,8 @@ make_report_dates <- function(join_date, end_date) {
   unique(dates)
 }
 
-## The answers to the questions that are only asked at the first report of an
-## episode of symptoms
-first_report_answers <- function(ans, e, symptom_profile) {
+## The answers on onset and fever at the first report of an episode
+onset_answers <- function(ans, e, symptom_profile) {
   known_start <- runif(1) < 0.85
   ans$symptoms.start.option <- if (known_start) 0L else 1L
   if (known_start) ans$symptoms.start.date <- date_string(e$start)
@@ -332,20 +331,28 @@ first_report_answers <- function(ans, e, symptom_profile) {
         pick(1, 1:5, c(0.1, 0.25, 0.45, 0.15, 0.05))
     }
   }
+  ans
+}
 
-  visit <- runif(1) < c(ili = 0.3, cold = 0.1, gi = 0.15)[[e$type]]
+## How soon each kind of service was visited or contacted
+how_soon_answers <- function(ans, prefix) {
+  for (service in c("gp.receptionist", "gp.doctor.nurse", "nhs", "other")) {
+    ans[[paste0(prefix, ".howsoon.", service)]] <- how_soon()
+  }
+  ans
+}
+
+## Visits to medical services, and contacts with them for those who did not
+## visit any
+care_answers <- function(ans, type) {
+  visit <- runif(1) < c(ili = 0.3, cold = 0.1, gi = 0.15)[[type]]
   ans$visit.medical.service.no <- as.integer(!visit)
   ans$visit.medical.service.gp <- as.integer(visit && runif(1) < 0.8)
   ans$visit.medical.service.ae <- as.integer(visit && runif(1) < 0.1)
   ans$visit.medical.service.hospital <- as.integer(visit && runif(1) < 0.05)
   ans$visit.medical.service.other <- as.integer(visit && runif(1) < 0.05)
   ans$visit.medical.service.appointment <- as.integer(visit && runif(1) < 0.3)
-  if (visit) {
-    ans$visit.medical.service.howsoon.gp.receptionist <- how_soon()
-    ans$visit.medical.service.howsoon.gp.doctor.nurse <- how_soon()
-    ans$visit.medical.service.howsoon.nhs <- how_soon()
-    ans$visit.medical.service.howsoon.other <- how_soon()
-  }
+  if (visit) ans <- how_soon_answers(ans, "visit.medical.service")
   contact <- !visit && runif(1) < 0.15
   ans$contact.medical.service.no <- as.integer(!(visit || contact))
   ans$contact.medical.service.gp.receptionist <-
@@ -354,13 +361,11 @@ first_report_answers <- function(ans, e, symptom_profile) {
   ans$contact.medical.service.nhs <- as.integer(contact && runif(1) < 0.3)
   ans$contact.medical.service.npfs <- as.integer(contact && runif(1) < 0.1)
   ans$contact.medical.service.other <- as.integer(contact && runif(1) < 0.1)
-  if (contact) {
-    ans$contact.medical.service.howsoon.gp.receptionist <- how_soon()
-    ans$contact.medical.service.howsoon.gp.doctor.nurse <- how_soon()
-    ans$contact.medical.service.howsoon.nhs <- how_soon()
-    ans$contact.medical.service.howsoon.other <- how_soon()
-  }
+  if (contact) ans <- how_soon_answers(ans, "contact.medical.service")
+  ans
+}
 
+medication_answers <- function(ans) {
   meds <- runif(5) < c(0.6, 0.35, 0.05, 0.06, 0.07)
   ans$no.medication <- as.integer(!any(meds))
   ans$medication.painkillers <- as.integer(meds[1])
@@ -373,6 +378,72 @@ first_report_answers <- function(ans, e, symptom_profile) {
   ans
 }
 
+## The answers to the questions that are only asked at the first report of an
+## episode of symptoms
+first_report_answers <- function(ans, e, symptom_profile) {
+  ans <- onset_answers(ans, e, symptom_profile)
+  ans <- care_answers(ans, e$type)
+  medication_answers(ans)
+}
+
+## The episode of the participant on a report, 0 if none: one that overlaps
+## the days since the previous report
+find_episode <- function(episodes, prev, d) {
+  for (k in seq_along(episodes)) {
+    if (episodes[[k]]$start <= d && episodes[[k]]$end >= prev) {
+      return(k)
+    }
+  }
+  0L
+}
+
+## The symptoms of a report in an episode, and its answers on the start and
+## end of the episode
+illness_answers <- function(ans, e, first, d) {
+  symptom_profile <- e$profile
+  ans[names(symptom_profile)] <- as.list(symptom_profile)
+  ans$no.symptoms <- 0L
+  ans$same <- if (first) 1L else 0L
+  if (first) {
+    ans <- first_report_answers(ans, e, symptom_profile)
+  } else if (runif(1) < 0.85) {
+    ## the start answer is filled in again from the first report
+    ans[names(e$start_answer)] <- e$start_answer
+  } else {
+    ans$symptoms.start.option <- 1L
+  }
+
+  if (e$end <= d) {
+    ans$symptoms.end.option <- 0L
+    ans$symptoms.end.date <- date_string(e$end)
+  } else {
+    ans$symptoms.end.option <- if (runif(1) < 0.8) 2L else 1L
+  }
+  ## occasional start dates after the report, for the cleaning to deal with
+  if (first && runif(1) < 0.02) {
+    ans$symptoms.start.option <- 0L
+    ans$symptoms.start.date <- date_string(d + sample.int(5, 1))
+  }
+  ans
+}
+
+## The answers on how the illness affected the participant
+impact_answers <- function(ans, e, d) {
+  ans$alter.routine <- pick(1, 0:2, c(0.35, 0.3, 0.35))
+  if (ans$alter.routine > 0L) {
+    ans$still.altered <- if (e$end <= d) 1L else 0L
+    ans$howlong.altered <-
+      sample(0:7, 1, prob = c(0.2, 0.2, 0.2, 0.1, 0.1, 0.1, 0.07, 0.03))
+  }
+  ans$what.do.you.think <- switch(
+    e$type,
+    ili = pick(1, c(0L, 1L, 5L), c(0.6, 0.3, 0.1)),
+    cold = pick(1, c(1L, 2L, 5L, 0L), c(0.7, 0.1, 0.1, 0.1)),
+    gi = pick(1, c(3L, 4L, 5L), c(0.8, 0.1, 0.1))
+  )
+  ans
+}
+
 make_symptom_rows <- function(person, dates, episodes) {
   rows <- vector("list", length(dates))
   current <- 0L
@@ -380,13 +451,7 @@ make_symptom_rows <- function(person, dates, episodes) {
     d <- dates[i]
     ## symptoms since the previous report (or today, for the first)
     prev <- if (i == 1L) d else dates[i - 1L]
-    ep <- 0L
-    for (k in seq_along(episodes)) {
-      if (episodes[[k]]$start <= d && episodes[[k]]$end >= prev) {
-        ep <- k
-        break
-      }
-    }
+    ep <- find_episode(episodes, prev, d)
     ans <- list(global_id = person$global_id, date = d)
     ans[symptom_names] <- 0L
     health <- person$baseline.health + round(rnorm(1, 0, 3))
@@ -394,55 +459,17 @@ make_symptom_rows <- function(person, dates, episodes) {
       ans$no.symptoms <- 1L
       current <- 0L
     } else {
-      e <- episodes[[ep]]
       first <- ep != current
       current <- ep
-      ans$no.symptoms <- 0L
-      if (first) {
-        episodes[[ep]]$profile <- draw_symptoms(e$type)
-      }
-      symptom_profile <- episodes[[ep]]$profile
-      ans[names(symptom_profile)] <- as.list(symptom_profile)
-      ans$same <- if (first) 1L else 0L
-      if (first) {
-        ans <- first_report_answers(ans, e, symptom_profile)
-      } else if (runif(1) < 0.85) {
-        ## the start answer is filled in again from the first report
-        ans[names(episodes[[ep]]$start_answer)] <- episodes[[ep]]$start_answer
-      } else {
-        ans$symptoms.start.option <- 1L
-      }
-
-      if (e$end <= d) {
-        ans$symptoms.end.option <- 0L
-        ans$symptoms.end.date <- date_string(e$end)
-      } else {
-        ans$symptoms.end.option <- if (runif(1) < 0.8) 2L else 1L
-      }
-      ## occasional start dates after the report, for the cleaning to deal with
-      if (first && runif(1) < 0.02) {
-        ans$symptoms.start.option <- 0L
-        ans$symptoms.start.date <- date_string(d + sample.int(5, 1))
-      }
+      if (first) episodes[[ep]]$profile <- draw_symptoms(episodes[[ep]]$type)
+      ans <- illness_answers(ans, episodes[[ep]], first, d)
       if (first) {
         episodes[[ep]]$start_answer <-
           ans[intersect(c("symptoms.start.option", "symptoms.start.date"),
                         names(ans))]
       }
-
       health <- health - round(runif(1, 10, 45))
-      ans$alter.routine <- pick(1, 0:2, c(0.35, 0.3, 0.35))
-      if (ans$alter.routine > 0L) {
-        ans$still.altered <- if (e$end <= d) 1L else 0L
-        ans$howlong.altered <-
-          sample(0:7, 1, prob = c(0.2, 0.2, 0.2, 0.1, 0.1, 0.1, 0.07, 0.03))
-      }
-      ans$what.do.you.think <- switch(
-        e$type,
-        ili = pick(1, c(0L, 1L, 5L), c(0.6, 0.3, 0.1)),
-        cold = pick(1, c(1L, 2L, 5L, 0L), c(0.7, 0.1, 0.1, 0.1)),
-        gi = pick(1, c(3L, 4L, 5L), c(0.8, 0.1, 0.1))
-      )
+      ans <- impact_answers(ans, episodes[[ep]], d)
     }
     ans$health.score <- as.integer(max(0, min(100, health)))
     rows[[i]] <- ans
@@ -452,36 +479,43 @@ make_symptom_rows <- function(person, dates, episodes) {
 
 ## ---- contact questionnaire --------------------------------------------------
 
+## Contacts in one age group at home, at work and elsewhere, some given as
+## a range
+contact_group_answers <- function(ans, j, hh, works) {
+  group_weights <- c(0.1, 0.2, 0.4, 0.2, 0.1)
+  settings <- c("home", "work", "other")
+  conversational <- c(
+    home = rpois(1, hh[[j]] + 0.5),
+    work = rpois(1, (if (works) 6 else 0.5) * group_weights[j] + 0.5),
+    other = rpois(1, 3 * group_weights[j] + 0.5)
+  )
+  physical <- rbinom(3, conversational, 0.5)
+  for (s in seq_along(settings)) {
+    values <- list(conversational = conversational[[s]],
+                   physical = physical[s])
+    for (type in names(values)) {
+      value <- values[[type]]
+      ## large numbers are sometimes given as a range
+      if (value >= 5 && runif(1) < 0.3) {
+        value <- paste0(value, "-", value + sample(2:5, 1))
+      }
+      ans[[paste(type, settings[s], contact_age_groups[j], sep = ".")]] <-
+        value
+    }
+  }
+  ans
+}
+
 make_contact_rows <- function(person, dates, background_row) {
   hh <- unlist(background_row[, paste0("nb.household.", hh_groups),
                               with = FALSE])
   hh[is.na(hh)] <- 0
   works <- person$main.activity %in% c(0, 1, 2) || person$age < 18
-  group_weights <- c(0.1, 0.2, 0.4, 0.2, 0.1)
-  settings <- c("home", "work", "other")
   rows <- vector("list", length(dates))
   for (i in seq_along(dates)) {
     ans <- list(global_id = person$global_id, date = dates[i])
     for (j in seq_along(contact_age_groups)) {
-      conversational <- c(
-        home = rpois(1, hh[[j]] + 0.5),
-        work = rpois(1, (if (works) 6 else 0.5) * group_weights[j] + 0.5),
-        other = rpois(1, 3 * group_weights[j] + 0.5)
-      )
-      physical <- rbinom(3, conversational, 0.5)
-      for (s in seq_along(settings)) {
-        values <- list(conversational = conversational[[s]],
-                       physical = physical[s])
-        for (type in names(values)) {
-          value <- values[[type]]
-          ## large numbers are sometimes given as a range
-          if (value >= 5 && runif(1) < 0.3) {
-            value <- paste0(value, "-", value + sample(2:5, 1))
-          }
-          ans[[paste(type, settings[s], contact_age_groups[j], sep = ".")]] <-
-            value
-        }
-      }
+      ans <- contact_group_answers(ans, j, hh, works)
     }
     ans$public.transport <- pick(1, 0:4, c(0.5, 0.2, 0.15, 0.1, 0.05))
     ans$enclosed.indoor.space <- pick(1, 0:4, c(0.3, 0.2, 0.2, 0.2, 0.1))
@@ -646,7 +680,7 @@ simulate_season <- function(people, season) {
 
 ## ---- write answers as CSV with question codes, then read them back ----------
 
-write_raw <- function(tables, season, dir) {
+write_raw <- function(tables, season, dir, season_questions) {
   files <- list()
   for (survey in names(tables)) {
     dt <- copy(tables[[survey]])
@@ -657,7 +691,7 @@ write_raw <- function(tables, season, dir) {
     dt[, id := seq_len(.N)]
 
     ## the question codes are the column names in the files read_data() expects
-    codes <- questions[[as.character(season)]][[survey]]
+    codes <- season_questions[[survey]]
     absent <- setdiff(codes, colnames(dt))
     if (length(absent) > 0) {
       stop("No simulated answers for: ", toString(absent),
@@ -698,7 +732,7 @@ next_id <- n_participants
 simulated_data <- list()
 for (season in seasons) {
   tables <- simulate_season(people, season)
-  files <- write_raw(tables, season, dir)
+  files <- write_raw(tables, season, dir, questions[[as.character(season)]])
   simulated_data[[as.character(season)]] <-
     read_data(files = files, year = season)
 
