@@ -407,9 +407,8 @@ make_symptom_rows <- function(person, dates, episodes) {
       if (first) {
         ans <- first_report_answers(ans, e, symptom_profile)
       } else if (runif(1) < 0.85) {
-        ## the start date is filled in again from the previous report
-        ans$symptoms.start.option <- 0L
-        ans$symptoms.start.date <- date_string(e$start)
+        ## the start answer is filled in again from the first report
+        ans[names(episodes[[ep]]$start_answer)] <- episodes[[ep]]$start_answer
       } else {
         ans$symptoms.start.option <- 1L
       }
@@ -424,6 +423,11 @@ make_symptom_rows <- function(person, dates, episodes) {
       if (first && runif(1) < 0.02) {
         ans$symptoms.start.option <- 0L
         ans$symptoms.start.date <- date_string(d + sample.int(5, 1))
+      }
+      if (first) {
+        episodes[[ep]]$start_answer <-
+          ans[intersect(c("symptoms.start.option", "symptoms.start.date"),
+                        names(ans))]
       }
 
       health <- health - round(runif(1, 10, 45))

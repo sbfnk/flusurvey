@@ -10,8 +10,8 @@ test_that("merge_data with default cleaning gives the pinned table", {
       dim = c(2403L, 244L), key = c("date", "global_id"),
       classes = c(character = 4L, Date = 8L, factor = 163L, integer = 64L,
                   numeric = 5L),
-      missing = 137302, numeric_total = 5653745, factor_levels = 472L,
-      factor_codes = 383162, names_checksum = 931033708
+      missing = 137328, numeric_total = 5653745, factor_levels = 472L,
+      factor_codes = 383188, names_checksum = 931033708
     )
   )
 })
@@ -27,8 +27,8 @@ test_that("merge_data with only the first reports removed gives the pinned table
       dim = c(2559L, 246L), key = c("date", "global_id"),
       classes = c(character = 6L, Date = 8L, factor = 163L, integer = 64L,
                   numeric = 5L),
-      missing = 149594, numeric_total = 6017633, factor_levels = 472L,
-      factor_codes = 405340, names_checksum = 940749042
+      missing = 149622, numeric_total = 6017633, factor_levels = 472L,
+      factor_codes = 405368, names_checksum = 940749042
     )
   )
 })
@@ -45,8 +45,8 @@ test_that("merge_data with a function for ranges gives the pinned table", {
       dim = c(2871L, 246L), key = c("date", "global_id"),
       classes = c(character = 6L, Date = 8L, factor = 158L, integer = 69L,
                   numeric = 5L),
-      missing = 170312, numeric_total = 6735658, factor_levels = 462L,
-      factor_codes = 434833, names_checksum = 948456787
+      missing = 170338, numeric_total = 6735658, factor_levels = 462L,
+      factor_codes = 434859, names_checksum = 948456787
     )
   )
 })
@@ -60,8 +60,8 @@ test_that("extract_data gives the pinned table for both seasons", {
       dim = c(4827L, 254L), key = "global_id",
       classes = c(character = 8L, Date = 8L, factor = 166L, integer = 67L,
                   numeric = 5L),
-      missing = 316549, numeric_total = 2076694, factor_levels = 478L,
-      factor_codes = 752523, names_checksum = 1000095514
+      missing = 316601, numeric_total = 2076694, factor_levels = 478L,
+      factor_codes = 752575, names_checksum = 1000095514
     )
   )
 })
@@ -77,8 +77,8 @@ test_that("extract_data without joining returns one table per season", {
       dim = c(2429L, 83L), key = c("date", "global_id"),
       classes = c(character = 2L, Date = 6L, factor = 69L, integer = 5L,
                   numeric = 1L),
-      missing = 99340, numeric_total = 3753668, factor_levels = 210L,
-      factor_codes = 86885, names_checksum = 114538729
+      missing = 99366, numeric_total = 3753668, factor_levels = 210L,
+      factor_codes = 86911, names_checksum = 114538729
     )
   )
 })
@@ -182,8 +182,8 @@ test_that("bouts_of_illness handles missing values in no.symptoms", {
   set.seed(1)
   dt <- expect_contact_warning(extract_data(simulated_data, years = 2013:2014))
   invisible(capture.output(complete <- bouts_of_illness(data.table::copy(dt))))
-  expect_identical(dim(complete), c(411L, 262L))
+  expect_identical(dim(complete), c(408L, 262L))
   dt[sample(.N, 300), no.symptoms := NA]
   invisible(capture.output(res <- bouts_of_illness(dt)))
-  expect_identical(dim(res), c(381L, 262L))
+  expect_identical(dim(res), c(380L, 262L))
 })
