@@ -340,7 +340,8 @@ bout_evidence_from <- function(dt) {
 }
 
 ## One row per day from symptoms.start.date to symptoms.end.date of each bout
-## report, with flags carried forward, set per bout or set per report.
+## report. The flags are carried forward, taken from the bout or taken from
+## the report, as daily.flags says.
 expand_to_days <- function(dt, daily.flags, report.flags, flag.columns) {
   dt <- dt[!is.na(bout)]
   starts <- dt$symptoms.start.date

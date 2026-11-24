@@ -48,9 +48,9 @@
 ##' report, up to and including its own date, is unknown (missing) unless
 ##' it lies in a bout. The same holds for the days before the report date of a
 ##' continuing illness without a start date. A report without symptoms is taken
-##' as no acute illness. The data hold no indicator of chronic symptoms and the
-##' maintainers have not defined one, or a duration after which symptoms count
-##' as chronic.
+##' as no acute illness. The data have no indicator of chronic symptoms, and
+##' the maintainers have defined neither one nor a duration after which
+##' symptoms count as chronic.
 ##' No rule for chronic symptoms is applied.
 ##'
 ##' The case-definition flags are known per report, not per day. A bout meeting
@@ -61,9 +61,8 @@
 ##' negative if it does not and no report is unresolved, and missing otherwise.
 ##' A positive bout stays positive when one of its reports is unresolved. The
 ##' daily \code{current_} columns are positive or negative within a bout only
-##' on days with a symptom report whose interval includes that day, assuming
-##' that such a report describes its own day, and are missing on other days
-##' of a bout:
+##' on days covered by the interval of a symptom report, assuming that such a
+##' report describes its own day, and are missing on other days of a bout:
 ##' the symptoms of those days are not known, but the participant is known to
 ##' be ill. Several reports on a day are combined: positive if any is
 ##' positive, otherwise missing if any is unknown. Outside bouts, within
