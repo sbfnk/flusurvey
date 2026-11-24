@@ -409,6 +409,11 @@ test_that("long reports are treated as no acute illness only on request", {
   expect_equal(status(chronic = "duration", chronic.days = 30),
                c("symptoms", "symptoms"))
   expect_error(status(chronic = "duration"), "chronic.days")
+  ## a chronic report covers the days before it like a healthy one
+  expect_equal(
+    status(chronic = "duration", chronic.days = 14, healthy = "report"),
+    c("no symptoms", "symptoms")
+  )
 })
 
 test_that("a chronic condition does not remove acute illness", {

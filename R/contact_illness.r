@@ -204,7 +204,7 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
   ]
 
   covered <- symptoms[
-    healthy & !is.na(previous_date),
+    (healthy | is_chronic) & !is.na(previous_date),
     list(cover_start = previous_date, cover_end = date - 1),
     by = group_by
   ]
