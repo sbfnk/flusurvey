@@ -103,15 +103,15 @@ The default `active.members` denominator counts participants between their `min.
 
 A contact report submitted on 16 January describes contacts on **15 January** (`contact.date`). It is the participant's illness on 15 January that matters. There is no separate concept of a bout of contacts.
 
-[`contact_illness()`](../R/contact_illness.r) takes its bouts and days from `bout_evidence()` (see above), then classifies the day described by each contact report:
+[`contact_illness()`](../R/contact_illness.r) takes its bouts and days from `bout_evidence()` (see above) and classifies the day described by each contact report:
 
-- Participants are grouped by `global_id`, and also by `season` when both input tables contain it. Symptom rows with missing grouping keys or report dates are excluded. Eligibility requires at least `min.reports` distinct reporting dates (default three) and at least one symptom-free report. Follow-up includes the first through last symptom-free report dates. Illness status outside follow-up, or without eligibility, is unknown rather than healthy; `follow_up` distinguishes those cases.
+- Participants are grouped by `global_id`, and also by `season` when both input tables contain it. Symptom rows with missing grouping keys or report dates are excluded. Eligibility requires at least `min.reports` distinct reporting dates (default three) and at least one symptom-free report. Follow-up includes the first through last symptom-free report dates. Illness status outside follow-up, or without eligibility, is unknown; `follow_up` distinguishes those cases.
 
-For example, within follow-up, a report on 15 January saying `still_ill` but giving no onset date establishes 15 January as a day of illness, without an onset or recovery date, so a contact describing that day is ill and the days before it stay unknown.
+For example, within follow-up, a report on 15 January saying `still_ill` but giving no onset date establishes 15 January as a day of illness without an onset or recovery date. A contact describing that day is ill, and the days before it stay unknown.
 
 [`analysis/contacts.R`](../analysis/contacts.R) extracts symptoms with `clean = c("unsuccessful.join", "remove.bad.symptom.dates")`, retaining first-day and same-day reports and not applying the default report-count or symptom-free filters before classification. The classifier then determines eligibility itself. Its output retains contact rows outside follow-up with unknown illness status. Neither this function nor the generic bout function identifies chronic-only symptoms.
 
-The separate [`flag_ill_contacts()`](../R/flag_ill_contacts.r) accepts already-built bouts and tests inclusive start/end intervals by `global_id`. It does not reconstruct bouts, enforce eligibility or distinguish unknown from healthy: unmatched rows receive `FALSE`, including missing contact dates and bouts with missing boundaries. It does not explicitly group by season. It is not the classifier used by the contact analysis.
+The separate [`flag_ill_contacts()`](../R/flag_ill_contacts.r) accepts already-built bouts and tests inclusive start/end intervals by `global_id`. It does not reconstruct bouts, enforce eligibility or separate unknown from healthy. Unmatched rows receive `FALSE`, including missing contact dates and bouts with missing boundaries. It does not group by season explicitly, and the contact analysis does not use it as its classifier.
 
 ## Known problems
 
