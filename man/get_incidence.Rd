@@ -32,10 +32,9 @@ in a week}
 
 \item{by}{one or more variables by which to group}
 
-\item{exclude}{bouts to leave out of the incidence: any of
-"unknown.onset" and "ongoing.at.entry" (start date before the
-participant's first report); by default none. Bouts without a reported
-start date are never counted, whatever this is set to, unless
+\item{exclude}{bouts to leave out of the incidence: "ongoing.at.entry"
+(start date before the participant's first report); by default none.
+Bouts without a reported start date are never counted, unless
 \code{missing.start = "first.report"} gives them one.}
 
 \item{start.date, missing.start, inverted.dates}{how bout dates are set, see

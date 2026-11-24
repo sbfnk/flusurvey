@@ -212,22 +212,6 @@ test_that("get_incidence leaves out bouts with unknown onset by default", {
   }
 })
 
-test_that("exclude leaves out bouts with unknown onset", {
-  x <- incidence_example()
-  for (period in periods) {
-    expect_equal(
-      total_incidence(x, period, exclude = "unknown.onset",
-                      missing.start = "missing"),
-      2, info = period
-    )
-    expect_equal(
-      total_incidence(x[participant_id == 1], period,
-                      exclude = "unknown.onset", missing.start = "missing"),
-      0, info = period
-    )
-  }
-})
-
 test_that("exclude leaves out bouts ongoing at entry", {
   x <- incidence_example()
   for (period in periods) {
@@ -238,7 +222,7 @@ test_that("exclude leaves out bouts ongoing at entry", {
     )
     expect_equal(
       total_incidence(x, period,
-                      exclude = c("unknown.onset", "ongoing.at.entry"),
+                      exclude = "ongoing.at.entry",
                       missing.start = "missing"),
       1, info = period
     )

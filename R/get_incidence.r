@@ -9,10 +9,9 @@
 ##' in a week
 ##' @param min.N the minimum denominator, by default 1
 ##' @param by one or more variables by which to group
-##' @param exclude bouts to leave out of the incidence: any of
-##' "unknown.onset" and "ongoing.at.entry" (start date before the
-##' participant's first report); by default none. Bouts without a reported
-##' start date are never counted, whatever this is set to, unless
+##' @param exclude bouts to leave out of the incidence: "ongoing.at.entry"
+##' (start date before the participant's first report); by default none.
+##' Bouts without a reported start date are never counted, unless
 ##' \code{missing.start = "first.report"} gives them one.
 ##' @param start.date,missing.start,inverted.dates how bout dates are set, see
 ##' \code{\link{bouts_of_illness}}
@@ -95,15 +94,10 @@ get_incidence <- function(
 
 check_exclude <- function(exclude) {
   if (is.null(exclude)) return(exclude)
-  match.arg(
-    exclude, c("unknown.onset", "ongoing.at.entry"), several.ok = TRUE
-  )
+  match.arg(exclude, "ongoing.at.entry", several.ok = TRUE)
 }
 
 exclude_bouts <- function(bouts, exclude) {
-  if ("unknown.onset" %in% exclude) {
-    bouts <- bouts[!is.na(symptoms.start.date)]
-  }
   if ("ongoing.at.entry" %in% exclude) {
     bouts <- bouts[is.na(symptoms.start.date) |
                      symptoms.start.date >= min.date]
