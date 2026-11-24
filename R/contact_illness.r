@@ -1,4 +1,4 @@
-#' Illness status of contact reports
+##' Illness status of contact reports
 ##'
 ##' Classifies the day described by each contact report (\code{contact.date},
 ##' the day before the report) as ill, healthy or unknown, following a
