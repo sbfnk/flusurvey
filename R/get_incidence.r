@@ -48,9 +48,9 @@ get_incidence <- function(
     missing.start = missing.start,
     inverted.dates = inverted.dates
   )
-  bouts <- exclude_bouts(bouts, exclude)
   ## a bout without a start date has no period to be counted in
   bouts <- bouts[!is.na(symptoms.start.date)]
+  bouts <- exclude_bouts(bouts, exclude)
 
   ## required date columns
   columns <- c("symptoms.start.date", "date", "min.date", "max.date")
@@ -99,8 +99,7 @@ check_exclude <- function(exclude) {
 
 exclude_bouts <- function(bouts, exclude) {
   if ("ongoing.at.entry" %in% exclude) {
-    bouts <- bouts[is.na(symptoms.start.date) |
-                     symptoms.start.date >= min.date]
+    bouts <- bouts[symptoms.start.date >= min.date]
   }
   bouts
 }
