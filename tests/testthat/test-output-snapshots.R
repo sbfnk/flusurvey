@@ -8,25 +8,45 @@ extract_seeded <- function(...) {
   expect_contact_warning(extract_data(simulated_data, years = 2013:2014, ...))
 }
 
-## Rows are sorted with radix ordering before hashing. Radix ordering is the
-## same in every locale and for any join order, so the hashes depend only on
-## the values.
-sort_rows <- function(x) {
-  keys <- intersect(c("global_id", "participant_id", "date"), colnames(x))
-  if (length(keys) == 0) return(x)
-  x[do.call(order, c(unname(as.list(x[keys])), list(method = "radix"))), ,
-    drop = FALSE]
+## We write doubles with ten significant digits because as.character() on
+## doubles gives different results between R versions.
+as_text <- function(column) {
+  if (is.double(column)) {
+    out <- sprintf("%.10g", column)
+    out[is.na(column)] <- NA_character_
+    out
+  } else {
+    as.character(column)
+  }
 }
 
+## Each column is hashed as UTF-8 text, one value per line, with missing values
+## written as a marker line. tools::md5sum() hashes the bytes of a file, so the
+## hash is independent of package versions. rlang::hash() gives different
+## results across rlang versions for the same input.
+hash_text <- function(text) {
+  text[is.na(text)] <- "<NA>"
+  path <- tempfile()
+  on.exit(unlink(path))
+  con <- file(path, "wb")
+  writeBin(charToRaw(paste0(paste(enc2utf8(text), collapse = "\n"), "\n")), con)
+  close(con)
+  unname(tools::md5sum(path))
+}
+
+## We radix-order rows on the keys, then on every other column.
 summarise_table <- function(x) {
-  x <- sort_rows(as.data.frame(x))
+  x <- as.data.frame(x)
+  classes <- vapply(x, function(column) class(column)[1], "")
+  text <- lapply(x, as_text)
+  keys <- intersect(c("global_id", "participant_id", "date"), names(text))
+  rows <- do.call(order, c(unname(text[keys]),
+                           unname(text[setdiff(names(text), keys)]),
+                           list(method = "radix")))
   list(
     dim = dim(x),
-    classes = vapply(x, function(column) class(column)[1], ""),
-    ## Hash the text form of the values instead of the object. R serialises
-    ## attributes differently across platforms and versions, which would change
-    ## the hashes.
-    hashes = vapply(x, function(column) rlang::hash(as.character(column)), "")
+    classes = classes,
+    hashes = vapply(text, function(column) hash_text(column[rows]), "")
   )
 }
 
