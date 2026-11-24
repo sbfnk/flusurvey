@@ -2,7 +2,7 @@
 
 This file states in prose the rules that `bouts_of_illness()` uses to turn weekly symptom reports into bouts of illness. It also describes the cleaning in `merge_data()` that decides which reports reach it. Changes to cleaning, case definitions, bout reconstruction, incidence or contact classification must update this file and the corresponding tests in the same pull request. The rules can then be reviewed as rules, and the code checked against them.
 
-This baseline was checked against `main` at `54e14ba`. It records current behaviour, including known defects; it is not an endorsement of those defects. The agreed-direction section separates the agreed direction from functionality available on main. The historical baseline remains in the Git history (PR #89).
+The baseline was checked against `main` at `54e14ba`; the date and incidence policies below include the changes in #82. It records current behaviour, including known defects; it is not an endorsement of those defects. The agreed-direction section separates the agreed direction from functionality available on main. The historical baseline remains in the Git history (PR #89).
 
 ## Terms
 
@@ -60,17 +60,50 @@ The reports are sorted by participant, season and report date. Same-day ties ret
 - S4. The report before it was symptom-free. S4 needs `no.symptoms` to be a factor: with a character column it never applies.
 - S5. Its start date is after the end date of the previous report of the participant in the season.
 
-S2 and S3 apply only to participants who answer `no.symptoms` in every report of the season. A missing `same` is not a start under S1, and a missing start or end date is not a start under S2 or S5. A report with a missing `no.symptoms` answer is neither symptomatic nor symptom-free. It belongs to no bout, and it does not count as the symptom-free report before a start under S4.
+S2 and S3 apply only to participants who answer `no.symptoms` in every report of the season. An absent `same` column is treated as unanswered. A missing `same` is not a start under S1, and a missing start or end date is not a start under S2 or S5. A report with a missing `no.symptoms` answer is neither symptomatic nor symptom-free. It belongs to no bout, and it does not count as the symptom-free report before a start under S4.
 
 Each symptomatic report then belongs to the bout of the last start at or before it. A symptomatic report with no start at or before it belongs to no bout.
 
 ## Dates of a bout
 
-The start date of a bout is the start date given in its last report. If the last report gives none, it is the last start date given in any of its reports. If no report gives one, it is the date of the first report.
+Three arguments of `bouts_of_illness()` set the dates of a bout. `get_incidence()` passes them on. The defaults keep the start-date behaviour of the code before the end-date fix. The end date differs from that code whatever the arguments.
 
-The end date of a bout depends on whether its last report gives one. If it does, the bout keeps the end date of its first report, which may be missing or different. If it does not, the end date is the last end date given in any of its reports, and if no report gives one, the date of the last report.
+`start.date` chooses among the start dates reported in the bout:
 
-The start and end dates are not checked against each other. A bout can end before it starts.
+- `"last"` (the default): the start date given in the last report of the bout. If the last report gives none, the last start date given in any report of the bout.
+- `"earliest"`: the earliest start date given in any report of the bout.
+
+`missing.start` sets the start date of a bout in which no report gives one:
+
+- `"first.report"` (the default): the date of the first report of the bout. This is the date the participant first reported symptoms, so it is not an observed onset.
+- `"missing"`: the start date stays missing.
+
+The end date of a bout is the last end date given in any of its reports, and every report of the bout gets it. If no report gives one, it is the date of the last symptomatic report of the bout. The first symptom-free report that follows is not used, although its date is the earliest by which the participant reported being well. A date taken from the last symptomatic report is a fallback that the participant never reported as a recovery date. The earlier rule kept the end date of the first report when the last report gave one, which could be missing or a different date. It used the last reported date only when the last report gave none. The rule applies without any argument and changes the output of `bouts_of_illness()` for bouts whose reports give different end dates.
+
+`inverted.dates` sets what happens when the end date of a bout is before its start date:
+
+- `"keep"` (the default): both dates stay.
+- `"clear"`: both dates become missing.
+- `"reset.end"`: the end date becomes the date of the last report of the bout.
+
+A bout with a missing start or end date is never inverted.
+
+### Examples
+
+The reports of a participant with `same` set to "no" then "yes", with these dates:
+
+| Report | Start date | End date |
+|---|---|---|
+| 10 January | 5 January | 8 January |
+| 17 January | 6 January | 12 January |
+
+The bout starts on 6 January with the default and on 5 January with `start.date = "earliest"`. It ends on 12 January, the last reported end date.
+
+A participant whose reports give no start date, and whose end date is reported only in the last report (16 January), has a bout that starts on the date of its first report (10 January) by default and has no start date with `missing.start = "missing"`. It ends on 16 January.
+
+A participant whose bout starts on 9 January and whose only reported end date is 8 January has an inverted bout. The default keeps both dates, `"clear"` sets both to missing, and `"reset.end"` moves the end to the date of the last report.
+
+The tests in `tests/testthat/test-bouts.R` run these examples, and cases with several distinct reported end dates, with the end date reported only in the first or only in the last report, and with no end date reported. They also run participants who report no onset in any report.
 
 ## One row per bout
 
@@ -88,7 +121,9 @@ With `symptomatic.only = TRUE` (the default) only the bout rows are returned. Wi
 
 [`get_incidence()`](../R/get_incidence.r) calls `bouts_of_illness()` with its defaults and assigns positive case-definition flags to the bout start period. Within a season and any requested strata, multiple positive bouts with the same participant identifiers and onset period contribute one case. The identifiers are all columns ending in `_id`.
 
-The default `active.members` denominator counts participants between their `min.date` and `max.date`, including periods without reports. Those bounds come from all symptom reports at cleaning step 4, not the first and last symptom-free reports. The alternative `reports` denominator counts distinct participants reporting in that period. Dates are grouped by day, week, month or season-year; non-daily bounds are grouped to the same periods. Only periods present in the denominator survive the join, missing case counts become zero, and `min.N` defaults to one. Current main has no explicit option here for excluding unknown onset or onset before entry.
+The default `active.members` denominator counts participants between their `min.date` and `max.date`, including periods without reports. Those bounds come from all symptom reports at cleaning step 4, not the first and last symptom-free reports. The alternative `reports` denominator counts distinct participants reporting in that period. Dates are grouped by day, week, month or season-year; non-daily bounds are grouped to the same periods. Only periods present in the denominator survive the join, missing case counts become zero, and `min.N` defaults to one. The `exclude` argument is empty by default. `"unknown.onset"` removes bouts whose selected start date is missing; use `missing.start = "missing"` to avoid replacing unknown onset with the first report. Dates cleared by `inverted.dates = "clear"` are also missing and are excluded by this option. `"ongoing.at.entry"` removes bouts whose selected start precedes `min.date`, the first symptom-report date before first-day removal. This is distinct from contact follow-up beginning at the first symptom-free report. These exclusions affect the numerator only. With yearly aggregation an unknown start can still be assigned to its known season unless explicitly excluded; at finer resolutions an unknown start has no denominator period to match.
+
+The synthetic policy examples and exclusion tests in [`test-bouts.R`](../tests/testthat/test-bouts.R) cover day, week, month and year aggregation. The options change bout boundaries or incidence inclusion; they do not change start rules S1–S5 or the independent contact reconstruction below.
 
 ## Illness on the day described by a contact report
 
@@ -113,16 +148,15 @@ The separate [`flag_ill_contacts()`](../R/flag_ill_contacts.r) accepts already-b
 
 - Leading reports before the first start are dropped. S1, S2 or S5 can start a bout among them. A participant whose first kept report continues an illness, with no start date or a later one than another report, loses that report and the illness it records (#19).
 - S2 can start the bout at a later leading report. The leading reports before it are then dropped.
-- The end date of a bout is lost when only its last report gives one, and wrong when its first report gives a different one (#18).
-- The start date of a bout comes from its last report without a check against the other reports (#20).
-- A bout with no reported start date takes the date of its first report as its start. If the end date it keeps is earlier, the bout ends before it starts (#76, #77).
+- With the default `start.date = "last"`, the selected onset may differ from earlier reported onsets (#20). `start.date = "earliest"` chooses the earliest instead.
+- The default `missing.start = "first.report"` can create an onset after a known end (#76, #77). `missing.start = "missing"` preserves the unknown onset; `inverted.dates` controls inconsistent selected boundaries.
 - With `symptomatic.only = FALSE` the reports outside any bout share their "t"/"f" values. A dropped symptomatic report makes the symptom-free reports of the participant show its symptoms, and the dropped report itself is marked as symptom-free (#87).
 - With `limit.season` and `unsuccessful.join`, a participant who filled in the background survey only before the season window loses all their symptom reports (#91).
 - `only.symptoms` also drops participants with any missing `no.symptoms` answer (#88).
 
 ## Agreed direction, not yet implemented on main
 
-The shared-bout work in [#110](https://github.com/sbfnk/flusurvey/pull/110) and date-policy work in [#82](https://github.com/sbfnk/flusurvey/pull/82) must update the current-behaviour sections above as they land. Their intended rules are:
+The shared-bout work in [#110](https://github.com/sbfnk/flusurvey/pull/110) must update the current-behaviour sections above as they land. Their intended rules are:
 
 - One generic reconstruction supplies bouts and report-to-bout membership for both incidence and contact classification. Contacts must not reconstruct a second set by merging intervals independently.
 - Retain illness evidence when onset or recovery is unknown. `still_ill` on 15 January establishes illness on 15 January; it does not establish recovery on that date or illness on 16 January. Unknown boundaries must remain distinguishable from inferred ones.

@@ -4,7 +4,14 @@
 \alias{bouts_of_illness}
 \title{Extract bouts of illness from a flusurvey data table}
 \usage{
-bouts_of_illness(x, symptomatic.only = TRUE, as.data.frame = TRUE)
+bouts_of_illness(
+  x,
+  symptomatic.only = TRUE,
+  as.data.frame = TRUE,
+  start.date = c("last", "earliest"),
+  missing.start = c("first.report", "missing"),
+  inverted.dates = c("keep", "clear", "reset.end")
+)
 }
 \arguments{
 \item{x}{the data to extract bouts from}
@@ -12,12 +19,27 @@ bouts_of_illness(x, symptomatic.only = TRUE, as.data.frame = TRUE)
 \item{symptomatic.only}{whether to only include symptomatic periods}
 
 \item{as.data.frame}{currently has no effect}
+
+\item{start.date}{which reported start date to use for a bout: the
+"last" one reported, or the "earliest"}
+
+\item{missing.start}{what to use as start date if none was reported for a
+bout: the date of its "first.report", or "missing"}
+
+\item{inverted.dates}{what to do if the end date is before the start date:
+"keep" both, set both to "clear" (missing), or "reset.end" to the last
+report date of the bout}
 }
 \value{
 a data table of bouts of illness
 }
 \description{
-Extract bouts of illness from a flusurvey data table
+The end date of a bout is the last reported end date, or the last report
+date if none was reported. This applies to every row of the bout and
+whatever the other arguments are; it differs from the earlier rule, which
+only filled in the end date of a bout whose last report had none. The other
+arguments set how the start date is chosen where the reports leave a
+choice, and their defaults keep the earlier behaviour.
 }
 \examples{
 dt <- extract_data(simulated_data, years = 2013:2014)
