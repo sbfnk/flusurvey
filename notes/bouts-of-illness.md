@@ -152,8 +152,6 @@ For example, a participant's `still_ill` report on 15 January with no known onse
 
 [`analysis/contacts.R`](../analysis/contacts.R) extracts symptoms with `clean = c("unsuccessful.join", "remove.bad.symptom.dates")`, retaining first-day and same-day reports and avoiding the default report-count and symptom-free filters before classification. The classifier applies eligibility itself. Contact rows outside follow-up remain in the output with unknown illness status. No chronic-only classifier is applied.
 
-The separate [`flag_ill_contacts()`](../R/flag_ill_contacts.r) accepts already-built bouts and tests inclusive start/end intervals by `global_id`. It does not reconstruct bouts, enforce eligibility or separate unknown from healthy. Unmatched rows receive `FALSE`, including missing contact dates and bouts with missing boundaries. It does not group by season explicitly, and the contact analysis does not use it as its classifier.
-
 ## Remaining choices and limitations
 
 The date-policy defaults remain those documented above; choosing an earliest onset or excluding onset before entry is explicit. The contact follow-up window ends at the last symptom-free report; using end-of-illness as an alternative remains unresolved. Chronic-only symptoms should not count as acute illness, but an operational classifier remains to be specified. A chronic condition such as asthma, or onset more than four weeks ago, is not by itself an exclusion.
@@ -164,4 +162,4 @@ The leading-report retention cases from #45 are included in the shared reconstru
 
 ## Verification references
 
-The source links above and [`bouts_of_illness()`](../R/bouts.r), [`merge_data()`](../R/merge_data.r) define the implementation checked for this baseline. Relevant regression tests are [`test-bouts.R`](../tests/testthat/test-bouts.R), [`test-shared-bouts.R`](../tests/testthat/test-shared-bouts.R), [`test-merge-data.R`](../tests/testthat/test-merge-data.R), [`test-aggregate-symptoms.R`](../tests/testthat/test-aggregate-symptoms.R), [`test-contact-illness.R`](../tests/testthat/test-contact-illness.R) and [`test-flag-ill-contacts.R`](../tests/testthat/test-flag-ill-contacts.R). They cover parts of these rules, not a complete proof of the prose. Examples in this document are synthetic; no participant data or data-derived results are included.
+I checked this baseline against the source links above, [`bouts_of_illness()`](../R/bouts.r) and [`merge_data()`](../R/merge_data.r). The relevant regression tests are [`test-bouts.R`](../tests/testthat/test-bouts.R), [`test-shared-bouts.R`](../tests/testthat/test-shared-bouts.R), [`test-merge-data.R`](../tests/testthat/test-merge-data.R), [`test-aggregate-symptoms.R`](../tests/testthat/test-aggregate-symptoms.R) and [`test-contact-illness.R`](../tests/testthat/test-contact-illness.R). They cover only some of these rules. The examples in this document are synthetic and include no participant data or results derived from it.

@@ -16,7 +16,6 @@ reference:
   - bouts_of_illness
   - bout_evidence
   - contact_illness
-  - flag_ill_contacts
 - title: Bundled data
   contents:
   - questions
