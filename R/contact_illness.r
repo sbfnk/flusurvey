@@ -58,8 +58,8 @@
 ##' leaves the days after its date until the next report unknown unless bout
 ##' evidence covers them. A report without symptoms is taken as no acute
 ##' illness. By default (\code{chronic = "none"}) the function applies no rule
-##' for chronic symptoms. With \code{chronic = "duration"}, reports flagged by that
-##' assumption are treated as no acute illness: they support no bout and
+##' for chronic symptoms. With \code{chronic = "duration"}, reports flagged by
+##' that assumption are treated as no acute illness: they support no bout and
 ##' leave no day unknown.
 ##'
 ##' The case-definition flags are known per report, not per day. A bout meeting
