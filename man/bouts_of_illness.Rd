@@ -8,10 +8,12 @@ bouts_of_illness(
   x,
   symptomatic.only = TRUE,
   as.data.frame = TRUE,
-  start.date = c("last", "earliest"),
+  start.date = c("earliest", "last"),
   missing.start = c("first.report", "missing"),
   inverted.dates = c("keep", "clear", "reset.end"),
-  daily.flags = c("none", "carry.forward", "bout", "report")
+  daily.flags = c("none", "carry.forward", "bout", "report"),
+  precedence = c("dates", "continuation", "report.date"),
+  unresolved = c("fill", "missing")
 )
 }
 \arguments{
@@ -22,7 +24,9 @@ bouts_of_illness(
 \item{as.data.frame}{currently has no effect}
 
 \item{start.date}{which reported start date to use for a bout: the
-"last" one reported, or the "earliest"}
+"earliest" one reported (the default, as a bout started at the last
+reported date can start after a report that already gives symptoms of it),
+or the "last" one}
 
 \item{missing.start}{what to use as start date if none was reported for a
 bout: the date of its "first.report", or "missing"}
@@ -39,6 +43,16 @@ per day, in the column \code{day}, from \code{symptoms.start.date} to
 the last report on or before the day. \code{"bout"} gives every day the
 flags of the bout. \code{"report"} sets flags only on days with a
 report. Missing or inverted selected intervals are not expanded.}
+
+\item{precedence}{how a report joins the previous bout. A report answered
+"no" always starts a new bout. Otherwise, with "dates", a report whose start
+date is after the previous end date starts a new bout, even if it is
+answered "yes". With "continuation", a report answered "yes" stays in the
+bout whatever its dates. With "report.date", a report whose start date is
+after the previous report date starts a new bout.}
+
+\item{unresolved}{what to do with a bout with no reported end date: "fill"
+its end with the last report date, or leave it "missing"}
 }
 \value{
 a data table of bouts of illness, or of their days
