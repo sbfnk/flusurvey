@@ -64,7 +64,7 @@ An absent `same` column is treated as unanswered. Missing `same` is not a start 
 
 ## Dates of a bout
 
-Three arguments of `bouts_of_illness()` set the dates of a bout; `unresolved` (below) sets the end date where none is reported. `get_incidence()` passes them on. The default `start.date` is `"earliest"`, which differs from the code before the end-date fix, and the end date differs from that code whatever the arguments.
+Three arguments of `bouts_of_illness()` set the dates of a bout; `unresolved` (below) sets the end date where none is reported. `get_incidence()` passes them on. The default `start.date` is `"earliest"`, which differs from the code before the end-date fix. The end date also differs from that code, whatever the arguments.
 
 `start.date` chooses among the start dates reported in the bout:
 

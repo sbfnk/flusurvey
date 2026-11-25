@@ -16,7 +16,7 @@
 ##' date before the participant's first report); by default none
 ##' @param start.date,missing.start,inverted.dates,precedence,unresolved how
 ##' bouts and their dates are set, see \code{\link{bouts_of_illness}};
-##' \code{start.date} defaults to "earliest" here as there
+##' \code{start.date} defaults to "earliest" in both
 ##' @examples
 ##' dt <- extract_data(simulated_data, years = 2013:2014)
 ##' get_incidence(dt, incidence.columns = "ili", aggregation = "week")

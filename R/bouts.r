@@ -367,7 +367,7 @@ reconstruct_bouts <- function(x, precedence = "dates") {
 ##'   \code{\link{bouts_of_illness}}
 ##' @param start.date,missing.start,inverted.dates Date policies as in
 ##'   \code{\link{bouts_of_illness}}; \code{start.date} defaults to
-##'   "earliest" here as there. Evidence defaults to leaving an
+##'   "earliest" in both. Evidence defaults to leaving an
 ##'   unreported onset missing; the summary interface defaults to the first
 ##'   report. These policies do not replace the original report evidence.
 ##' @param precedence,unresolved How bouts are formed and what happens to a
@@ -473,9 +473,9 @@ expand_to_days <- function(dt, daily.flags, report.flags, flag.columns) {
 ##' @param unresolved what to do with a bout with no reported end date: "fill"
 ##' its end with the last report date, or leave it "missing"
 ##' @param start.date which reported start date to use for a bout: the
-##' "earliest" one reported (the default, as a bout started at the last
-##' reported date can start after a report that already gives symptoms of it),
-##' or the "last" one
+##' "earliest" one reported (the default, because the last reported date can
+##' fall after a report that already gives symptoms of the bout), or the "last"
+##' one
 ##' @param missing.start what to use as start date if none was reported for a
 ##' bout: the date of its "first.report", or "missing"
 ##' @param inverted.dates what to do if the end date is before the start date:
