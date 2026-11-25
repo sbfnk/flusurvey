@@ -23,8 +23,8 @@
 ##' \code{remove.first} drops it; a bout has the flag if any of its reports
 ##' does. Without that column in the data, a bout counts as ongoing at entry
 ##' when its selected start date (see \code{start.date}, \code{missing.start}
-##' and \code{inverted.dates}) is before its \code{min.date}. The flag follows
-##' the dates as reported, whereas the \code{min.date} comparison follows the
+##' and \code{inverted.dates}) is before its \code{min.date}. The flag uses
+##' the dates as reported, but the \code{min.date} comparison uses the
 ##' start date chosen for the bout.
 ##' @examples
 ##' dt <- extract_data(simulated_data, years = 2013:2014)
