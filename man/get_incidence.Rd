@@ -37,8 +37,8 @@ in a week}
 \item{exclude}{bouts to leave out of the incidence: any of
 "unknown.onset" (no reported start date, which needs
 \code{missing.start = "missing"}), "unknown.end" (no reported end date,
-which needs \code{unresolved = "missing"}) and "ongoing.at.entry" (start
-date before the participant's first report); by default none}
+which needs \code{unresolved = "missing"}) and "ongoing.at.entry" (see
+below); by default none}
 
 \item{start.date, missing.start, inverted.dates, precedence, unresolved}{how
 bouts and their dates are set, see \code{\link{bouts_of_illness}};
@@ -49,6 +49,23 @@ a data.table with the incidence
 }
 \description{
 This calculates incidence according to a given column in the supplied data.
+}
+\details{
+A bout is ongoing at entry when its start is before the participant's
+first report. \code{exclude = "ongoing.at.entry"} uses the
+\code{illness.ongoing.at.entry} column from \code{\link{merge_data}}, which
+compares each reported start date with the first report, taken before
+\code{remove.first} drops it; a bout has the flag if any of its reports
+does. Without that column in the data, a bout counts as ongoing at entry
+when its selected start date (see \code{start.date}, \code{missing.start}
+and \code{inverted.dates}) is before its \code{min.date}. The flag follows
+the dates as reported, whereas the \code{min.date} comparison follows the
+start date chosen for the bout.
+
+By default bouts ongoing at entry are kept. For incidence, a start before
+the first report is assigned to the first retained report. Keeping or
+excluding them can change incidence materially on the survey data, so an
+analysis should state which it uses.
 }
 \examples{
 dt <- extract_data(simulated_data, years = 2013:2014)

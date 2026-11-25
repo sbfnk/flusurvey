@@ -39,9 +39,17 @@ with \code{\link{contact_illness}}.}
 cleans to perform (by default all):
 - 'remove.first', whether to remove reports from the first reporting day,
 - 'remove.bad.symptom.dates', whether to remove bad symptom dates: symptom
-start before date of first or end after end of last report, end of symptoms
-before start of symptoms, symptoms reported to have started or ended after
-date of report
+end of symptoms before start of symptoms, symptoms reported to have started
+or ended after date of report. Such dates are set to missing. Other start
+dates are kept as reported, and the logical column
+\code{illness.ongoing.at.entry} flags those before the participant's first
+report in the data, after any season limiting.
+When the first reporting day is removed, its flag is carried to reports
+in the same bout under the default bout boundary rules.
+\code{\link{bouts_of_illness}} copies the flag to the bouts.
+\code{\link{get_incidence}} excludes bouts with
+\code{illness.ongoing.at.entry} from the incidence only with
+\code{exclude = "ongoing.at.entry"}.
 - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 - 'limit.season', whether to limit a flu season to November -> April
 (when surveys are merged, the limit applies to the last survey merged:

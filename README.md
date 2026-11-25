@@ -71,6 +71,8 @@ incidence <- get_incidence(dt, incidence.columns = "ili", aggregation = "week")
 incidence_by_age <- get_incidence(dt, by = "agegroup")
 ```
 
+Bouts whose reported start is before the participant's first report are counted by default. `exclude = "ongoing.at.entry"` leaves them out. Keeping or leaving them out can change incidence materially on the survey data, so an analysis should state which it uses.
+
 `bouts_of_illness()` groups consecutive symptomatic reports of a participant into episodes with start and end dates.
 
 ```r

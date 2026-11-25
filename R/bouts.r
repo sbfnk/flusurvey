@@ -593,6 +593,7 @@ bouts_of_illness <- function(
       ]
     }
   }
+  merge_bout_flags(dt)
   if ("health.score" %in% colnames(dt)) {
     dt[!is.na(bout),
       min.health.score := ifelse(
@@ -632,4 +633,14 @@ bouts_of_illness <- function(
     dt <- expand_to_days(dt, daily.flags, report.flags, flag.columns)
   }
   dt[]
+}
+
+# A bout is flagged as ongoing at entry if any of its reports is.
+merge_bout_flags <- function(dt) {
+  if ("illness.ongoing.at.entry" %in% colnames(dt)) {
+    dt[!is.na(bout), illness.ongoing.at.entry := any(illness.ongoing.at.entry),
+      by = list(participant_id, season, bout)
+    ]
+  }
+  invisible(dt)
 }

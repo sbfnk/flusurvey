@@ -43,6 +43,17 @@ test_that("merge_data skips every cleaning step for clean = NULL", {
   )
 })
 
+test_that("merge_data preserves positional contact and age arguments", {
+  for (survey in c("background", "contact")) {
+    data <- simulated_data[["2013"]][survey]
+    expect_equal(
+      merge_data(data, character(), 3, "mean", c(10, 20)),
+      merge_data(data, clean = character(), min.reports = 3,
+                 ranges = "mean", age.breaks = c(10, 20))
+    )
+  }
+})
+
 test_that("limit_to_season uses the earliest of several dates tied for most reports", {
   dt <- data.table::data.table(
     date = as.Date(c("2013-01-01", "2013-01-02", "2014-01-01", "2014-01-02")),
@@ -102,6 +113,14 @@ test_that("season selection handles tied report dates", {
       tied[date >= start & date <= end]
     )
   }
+})
+
+test_that("merge_data keeps ili.sudden.unknown as the sixth argument", {
+  data <- simulated_data[["2013"]]["symptom"]
+  expect_equal(
+    merge_data(data, NULL, 3, "sample", c(18, 44, 64), 1),
+    merge_data(data, clean = NULL, ili.sudden.unknown = 1)
+  )
 })
 
 test_that("minimum symptom reports counts reporting days", {
