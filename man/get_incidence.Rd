@@ -41,7 +41,8 @@ before the participant's first report); by default none}
 
 \item{start.date, missing.start, inverted.dates, precedence, unresolved}{how
 bouts and their dates are set, see
-\code{\link{bouts_of_illness}}}
+\code{\link{bouts_of_illness}}; the defaults differ from earlier versions,
+see there for how to get the earlier results}
 }
 \value{
 a data.table with the incidence

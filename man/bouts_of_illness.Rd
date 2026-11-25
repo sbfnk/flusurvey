@@ -49,6 +49,12 @@ a data table of bouts of illness
 The end date of a bout is the last reported end date, or the last report
 date if none was reported (unless \code{unresolved = "missing"}). It
 applies to every row of the bout.
+
+The defaults (\code{start.date = "earliest"},
+\code{precedence = "continuation"}) differ from earlier versions, which
+used the last start date and let the dates decide. Use
+\code{start.date = "last"} and \code{precedence = "dates"} to get the
+earlier results.
 }
 \examples{
 dt <- extract_data(simulated_data, years = 2013:2014)

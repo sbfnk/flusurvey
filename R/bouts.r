@@ -4,6 +4,12 @@
 ##' date if none was reported (unless \code{unresolved = "missing"}). It
 ##' applies to every row of the bout.
 ##'
+##' The defaults (\code{start.date = "earliest"},
+##' \code{precedence = "continuation"}) differ from earlier versions, which
+##' used the last start date and let the dates decide. Use
+##' \code{start.date = "last"} and \code{precedence = "dates"} to get the
+##' earlier results.
+##'
 ##' @param x the data to extract bouts from
 ##' @param symptomatic.only whether to only include symptomatic periods
 ##' @param as.data.frame currently has no effect

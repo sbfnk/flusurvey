@@ -15,7 +15,8 @@
 ##' before the participant's first report); by default none
 ##' @param start.date,missing.start,inverted.dates,precedence,unresolved how
 ##' bouts and their dates are set, see
-##' \code{\link{bouts_of_illness}}
+##' \code{\link{bouts_of_illness}}; the defaults differ from earlier versions,
+##' see there for how to get the earlier results
 ##' @examples
 ##' dt <- extract_data(simulated_data, years = 2013:2014)
 ##' get_incidence(dt, incidence.columns = "ili", aggregation = "week")
