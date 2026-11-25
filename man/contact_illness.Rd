@@ -40,12 +40,11 @@ without symptoms covers it}
 
 \item{follow_up_end}{where follow-up ends: \code{"last_healthy"} (the
 default) at the last report without symptoms, or \code{"end_of_illness"}
-at the later of that report and the end of the last bout of illness. That
-end is an observed recovery only where a report gives
-\code{symptoms.end.date}. If the participant was still ill at a report,
-follow-up ends at the date of the last such report. Any recovery after that
-date is unknown. Contact days after it are "after follow-up" with unknown
-status.}
+at the later of that report and the last established illness day. A
+reported recovery is capped at the report date; a continuing illness
+without a recovery establishes illness only through the days supported by
+reports. Contact days after follow-up have unknown status. Reports excluded
+as chronic do not extend follow-up.}
 \item{chronic}{an optional heuristic for chronic symptom reports:
 \code{"none"} (the default) applies no rule; \code{"duration"} treats
 reports with a valid interval of more than \code{chronic.days} days as
