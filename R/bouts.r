@@ -85,15 +85,6 @@ bout_flags <- function(reports, by = c("participant_id", "season", "bout")) {
 assign_bouts <- function(dt) {
   dt[, new.bout := (same == "no")]
   dt[, part.symptom.id := seq_len(.N), by = list(participant_id, season)]
-  ## any() alone would ignore missing values next to a "t"; a participant with
-  ## a missing value gets a missing first.no.symptoms
-  dt[, first.no.symptoms := ifelse(
-    if (anyNA(no.symptoms)) NA else any(no.symptoms == "t"),
-    min(which(no.symptoms == "t")),
-    0
-  ),
-  by = list(participant_id, season)
-  ]
   ## A continuing illness at the first observed symptomatic report is still
   ## a bout; its onset may predate observation or remain unknown.
   dt[no.symptoms == "f", new.bout := new.bout | seq_len(.N) == 1L,
