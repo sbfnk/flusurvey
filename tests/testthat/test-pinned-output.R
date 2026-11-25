@@ -10,7 +10,7 @@ test_that("merge_data with default cleaning gives the pinned table", {
       dim = c(2898L, 245L), key = c("date", "global_id"),
       classes = c(character = 4L, Date = 8L, factor = 163L, integer = 64L,
                   logical = 1L, numeric = 5L),
-      missing = 171724, numeric_total = 7578587, factor_levels = 472L,
+      missing = 171724, numeric_total = 7578475, factor_levels = 472L,
       factor_codes = 450879, names_checksum = 941887735
     )
   )
@@ -60,7 +60,7 @@ test_that("extract_data gives the pinned table for both seasons", {
       dim = c(5734L, 255L), key = "global_id",
       classes = c(character = 8L, Date = 8L, factor = 166L, integer = 67L,
                   logical = 1L, numeric = 5L),
-      missing = 388087, numeric_total = 2590813, factor_levels = 478L,
+      missing = 388087, numeric_total = 2590681, factor_levels = 478L,
       factor_codes = 875260, names_checksum = 1011334966
     )
   )
@@ -185,5 +185,5 @@ test_that("bouts_of_illness handles missing values in no.symptoms", {
   expect_identical(dim(complete), c(228L, 262L))
   dt[sample(.N, 300), no.symptoms := NA]
   invisible(capture.output(res <- bouts_of_illness(dt)))
-  expect_identical(dim(res), c(221L, 262L))
+  expect_identical(dim(res), c(220L, 262L))
 })

@@ -33,6 +33,8 @@
 ##' \code{exclude = "ongoing.at.entry"}.
 ##' - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 ##' - 'limit.season', whether to limit a flu season to November -> April
+##' (when surveys are merged, the limit applies to the last survey merged:
+##' the symptom survey, if present)
 ##' - 'remove.postcodes', whether to remove postcodes
 ##' - 'n.reports', whether to exclude those with fewer than \code{min.reports}
 ##' symptom reporting days
@@ -136,7 +138,7 @@ merge_data <- function(
       dt <- dt[!duplicated(dt[, list(global_id, date)], fromLast = TRUE)]
     }
 
-    if ("limit.season" %in% clean) {
+    if ("limit.season" %in% clean && name == tail(names(data), 1)) {
       dt <- limit_to_season(dt)
     }
 
