@@ -91,6 +91,7 @@ utils::globalVariables(c(
   "valid",
   "part.symptom.id",
   "participant_id",
+  "previous.boundary",
   "previous.no.symptoms",
   "previous.symptoms.end.date",
   "region",
