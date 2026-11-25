@@ -393,6 +393,53 @@ test_that("contact analysis cleans invalid dates without dropping reports", {
   expect_equal(res$current_symptoms, c("no symptoms", NA))
 })
 
+test_that("long reports are treated as no acute illness only on request", {
+  symptoms <- data.table::rbindlist(list(
+    followed("a"),
+    report("a", "2013-01-20", start = "2013-01-02", end = "2013-01-20"),
+    report("a", "2013-01-25", start = "2013-01-24", end = "2013-01-25")
+  ))
+  days <- as.Date(c("2013-01-10", "2013-01-24"))
+  status <- function(...) {
+    contact_illness(contact("a", days), symptoms, ...)$current_symptoms
+  }
+  expect_equal(status(), c("symptoms", "symptoms"))
+  expect_equal(status(chronic = "duration", chronic.days = 14),
+               c("no symptoms", "symptoms"))
+  expect_equal(status(chronic = "duration", chronic.days = 30),
+               c("symptoms", "symptoms"))
+  expect_error(status(chronic = "duration"), "chronic.days")
+  ## a chronic report covers the days before it like a healthy one
+  expect_equal(
+    status(chronic = "duration", chronic.days = 14, healthy = "report"),
+    c("no symptoms", "symptoms")
+  )
+})
+
+test_that("a chronic condition does not remove acute illness", {
+  symptoms <- data.table::rbindlist(list(
+    followed("a"),
+    report("a", "2013-01-12", start = "2013-01-10", end = "2013-01-12")
+  ))
+  symptoms[, risk.asthma := "t"]
+  day <- contact("a", as.Date("2013-01-11"))
+  expect_equal(contact_illness(day, symptoms)$current_symptoms, "symptoms")
+  expect_equal(
+    contact_illness(day, symptoms, chronic = "duration",
+                    chronic.days = 14)$current_symptoms,
+    "symptoms"
+  )
+})
+
+test_that("an unknown chronic option is rejected", {
+  symptoms <- followed("a")
+  expect_error(
+    contact_illness(contact("a", as.Date("2013-01-11")), symptoms,
+                    chronic = "condition"),
+    "should be one of"
+  )
+})
+
 test_that("healthy = 'report' needs a later report without symptoms", {
   symptoms <- rbind(
     well("a", c("2013-01-01", "2013-01-08", "2013-01-31")),

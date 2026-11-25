@@ -57,9 +57,10 @@
 ##' continuing illness without a start date. A continuing-illness report also
 ##' leaves the days after its date until the next report unknown unless bout
 ##' evidence covers them. A report without symptoms is taken as no acute
-##' illness. The data have no indicator of chronic symptoms. The maintainers
-##' have not defined one, or a duration after which symptoms count as chronic.
-##' No rule for chronic symptoms is applied.
+##' illness. By default (\code{chronic = "none"}) the function applies no rule
+##' for chronic symptoms. With \code{chronic = "duration"}, the function treats
+##' reports flagged by that assumption as no acute illness. Such reports
+##' support no bout and leave no day unknown.
 ##'
 ##' The case-definition flags are known per report, not per day. A bout meeting
 ##' a definition at some point need not have had every symptom present on
@@ -107,6 +108,15 @@
 ##' without symptoms covers it
 ##' @param min.reports the minimum number of days with symptom reports for a
 ##' participant to be eligible in a season
+##' @param chronic an optional heuristic for chronic symptom reports:
+##' \code{"none"} (the default) applies no rule; \code{"duration"} treats
+##' reports with a valid interval of more than \code{chronic.days} days as
+##' chronic. This is an assumption: a long duration alone does not show that
+##' symptoms are chronic, and no rule for identifying chronic-only reports has
+##' been agreed. A chronic condition is deliberately unused, because people
+##' with one can also have an acute illness.
+##' @param chronic.days the number of days beyond which a report counts as
+##' chronic, for \code{chronic = "duration"}
 ##' @return the contact reports with added columns \code{follow_up} (see
 ##' above), \code{current_symptoms}
 ##' ("symptoms" or "no symptoms"), and a daily column \code{current_*} and a
@@ -126,7 +136,10 @@
 ##' @import data.table
 ##' @export
 contact_illness <- function(contacts, symptoms, min.reports = 3,
-                            healthy = c("follow-up", "report")) {
+                            healthy = c("follow-up", "report"),
+                            chronic = c("none", "duration"),
+                            chronic.days = NULL) {
+  chronic <- match.arg(chronic)
   healthy_rule <- match.arg(healthy)
   flag_cols <- c(
     ili = "ili", ili_fever = "ili.fever", ili_self = "ili.self",
@@ -153,9 +166,13 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
   symptoms[, row_id := seq_len(.N)]
   symptoms[, healthy := as.character(no.symptoms) == "t"]
   symptoms[is.na(healthy), healthy := FALSE]
+  symptoms[, is_chronic := chronic_reports(
+    symptoms, chronic, chronic.days
+  )]
 
-  ## bouts and the days they establish come from the shared reconstruction
-  work <- copy(symptoms)
+  ## bouts and the days they establish come from the shared reconstruction;
+  ## chronic reports take no part in it
+  work <- copy(symptoms[!(is_chronic)])
   work[, participant_id := .GRP, by = group_by]
   ids <- unique(work[, c("participant_id", group_by), with = FALSE])
   work[, season := if ("season" %in% group_by) season else "all"]
@@ -199,7 +216,7 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
   ## A continuing illness without a start date places only the report day:
   ## the days before it are unknown, as the onset is.
   unresolved <- symptoms[
-    !healthy & (!valid | basis == "still.ill.unknown.onset"),
+    !healthy & !is_chronic & (!valid | basis == "still.ill.unknown.onset"),
     list(unknown_start = fifelse(is.na(previous_date), date, previous_date + 1),
          unknown_end = fifelse(valid, date - 1, date)),
     by = group_by
@@ -212,7 +229,7 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
     match(date, unique(date))
   ], by = group_by]
   continuing <- symptoms[
-    !healthy & !is.na(symptoms.end.option) &
+    !healthy & !is_chronic & !is.na(symptoms.end.option) &
       symptoms.end.option == "still_ill" & is.na(symptoms.end.date) &
       !is.na(next_date) & next_date > date + 1,
     list(unknown_start = date + 1, unknown_end = next_date - 1), by = group_by
@@ -220,7 +237,7 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
   unresolved <- rbind(unresolved, continuing)
 
   covered <- symptoms[
-    healthy & !is.na(previous_date),
+    (healthy | is_chronic) & !is.na(previous_date),
     list(cover_start = previous_date, cover_end = date - 1),
     by = group_by
   ]
@@ -308,4 +325,29 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
             paste0("current_", names(flag_cols)),
             paste0("bout_", names(flag_cols)))
   merge(contacts, status[, keep, with = FALSE], by = key_cols, all.x = TRUE)
+}
+
+## Flags chronic (as opposed to acute) reports, using the `chronic` rule.
+chronic_reports <- function(symptoms, chronic, chronic.days) {
+  if (chronic == "duration") {
+    if (!(is.numeric(chronic.days) && length(chronic.days) == 1 &&
+            !is.na(chronic.days))) {
+      stop("'chronic.days' must be a single number when chronic = \"duration\"",
+           call. = FALSE)
+    }
+    interval_end <- fcase(
+      !is.na(symptoms$symptoms.end.date),
+      pmin(symptoms$symptoms.end.date, symptoms$date),
+      !is.na(symptoms$symptoms.end.option) &
+        symptoms$symptoms.end.option == "still_ill", symptoms$date,
+      default = as.Date(NA)
+    )
+    interval_start <- symptoms$symptoms.start.date
+    valid <- as.character(symptoms$no.symptoms) == "f" &
+      !is.na(interval_start) & !is.na(interval_end) &
+      interval_start <= interval_end
+    interval_days <- as.numeric(interval_end - interval_start) + 1
+    return(valid & interval_days > chronic.days)
+  }
+  rep(FALSE, nrow(symptoms))
 }

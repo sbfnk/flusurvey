@@ -8,7 +8,9 @@ contact_illness(
   contacts,
   symptoms,
   min.reports = 3,
-  healthy = c("follow-up", "report")
+  healthy = c("follow-up", "report"),
+  chronic = c("none", "duration"),
+  chronic.days = NULL
 )
 }
 \arguments{
@@ -34,6 +36,17 @@ participant to be eligible in a season}
 \item{healthy}{the rule for a day outside a bout within follow-up:
 "follow-up" counts it as healthy, "report" only if a later report
 without symptoms covers it}
+
+\item{chronic}{an optional heuristic for chronic symptom reports:
+\code{"none"} (the default) applies no rule; \code{"duration"} treats
+reports with a valid interval of more than \code{chronic.days} days as
+chronic. This is an assumption: a long duration alone does not show that
+symptoms are chronic, and no rule for identifying chronic-only reports has
+been agreed. A chronic condition is deliberately unused, because people
+with one can also have an acute illness.}
+
+\item{chronic.days}{the number of days beyond which a report counts as
+chronic, for \code{chronic = "duration"}}
 }
 \value{
 the contact reports with added columns \code{follow_up} (see
@@ -102,10 +115,11 @@ report, up to and including its own date, is unknown (missing) unless
 it lies in a bout. The same holds for the days before the report date of a
 continuing illness without a start date. A continuing-illness report also
 leaves the days after its date until the next report unknown unless bout
-evidence covers them. A report without symptoms is taken as no acute illness.
-The data hold no indicator of chronic symptoms and the maintainers have
-not defined one, or a duration after which symptoms count as chronic.
-No rule for chronic symptoms is applied.
+evidence covers them. A report without symptoms is taken as no acute
+illness. By default (\code{chronic = "none"}) the function applies no rule
+for chronic symptoms. With \code{chronic = "duration"}, the function treats
+reports flagged by that assumption as no acute illness: they support no
+bout and leave no day unknown.
 
 The case-definition flags are known per report, not per day. A bout meeting
 a definition at some point need not have had every symptom present on
