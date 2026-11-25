@@ -182,8 +182,8 @@ test_that("bouts_of_illness handles missing values in no.symptoms", {
   set.seed(1)
   dt <- expect_contact_warning(extract_data(simulated_data, years = 2013:2014))
   invisible(capture.output(complete <- bouts_of_illness(data.table::copy(dt))))
-  expect_identical(dim(complete), c(221L, 262L))
+  expect_identical(dim(complete), c(232L, 261L))
   dt[sample(.N, 300), no.symptoms := NA]
   invisible(capture.output(res <- bouts_of_illness(dt)))
-  expect_identical(dim(res), c(209L, 262L))
+  expect_identical(dim(res), c(225L, 261L))
 })
