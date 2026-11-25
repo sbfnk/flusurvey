@@ -57,8 +57,8 @@
 ##' continuing illness without a start date. A continuing-illness report also
 ##' leaves the days after its date until the next report unknown unless bout
 ##' evidence covers them. A report without symptoms is taken as no acute
-##' illness. By default (\code{chronic = "none"}) no rule for chronic symptoms
-##' is applied. With \code{chronic = "duration"}, reports flagged by that
+##' illness. By default (\code{chronic = "none"}) the function applies no rule
+##' for chronic symptoms. With \code{chronic = "duration"}, reports flagged by that
 ##' assumption are treated as no acute illness: they support no bout and
 ##' leave no day unknown.
 ##'
