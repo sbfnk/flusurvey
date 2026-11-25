@@ -14,7 +14,10 @@
 ##' \code{\link{bouts_of_illness}} for the symptom survey of the same
 ##' participants (extracted without the contact survey). It needs the columns
 ##' \code{global_id}, \code{symptoms.start.date} and \code{symptoms.end.date}.
-##' Episodes with a missing start or end date are not matched.
+##' Episodes with a missing start or end date are not matched. With the
+##' default \code{missing.start = "first.report"} of
+##' \code{\link{bouts_of_illness}}, an episode without a reported start date
+##' starts on the date of its first report and is matched from then on.
 ##' @return \code{contacts} as a data table with the logical column
 ##' \code{ill} added: \code{TRUE} if the contact day falls on or between the
 ##' start and end dates of any episode of the same participant, \code{FALSE}

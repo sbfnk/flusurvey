@@ -15,7 +15,10 @@ survey too. It needs the columns \code{global_id} and \code{contact.date}.}
 \code{\link{bouts_of_illness}} for the symptom survey of the same
 participants (extracted without the contact survey). It needs the columns
 \code{global_id}, \code{symptoms.start.date} and \code{symptoms.end.date}.
-Episodes with a missing start or end date are not matched.}
+Episodes with a missing start or end date are not matched. With the
+default \code{missing.start = "first.report"} of
+\code{\link{bouts_of_illness}}, an episode without a reported start date
+starts on the date of its first report and is matched from then on.}
 }
 \value{
 \code{contacts} as a data table with the logical column
@@ -25,11 +28,12 @@ otherwise (including participants without episodes). The rows are kept in
 their original order.
 }
 \description{
-A contact report describes the contacts of one day, so whether the
-participant was ill on that day comes from their episodes of illness, not
-from joining the contact and symptom surveys by report date (see
-\code{\link{merge_data}}). This matches the contact day of each contact
-report against the start and end dates of the participant's episodes.
+A contact report describes the contacts of one day. Whether the
+participant was ill on that day comes from their episodes of illness
+rather than from joining the contact and symptom surveys by report date
+(see \code{\link{merge_data}}). The function matches the contact day of
+each contact report against the start and end dates of the episodes of
+the participant.
 }
 \examples{
 symptoms <- extract_data(

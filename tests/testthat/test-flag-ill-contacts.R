@@ -58,6 +58,21 @@ test_that("flag_ill_contacts works on the simulated data", {
   expect_identical(res$ill, expected)
 })
 
+test_that("flag_ill_contacts counts bouts without a start date from the first report", {
+  symptoms <- extract_data(
+    simulated_data, years = 2013, surveys = c("background", "symptom")
+  )
+  symptoms[, symptoms.start.date := as.Date(NA)]
+  utils::capture.output(b <- suppressMessages(bouts_of_illness(symptoms)))
+  b <- b[symptoms.start.date <= symptoms.end.date]
+  expect_gt(nrow(b), 0)
+  contacts <- data.table::rbindlist(list(
+    b[, list(global_id, contact.date = symptoms.start.date)],
+    b[, list(global_id, contact.date = symptoms.end.date)]
+  ))
+  expect_true(all(flag_ill_contacts(contacts, b)$ill))
+})
+
 test_that("merge_data warns when joining contact and symptom surveys", {
   expect_warning(
     merge_data(simulated_data[["2013"]]), "flag_ill_contacts"
