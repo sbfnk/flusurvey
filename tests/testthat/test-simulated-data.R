@@ -241,8 +241,8 @@ test_that("bouts on the simulated data account for the symptomatic reports", {
   invisible(capture.output(all_rows <- data.table::as.data.table(
     bouts_of_illness(dt, symptomatic.only = FALSE)
   )))
-  ## reports between the first and last of a bout may be asymptomatic and
-  ## outside it, so count only the symptomatic reports in each range
+  ## Reports between the first and last of a bout can be asymptomatic and
+  ## outside it. Count only the symptomatic reports in each range.
   ordered <- data.table::copy(dt)
   data.table::setorder(ordered, participant_id, season, date)
   ordered[, part.symptom.id := seq_len(.N), by = list(participant_id, season)]
