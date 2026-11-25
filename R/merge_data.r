@@ -29,7 +29,7 @@
 ##' report in the data, after any season limiting.
 ##' \code{\link{bouts_of_illness}} copies the flag to the bouts.
 ##' \code{\link{get_incidence}} excludes bouts with
-##' \code{illness.ongoing.at.entry} from the incidence only with
+##' \code{illness.ongoing.at.entry} from the incidence if called with
 ##' \code{exclude = "ongoing.at.entry"}.
 ##' - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 ##' - 'limit.season', whether to limit a flu season to November -> April
