@@ -366,3 +366,15 @@ test_that("a later onset answer cannot erase an earlier still-ill observation", 
                                    contact.date = as.Date("2013-01-05"))
   expect_equal(contact_illness(contact, symptoms)$current_symptoms, "symptoms")
 })
+
+test_that("bout_evidence takes the earliest start date by default", {
+  symptoms <- prepare(
+    flu("2013-01-10", c("fever", "cough"), start = "2013-01-05",
+        end = "2013-01-08"),
+    flu("2013-01-17", c("fever", "cough"), same = "yes", start = "2013-01-06",
+        end = "2013-01-12")
+  )
+  start <- function(...) bout_evidence(symptoms, ...)$bouts$symptoms.start.date
+  expect_equal(start(), as.Date("2013-01-05"))
+  expect_equal(start(start.date = "last"), as.Date("2013-01-06"))
+})

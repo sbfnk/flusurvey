@@ -140,7 +140,7 @@ assign_bouts <- function(dt) {
 }
 
 ## Set the start and end date of each bout on its reports, in place.
-fill_bout_dates <- function(dt, start.date = "last",
+fill_bout_dates <- function(dt, start.date = "earliest",
                             missing.start = "first.report",
                             inverted.dates = "keep") {
   last <- function(x) x[length(x)]
@@ -380,7 +380,7 @@ reconstruct_bouts <- function(x) {
 ##' @import data.table
 ##' @export
 bout_evidence <- function(
-  x, start.date = c("last", "earliest"),
+  x, start.date = c("earliest", "last"),
   missing.start = c("missing", "first.report"),
   inverted.dates = c("keep", "clear", "reset.end"), expand.days = TRUE
 ) {

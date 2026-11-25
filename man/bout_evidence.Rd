@@ -6,7 +6,7 @@
 \usage{
 bout_evidence(
   x,
-  start.date = c("last", "earliest"),
+  start.date = c("earliest", "last"),
   missing.start = c("missing", "first.report"),
   inverted.dates = c("keep", "clear", "reset.end"),
   expand.days = TRUE
