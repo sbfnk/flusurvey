@@ -58,13 +58,13 @@ The reports are sorted by participant, season and report date. Same-day ties ret
 - S2. It is the first symptomatic report observed for the participant in that season. This retains an illness already under way, even when `same` is "yes", "dont_know", "not_applicable" or missing, or onset is unknown. Revising the onset in a later report does not alone split the leading illness.
 - S3. The old special case for participants with no symptom-free report is subsumed by S2.
 - S4. The immediately preceding report was symptom-free. Character and factor answers are normalised to the same representation.
-- S5. Its start date is after the end date of the previous report of the participant in the season. The `precedence` argument changes this: with `"continuation"`, a report answered "yes" is exempt, so the continuation answer decides; with `"report.date"`, the start date is compared with the date of the previous report instead of its end date. The default, `"dates"`, is the rule as stated.
+- S5. Its start date is after the end date of the previous report of the participant in the season. The `precedence` argument changes this. With `"continuation"`, a report answered "yes" is exempt and the continuation answer decides. With `"report.date"`, the start date is compared with the date of the previous report instead of its end date. The default, `"dates"`, is the rule as stated.
 
 An absent `same` column is treated as unanswered. Missing `same` is not a start under S1, and missing boundary dates do not trigger S5. A report with missing `no.symptoms` belongs to no bout and does not itself separate two symptomatic reports into different bouts. Every explicitly symptomatic report belongs to a bout. Reports with unknown symptom status remain available to the contact classifier as unresolved observations.
 
 ## Dates of a bout
 
-Three arguments of `bouts_of_illness()` set the dates of a bout, and `unresolved` (below) sets its end date where none is reported. `get_incidence()` passes them on. The defaults keep the start-date behaviour of the code before the end-date fix. The end date differs from that code whatever the arguments.
+Three arguments of `bouts_of_illness()` set the dates of a bout; `unresolved` (below) sets the end date where none is reported. `get_incidence()` passes them on. The defaults keep the start-date behaviour of the code before the end-date fix, but the end date differs from that code whatever the arguments.
 
 `start.date` chooses among the start dates reported in the bout:
 
@@ -76,9 +76,9 @@ Three arguments of `bouts_of_illness()` set the dates of a bout, and `unresolved
 - `"first.report"` (the default): the date of the first report of the bout. This is the date the participant first reported symptoms, so it is not an observed onset.
 - `"missing"`: the start date stays missing.
 
-`unresolved` sets the end date of a bout in which no report gives one: `"fill"` (the default) uses the date of the last symptomatic report of the bout, and `"missing"` leaves it missing. `get_incidence()` counts such a bout either way, because its onset is known; `exclude = "unknown.end"` leaves bouts with no end date out of the incidence, which needs `unresolved = "missing"`.
+`unresolved` sets the end date of a bout in which no report gives one: `"fill"` (the default) uses the date of the last symptomatic report of the bout, while `"missing"` leaves it missing. `get_incidence()` counts such a bout either way because its onset is known. `exclude = "unknown.end"` leaves bouts with no end date out of the incidence, but only with `unresolved = "missing"`.
 
-The end date of a bout is the last end date given in any of its reports, and every report of the bout gets it. If no report gives one, it is the date of the last symptomatic report of the bout, unless `unresolved = "missing"`. The first symptom-free report that follows is not used, although its date is the earliest by which the participant reported being well. A date taken from the last symptomatic report is a fallback that the participant never reported as a recovery date. The earlier rule kept the end date of the first report when the last report gave one, which could be missing or a different date. It used the last reported date only when the last report gave none. The rule applies without any argument and changes the output of `bouts_of_illness()` for bouts whose reports give different end dates.
+The end date of a bout is the last end date given in any of its reports, and every report of the bout gets it. If no report gives one, it is the date of the last symptomatic report of the bout, unless `unresolved = "missing"`. The first symptom-free report that follows is not used, although its date is the earliest by which the participant reported being well. A date taken from the last symptomatic report is a fallback that the participant never reported as a recovery date. The earlier rule kept the end date of the first report even when the last report gave one, which could leave the end date missing or different. It used the last reported date only when the last report gave none. The new rule applies without any argument and changes the output of `bouts_of_illness()` for bouts whose reports give different end dates.
 
 `inverted.dates` sets what happens when the end date of a bout is before its start date:
 
