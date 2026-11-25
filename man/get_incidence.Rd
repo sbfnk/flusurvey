@@ -12,10 +12,10 @@ get_incidence(
   min.N = 1,
   by = NULL,
   exclude = NULL,
-  start.date = c("earliest", "last"),
+  start.date = c("last", "earliest"),
   missing.start = c("first.report", "missing"),
   inverted.dates = c("keep", "clear", "reset.end"),
-  precedence = c("continuation", "dates"),
+  precedence = c("dates", "continuation", "report.date"),
   unresolved = c("fill", "missing")
 )
 }
@@ -36,13 +36,12 @@ in a week}
 
 \item{exclude}{bouts to leave out of the incidence: any of
 "unknown.onset" (no reported start date, which needs
-\code{missing.start = "missing"}) and "ongoing.at.entry" (start date
-before the participant's first report); by default none}
+\code{missing.start = "missing"}), "unknown.end" (no reported end date,
+which needs \code{unresolved = "missing"}) and "ongoing.at.entry" (start
+date before the participant's first report); by default none}
 
 \item{start.date, missing.start, inverted.dates, precedence, unresolved}{how
-bouts and their dates are set, see
-\code{\link{bouts_of_illness}}; the defaults differ from earlier versions,
-see there for how to get the earlier results}
+bouts and their dates are set, see \code{\link{bouts_of_illness}}}
 }
 \value{
 a data.table with the incidence

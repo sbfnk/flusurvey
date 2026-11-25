@@ -11,12 +11,11 @@
 ##' @param by one or more variables by which to group
 ##' @param exclude bouts to leave out of the incidence: any of
 ##' "unknown.onset" (no reported start date, which needs
-##' \code{missing.start = "missing"}) and "ongoing.at.entry" (start date
-##' before the participant's first report); by default none
+##' \code{missing.start = "missing"}), "unknown.end" (no reported end date,
+##' which needs \code{unresolved = "missing"}) and "ongoing.at.entry" (start
+##' date before the participant's first report); by default none
 ##' @param start.date,missing.start,inverted.dates,precedence,unresolved how
-##' bouts and their dates are set, see
-##' \code{\link{bouts_of_illness}}; the defaults differ from earlier versions,
-##' see there for how to get the earlier results
+##' bouts and their dates are set, see \code{\link{bouts_of_illness}}
 ##' @examples
 ##' dt <- extract_data(simulated_data, years = 2013:2014)
 ##' get_incidence(dt, incidence.columns = "ili", aggregation = "week")
@@ -35,13 +34,12 @@ get_incidence <- function(
   min.N = 1,
   by = NULL,
   exclude = NULL,
-  start.date = c("earliest", "last"),
+  start.date = c("last", "earliest"),
   missing.start = c("first.report", "missing"),
   inverted.dates = c("keep", "clear", "reset.end"),
-  precedence = c("continuation", "dates"),
+  precedence = c("dates", "continuation", "report.date"),
   unresolved = c("fill", "missing")
 ) {
-  unresolved <- match.arg(unresolved)
   exclude <- check_exclude(exclude)
   aggregation <- match.arg(aggregation)
   denominator <- match.arg(denominator)
@@ -55,9 +53,6 @@ get_incidence <- function(
     precedence = precedence,
     unresolved = unresolved
   )
-  if (unresolved == "missing") {
-    bouts <- bouts[!is.na(symptoms.end.date)]
-  }
   bouts <- exclude_bouts(bouts, exclude)
 
   ## required date columns
@@ -103,13 +98,16 @@ get_incidence <- function(
 check_exclude <- function(exclude) {
   if (is.null(exclude)) return(exclude)
   match.arg(
-    exclude, c("unknown.onset", "ongoing.at.entry"), several.ok = TRUE
+    exclude, c("unknown.onset", "unknown.end", "ongoing.at.entry"), several.ok = TRUE
   )
 }
 
 exclude_bouts <- function(bouts, exclude) {
   if ("unknown.onset" %in% exclude) {
     bouts <- bouts[!is.na(symptoms.start.date)]
+  }
+  if ("unknown.end" %in% exclude) {
+    bouts <- bouts[!is.na(symptoms.end.date)]
   }
   if ("ongoing.at.entry" %in% exclude) {
     bouts <- bouts[is.na(symptoms.start.date) |
