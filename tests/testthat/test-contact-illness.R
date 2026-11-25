@@ -232,11 +232,10 @@ test_that("a symptom report without a usable interval leaves days unknown", {
                c("no ILI", "no ILI", NA, NA, "no ILI"))
   expect_equal(res$current_symptoms[6:20],
                rep(c("no symptoms", "no symptoms", NA, NA, "no symptoms"), 3))
-  ## a still-ill report is placed: its bout ends on the report date
+  ## a still-ill report establishes its own day, but not recovery
   still <- contact_illness(contact("e", days), symptoms)
   expect_equal(still$current_symptoms,
-               c("no symptoms", "no symptoms", "no symptoms", "symptoms",
-                 "no symptoms"))
+               c("no symptoms", "no symptoms", "no symptoms", "symptoms", NA))
 })
 
 test_that("an unplaced report makes the flags of an overlapping bout unknown", {
@@ -248,7 +247,8 @@ test_that("an unplaced report makes the flags of an overlapping bout unknown", {
   res <- contact_illness(contact("a", c("2013-01-09", "2013-01-11")),
                          symptoms)
   expect_equal(res$current_symptoms, c(NA, "symptoms"))
-  expect_equal(res$bout_ili, c(NA_character_, NA_character_))
+  ## a positive report of the bout stays positive; only a negative is open
+  expect_equal(res$bout_ili, c(NA_character_, "ILI"))
 })
 
 test_that("contacts are located by contact date, not report date", {
@@ -474,6 +474,7 @@ test_that("healthy = 'report' leaves days outside report coverage unknown", {
 })
 
 test_that("neither healthy rule calls a still-ill day without onset healthy", {
+  ## the report day is a day of illness; the days before it are unknown
   symptoms <- rbind(
     well("a", c("2013-01-01", "2013-01-08", "2013-01-31")),
     report("a", "2013-01-15", option = "still_ill", ili = "t")
@@ -481,6 +482,6 @@ test_that("neither healthy rule calls a still-ill day without onset healthy", {
   days <- c("2013-01-09", "2013-01-14", "2013-01-15", "2013-01-20")
   for (rule in c("follow-up", "report")) {
     res <- contact_illness(contact("a", days), symptoms, healthy = rule)
-    expect_equal(res$current_symptoms[2:3], c(NA_character_, NA_character_))
+    expect_equal(res$current_symptoms[2:3], c(NA_character_, "symptoms"))
   }
 })
