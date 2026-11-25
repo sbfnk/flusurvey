@@ -372,8 +372,8 @@ reconstruct_bouts <- function(x, precedence = "dates") {
 ##'   report. These policies do not replace the original report evidence.
 ##' @param expand.days whether to expand established illness intervals to
 ##'   individual days. Set FALSE for interval matching without daily expansion.
-##' @param precedence,unresolved How bouts are formed and what happens to a
-##'   bout with no reported end date, as in \code{\link{bouts_of_illness}}.
+##' @param precedence,unresolved Bout formation and treatment of a bout with
+##'   no reported end date, as in \code{\link{bouts_of_illness}}.
 ##' @return a list of data tables: \code{bouts}, \code{reports},
 ##'   \code{intervals} and \code{days}
 ##' @examples
