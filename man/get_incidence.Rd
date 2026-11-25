@@ -51,12 +51,12 @@ A bout is ongoing at entry when its start is before the participant's
 first report. \code{exclude = "ongoing.at.entry"} uses the
 \code{illness.ongoing.at.entry} column from \code{\link{merge_data}}, which
 compares each reported start date with the first report, taken before
-\code{remove.first} drops it; a bout has the flag if any of its reports does.
-Without that column in the data, a bout counts as ongoing at entry when its
-selected start date (see \code{start.date}, \code{missing.start} and
-\code{inverted.dates}) is before its \code{min.date}. The flag therefore
-follows the dates as reported, while the \code{min.date} comparison follows
-the start date chosen for the bout.
+\code{remove.first} drops it; a bout has the flag if any of its reports
+does. Without that column in the data, a bout counts as ongoing at entry
+when its selected start date (see \code{start.date}, \code{missing.start}
+and \code{inverted.dates}) is before its \code{min.date}. The flag follows
+the dates as reported, whereas the \code{min.date} comparison follows the
+start date chosen for the bout.
 }
 \examples{
 dt <- extract_data(simulated_data, years = 2013:2014)
