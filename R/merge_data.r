@@ -15,18 +15,27 @@
 ##' symptom report describes the week before it. With
 ##' 'unsuccessful.join' the symptom reports without an earlier contact report
 ##' are dropped, shortening episodes of illness. To link the two, extract
-##' the symptom and contact surveys separately, get the episodes with
-##' \code{\link{bouts_of_illness}} and flag the contact reports made during an
-##' episode with \code{\link{flag_ill_contacts}}.
+##' the symptom and contact surveys separately and classify the contact reports
+##' with \code{\link{contact_illness}}.
 ##' @param clean cleaning options, NULL for no cleaning, otherwise a vector of
 ##' cleans to perform (by default all):
 ##' - 'remove.first', whether to remove reports from the first reporting day,
 ##' - 'remove.bad.symptom.dates', whether to remove bad symptom dates: symptom
-##' start before date of first or end after end of last report, end of symptoms
-##' before start of symptoms, symptoms reported to have started or ended after
-##' date of report
+##' end of symptoms before start of symptoms, symptoms reported to have started
+##' or ended after date of report. Such dates are set to missing. Other start
+##' dates are kept as reported, and the logical column
+##' \code{illness.ongoing.at.entry} flags those before the participant's first
+##' report in the data, after any season limiting.
+##' When the first reporting day is removed, its flag is copied to reports
+##' in the same bout under the default bout boundary rules.
+##' \code{\link{bouts_of_illness}} copies the flag to the bouts.
+##' \code{\link{get_incidence}} excludes bouts with
+##' \code{illness.ongoing.at.entry} from the incidence if called with
+##' \code{exclude = "ongoing.at.entry"}.
 ##' - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 ##' - 'limit.season', whether to limit a flu season to November -> April
+##' (when surveys are merged, the limit applies to the last survey merged:
+##' the symptom survey, if present)
 ##' - 'remove.postcodes', whether to remove postcodes
 ##' - 'n.reports', whether to exclude those with fewer than \code{min.reports}
 ##' symptom reporting days
@@ -111,7 +120,7 @@ merge_data <- function(
       "pairs each symptom report with the latest earlier contact report ",
       "however long before it was filed, and (with 'unsuccessful.join') ",
       "drops symptom reports that have none. To link contacts to illness, ",
-      "extract them separately and use flag_ill_contacts().",
+      "extract them separately and use contact_illness().",
       call. = FALSE
     )
   }
@@ -125,12 +134,12 @@ merge_data <- function(
   }
   for (name in names(data)) {
     dt <- copy(data.table(data[[name]]))
-    if (name != tail(names(data), 1)) {
+    if (name != utils::tail(names(data), 1)) {
       ## keep the last report per day for the rolling join
       dt <- dt[!duplicated(dt[, list(global_id, date)], fromLast = TRUE)]
     }
 
-    if ("limit.season" %in% clean) {
+    if ("limit.season" %in% clean && name == utils::tail(names(data), 1)) {
       dt <- limit_to_season(dt)
     }
 
@@ -249,13 +258,29 @@ clean_symptom <- function(dt, clean, min.reports, ili.sudden.unknown) {
   dt[, min.date := min(date), by = global_id]
   dt[, max.date := max(date), by = global_id]
 
-  ## remove reports from each participant's first reporting day
-  if ("remove.first" %in% clean) {
-    dt <- dt[date > min.date]
-  }
-
   if ("remove.bad.symptom.dates" %in% clean) {
     remove_bad_symptom_dates(dt)
+  }
+
+  ## remove reports from each participant's first reporting day
+  if ("remove.first" %in% clean) {
+    if ("illness.ongoing.at.entry" %in% colnames(dt) &&
+          "no.symptoms" %in% colnames(dt)) {
+      evidence <- copy(dt)
+      if (!"symptoms.end.date" %in% colnames(evidence)) {
+        evidence[, symptoms.end.date := as.Date(NA)]
+      }
+      evidence[, `:=`(participant_id = global_id, season = 1L,
+                      evidence.row = seq_len(.N))]
+      evidence <- reconstruct_bouts(evidence)
+      evidence[!is.na(bout), illness.ongoing.at.entry :=
+                 illness.ongoing.at.entry |
+                 any(illness.ongoing.at.entry & date == min.date),
+               by = list(global_id, bout)]
+      dt[evidence$evidence.row, illness.ongoing.at.entry :=
+           evidence$illness.ongoing.at.entry]
+    }
+    dt <- dt[date > min.date]
   }
 
   if ("remove.bad.health.scores" %in% clean) {
@@ -290,6 +315,14 @@ remove_bad_symptom_dates <- function(dt) {
       symptoms.start.date := as.Date(NA_character_)
     ]
   }
+  ## keep the reported start date and flag illness that began before the
+  ## first report (ongoing at entry), for later steps to handle
+  if ("symptoms.start.date" %in% colnames(dt)) {
+    dt[,
+      illness.ongoing.at.entry :=
+        !is.na(symptoms.start.date) & symptoms.start.date < min.date
+    ]
+  }
   ## remove end date after reporting date
   if ("symptoms.end.date" %in% colnames(dt)) {
     dt[
@@ -313,7 +346,7 @@ remove_bad_health_scores <- function(dt) {
 ## Keeps the participants with at least one report without symptoms.
 keep_symptom_free_reporters <- function(dt) {
   no.symptoms <-
-    dt[, list(no.symptoms.reports = sum(no.symptoms == "t")),
+    dt[, list(no.symptoms.reports = sum(no.symptoms == "t", na.rm = TRUE)),
       by = global_id
     ]
   dt <- merge(dt, no.symptoms, by = "global_id", all.x = TRUE)

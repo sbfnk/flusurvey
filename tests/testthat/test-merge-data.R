@@ -20,6 +20,19 @@ test_that("merge_data turns t/f columns from every survey into factors", {
   }
 })
 
+test_that("only.symptoms keeps participants with a missing no.symptoms answer", {
+  symptom <- data.table::data.table(
+    global_id = c("a", "a", "b", "b", "c"),
+    date = as.Date(c(
+      "2013-01-03", "2013-01-10", "2013-01-03", "2013-01-10", "2013-01-03"
+    )),
+    no.symptoms = c("t", NA, "t", "f", NA)
+  )
+  dt <- merge_data(list(symptom = symptom), clean = "only.symptoms")
+  expect_setequal(dt$global_id, c("a", "b"))
+  expect_equal(nrow(dt), 4)
+})
+
 test_that("merge_data skips every cleaning step for clean = NULL", {
   raw <- merge_data(simulated_data[["2013"]], clean = NULL)
   first_only <- merge_data(simulated_data[["2013"]], clean = "remove.first")
@@ -28,6 +41,17 @@ test_that("merge_data skips every cleaning step for clean = NULL", {
     nrow(merge_data(simulated_data[["2013"]], clean = character(0))),
     nrow(raw)
   )
+})
+
+test_that("merge_data preserves positional contact and age arguments", {
+  for (survey in c("background", "contact")) {
+    data <- simulated_data[["2013"]][survey]
+    expect_equal(
+      merge_data(data, character(), 3, "mean", c(10, 20)),
+      merge_data(data, clean = character(), min.reports = 3,
+                 ranges = "mean", age.breaks = c(10, 20))
+    )
+  }
 })
 
 test_that("limit_to_season uses the earliest of several dates tied for most reports", {
@@ -91,6 +115,14 @@ test_that("season selection handles tied report dates", {
   }
 })
 
+test_that("merge_data keeps ili.sudden.unknown as the sixth argument", {
+  data <- simulated_data[["2013"]]["symptom"]
+  expect_equal(
+    merge_data(data, NULL, 3, "sample", c(18, 44, 64), 1),
+    merge_data(data, clean = NULL, ili.sudden.unknown = 1)
+  )
+})
+
 test_that("minimum symptom reports counts reporting days", {
   report <- data.table::copy(simulated_data[["2013"]][["symptom"]][1])
   reports <- data.table::rbindlist(rep(list(report), 6))
@@ -114,4 +146,16 @@ test_that("remove.first removes all reports on each first reporting day", {
   result <- merge_data(list(symptom = reports), clean = "remove.first")
   expect_equal(as.character(result$global_id), "a")
   expect_equal(result$date, reports$date[1])
+})
+
+test_that("merge_data warns when joining contact and symptom surveys", {
+  expect_warning(
+    merge_data(simulated_data[["2013"]]), "contact_illness"
+  )
+  expect_no_warning(
+    merge_data(simulated_data[["2013"]][c("background", "symptom")])
+  )
+  expect_no_warning(
+    merge_data(simulated_data[["2013"]][c("background", "contact")])
+  )
 })

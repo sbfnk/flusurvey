@@ -199,6 +199,32 @@ test_that("default extraction handles symptom surveys without health scores", {
   }
 })
 
+test_that("limit.season does not drop symptom reports by background date", {
+  d <- data.table::copy(simulated_data[["2013"]][c("background", "symptom")])
+  d_original <- data.table::copy(d)
+  d$background <- data.table::data.table(d$background)
+  d$background[global_id == "sim0002", date := as.Date("2012-10-15")]
+  clean <- c("limit.season", "unsuccessful.join")
+  expected <- merge_data(d_original, clean = clean)[global_id == "sim0002"]
+  expect_gt(nrow(expected), 0)
+  actual <- merge_data(d, clean = clean)[global_id == "sim0002"]
+  expect_equal(actual$date, expected$date)
+})
+
+test_that("limit.season limits the contact survey when no symptom survey is merged", {
+  d <- data.table::copy(simulated_data[["2013"]][c("background", "contact")])
+  d$background <- data.table::data.table(d$background)
+  d$contact <- data.table::data.table(d$contact)
+  d$background[global_id == "sim0002", date := as.Date("2012-10-01")]
+  d$contact[global_id == "sim0002", date := as.Date("2012-10-15")]
+  clean <- c("limit.season", "unsuccessful.join")
+  merged <- merge_data(d, clean = clean)
+  early <- merged$global_id == "sim0002" & merged$date < as.Date("2012-11-01")
+  expect_false(any(early))
+  alone <- merge_data(d["contact"], clean = clean)
+  expect_false(any(alone$date < as.Date("2012-11-01")))
+})
+
 test_that("remove.bad.health.scores is accepted by name", {
   dt <- expect_contact_warning(
     extract_data(simulated_data, years = 2013:2014,
@@ -230,4 +256,40 @@ test_that("merge_data dates contact reports by the day they describe", {
   )[day.of.week == 1 & !is.na(contact.date) & contact.date == date - 1]
   expect_gt(nrow(monday), 0)
   expect_true(all(monday$contact.day.of.week == 7))
+})
+
+test_that("bouts on the simulated data account for the symptomatic reports", {
+  dt <- expect_contact_warning(extract_data(simulated_data, years = 2013:2014))
+  symptomatic <- dt[no.symptoms == "f"]
+  invisible(capture.output(bouts <- data.table::as.data.table(
+    bouts_of_illness(dt)
+  )))
+  invisible(capture.output(all_rows <- data.table::as.data.table(
+    bouts_of_illness(dt, symptomatic.only = FALSE)
+  )))
+  ## a "t" report always starts a new bout, so every report from the first to
+  ## the last of a bout is symptomatic
+  bouts[, n.reports := max.part.symptom.id - min.part.symptom.id + 1L]
+
+  expect_true(any(bouts$n.reports > 1))
+  expect_true(any(bouts$n.reports == 1))
+
+  ## bouts_of_illness() drops some symptomatic reports (one before the first
+  ## bout start, for instance), so only an upper bound holds
+  expect_lte(sum(bouts$n.reports), nrow(symptomatic))
+  expect_true(all(
+    unique(bouts[, paste(participant_id, season)]) %in%
+      symptomatic[, paste(participant_id, season)]
+  ))
+  expect_true(all(bouts$no.symptoms == "f"))
+
+  data.table::setorder(bouts, participant_id, season, min.part.symptom.id)
+  expect_false(anyNA(bouts[, c("min.part.symptom.id", "max.part.symptom.id")]))
+  overlap <- bouts[, list(
+    overlap = any(min.part.symptom.id[-1] <= max.part.symptom.id[-.N])
+  ), by = list(participant_id, season)]
+  expect_false(any(overlap$overlap))
+
+  expect_equal(nrow(all_rows), nrow(dt) - sum(bouts$n.reports - 1L))
+  expect_equal(sum(!is.na(all_rows$bout)), nrow(bouts))
 })

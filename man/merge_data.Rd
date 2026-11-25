@@ -22,8 +22,8 @@ merge_data(
 contact, symptom), regardless of their order in \code{data}. The last one
 present drives a rolling join. The result has one row per report of that
 survey (the symptom reports, if present), each taking the latest report of
-the other surveys on or before its date. When an earlier survey has several
-reports on the same day, its last report is used. Any other survey name
+the other surveys on or before its date. For several reports from an earlier
+survey on the same day, the last report is used. Any other survey name
 gives an error.
 
 Joining the contact and symptom surveys gives a warning. The join pairs
@@ -32,19 +32,28 @@ before it was filed, and a contact report describes one day whereas a
 symptom report describes the week before it. With
 'unsuccessful.join' the symptom reports without an earlier contact report
 are dropped, shortening episodes of illness. To link the two, extract
-the symptom and contact surveys separately, get the episodes with
-\code{\link{bouts_of_illness}} and flag the contact reports made during an
-episode with \code{\link{flag_ill_contacts}}.}
+the symptom and contact surveys separately and classify the contact reports
+with \code{\link{contact_illness}}.}
 
 \item{clean}{cleaning options, NULL for no cleaning, otherwise a vector of
 cleans to perform (by default all):
 - 'remove.first', whether to remove reports from the first reporting day,
 - 'remove.bad.symptom.dates', whether to remove bad symptom dates: symptom
-start before date of first or end after end of last report, end of symptoms
-before start of symptoms, symptoms reported to have started or ended after
-date of report
+end of symptoms before start of symptoms, symptoms reported to have started
+or ended after date of report. Such dates are set to missing. Other start
+dates are kept as reported, and the logical column
+\code{illness.ongoing.at.entry} flags those before the participant's first
+report in the data, after any season limiting.
+When the first reporting day is removed, its flag is carried to reports
+in the same bout under the default bout boundary rules.
+\code{\link{bouts_of_illness}} copies the flag to the bouts.
+\code{\link{get_incidence}} excludes bouts with
+\code{illness.ongoing.at.entry} from the incidence only with
+\code{exclude = "ongoing.at.entry"}.
 - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 - 'limit.season', whether to limit a flu season to November -> April
+(when surveys are merged, the limit applies to the last survey merged:
+the symptom survey, if present)
 - 'remove.postcodes', whether to remove postcodes
 - 'n.reports', whether to exclude those with fewer than \code{min.reports}
 symptom reporting days
@@ -54,7 +63,7 @@ should have prevented this, but doesn't appear to have done so)
 - 'only.symptoms', whether to exclude those that have no report without
 symptoms}
 
-\item{min.reports}{minimum number of symptom reporting days per user
+\item{min.reports}{minimum number of symptom reporting days per participant
 (ignored if 'min.reports' is not given as a cleaning option)}
 
 \item{ranges}{what to do if a number of contacts is given as a range: sample
