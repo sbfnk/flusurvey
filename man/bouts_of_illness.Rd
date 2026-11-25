@@ -8,7 +8,7 @@ bouts_of_illness(
   x,
   symptomatic.only = TRUE,
   as.data.frame = TRUE,
-  start.date = c("last", "earliest"),
+  start.date = c("earliest", "last"),
   missing.start = c("first.report", "missing"),
   inverted.dates = c("keep", "clear", "reset.end"),
   daily.flags = c("none", "carry.forward", "bout", "report"),
@@ -24,7 +24,9 @@ bouts_of_illness(
 \item{as.data.frame}{currently has no effect}
 
 \item{start.date}{which reported start date to use for a bout: the
-"last" one reported, or the "earliest"}
+"earliest" one reported (the default, as a bout started at the last
+reported date can start after a report that already gives symptoms of it),
+or the "last" one}
 
 \item{missing.start}{what to use as start date if none was reported for a
 bout: the date of its "first.report", or "missing"}

@@ -6,7 +6,7 @@
 \usage{
 bout_evidence(
   x,
-  start.date = c("last", "earliest"),
+  start.date = c("earliest", "last"),
   missing.start = c("missing", "first.report"),
   inverted.dates = c("keep", "clear", "reset.end"),
   precedence = c("dates", "continuation", "report.date"),
@@ -19,7 +19,8 @@ bout_evidence(
 \code{\link{bouts_of_illness}}}
 
 \item{start.date, missing.start, inverted.dates}{Date policies as in
-\code{\link{bouts_of_illness}}. Evidence defaults to leaving an
+\code{\link{bouts_of_illness}}; \code{start.date} defaults to
+"earliest" here as there. Evidence defaults to leaving an
 unreported onset missing; the summary interface defaults to the first
 report. These policies do not replace the original report evidence.}
 

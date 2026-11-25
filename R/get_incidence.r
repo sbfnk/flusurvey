@@ -15,7 +15,8 @@
 ##' which needs \code{unresolved = "missing"}) and "ongoing.at.entry" (start
 ##' date before the participant's first report); by default none
 ##' @param start.date,missing.start,inverted.dates,precedence,unresolved how
-##' bouts and their dates are set, see \code{\link{bouts_of_illness}}
+##' bouts and their dates are set, see \code{\link{bouts_of_illness}};
+##' \code{start.date} defaults to "earliest" here as there
 ##' @examples
 ##' dt <- extract_data(simulated_data, years = 2013:2014)
 ##' get_incidence(dt, incidence.columns = "ili", aggregation = "week")
@@ -34,7 +35,7 @@ get_incidence <- function(
   min.N = 1,
   by = NULL,
   exclude = NULL,
-  start.date = c("last", "earliest"),
+  start.date = c("earliest", "last"),
   missing.start = c("first.report", "missing"),
   inverted.dates = c("keep", "clear", "reset.end"),
   precedence = c("dates", "continuation", "report.date"),

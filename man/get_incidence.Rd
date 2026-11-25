@@ -12,7 +12,7 @@ get_incidence(
   min.N = 1,
   by = NULL,
   exclude = NULL,
-  start.date = c("last", "earliest"),
+  start.date = c("earliest", "last"),
   missing.start = c("first.report", "missing"),
   inverted.dates = c("keep", "clear", "reset.end"),
   precedence = c("dates", "continuation", "report.date"),
@@ -41,7 +41,8 @@ which needs \code{unresolved = "missing"}) and "ongoing.at.entry" (start
 date before the participant's first report); by default none}
 
 \item{start.date, missing.start, inverted.dates, precedence, unresolved}{how
-bouts and their dates are set, see \code{\link{bouts_of_illness}}}
+bouts and their dates are set, see \code{\link{bouts_of_illness}};
+\code{start.date} defaults to "earliest" here as there}
 }
 \value{
 a data.table with the incidence

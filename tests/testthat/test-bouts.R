@@ -110,34 +110,34 @@ bout_dates <- function(x, col, ...) {
   out[order(participant_id), get(col)]
 }
 
-test_that("the defaults keep the last reported start date", {
+test_that("the defaults use the earliest reported start date", {
   x <- dates_example()
   original <- data.table::copy(x)
   expect_equal(bout_dates(x, "symptoms.start.date"),
-               as.Date(c("2013-01-06", "2013-01-10", "2013-01-09")))
+               as.Date(c("2013-01-05", "2013-01-10", "2013-01-09")))
   expect_equal(bout_dates(x, "symptoms.end.date"),
                as.Date(c("2013-01-12", "2013-01-10", "2013-01-08")))
   expect_equal(x, original)
 })
 
-test_that("start.date chooses the earliest reported start date", {
+test_that("start.date chooses the last reported start date", {
   expect_equal(
-    bout_dates(dates_example(), "symptoms.start.date", start.date = "earliest"),
-    as.Date(c("2013-01-05", "2013-01-10", "2013-01-09"))
+    bout_dates(dates_example(), "symptoms.start.date", start.date = "last"),
+    as.Date(c("2013-01-06", "2013-01-10", "2013-01-09"))
   )
 })
 
 test_that("missing.start leaves unreported start dates missing", {
   res <- bout_dates(dates_example(), "symptoms.start.date",
                     missing.start = "missing")
-  expect_equal(res, as.Date(c("2013-01-06", NA, "2013-01-09")))
+  expect_equal(res, as.Date(c("2013-01-05", NA, "2013-01-09")))
 })
 
 test_that("inverted.dates keeps, clears or resets inverted bounds", {
   x <- dates_example()
   expect_equal(
     bout_dates(x, "symptoms.start.date", inverted.dates = "clear"),
-    as.Date(c("2013-01-06", "2013-01-10", NA))
+    as.Date(c("2013-01-05", "2013-01-10", NA))
   )
   expect_equal(
     bout_dates(x, "symptoms.end.date", inverted.dates = "clear"),
@@ -149,7 +149,7 @@ test_that("inverted.dates keeps, clears or resets inverted bounds", {
   )
   expect_equal(
     bout_dates(x, "symptoms.start.date", inverted.dates = "reset.end"),
-    as.Date(c("2013-01-06", "2013-01-10", "2013-01-09"))
+    as.Date(c("2013-01-05", "2013-01-10", "2013-01-09"))
   )
 })
 

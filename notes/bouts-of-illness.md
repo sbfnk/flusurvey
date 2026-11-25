@@ -64,12 +64,12 @@ An absent `same` column is treated as unanswered. Missing `same` is not a start 
 
 ## Dates of a bout
 
-Three arguments of `bouts_of_illness()` set the dates of a bout; `unresolved` (below) sets the end date where none is reported. `get_incidence()` passes them on. The defaults keep the start-date behaviour of the code before the end-date fix, but the end date differs from that code whatever the arguments.
+Three arguments of `bouts_of_illness()` set the dates of a bout; `unresolved` (below) sets the end date where none is reported. `get_incidence()` passes them on. The default `start.date` is `"earliest"`, which differs from the code before the end-date fix, and the end date differs from that code whatever the arguments.
 
 `start.date` chooses among the start dates reported in the bout:
 
-- `"last"` (the default): the start date given in the last report of the bout. If the last report gives none, the last start date given in any report of the bout.
-- `"earliest"`: the earliest start date given in any report of the bout.
+- `"earliest"` (the default): the earliest start date given in any report of the bout. The last reported start date can fall after a report that already gives symptoms of the bout, which would start the bout too late.
+- `"last"`: the start date given in the last report of the bout. If the last report gives none, the last start date given in any report of the bout.
 
 `missing.start` sets the start date of a bout in which no report gives one:
 
@@ -97,7 +97,7 @@ The reports of a participant with `same` set to "no" then "yes", with these date
 | 10 January | 5 January | 8 January |
 | 17 January | 6 January | 12 January |
 
-The bout starts on 6 January with the default and on 5 January with `start.date = "earliest"`. It ends on 12 January, the last reported end date.
+The bout starts on 5 January with the default and on 6 January with `start.date = "last"`. It ends on 12 January, the last reported end date.
 
 A participant whose reports give no start date, and whose end date is reported only in the last report (16 January), has a bout that starts on the date of its first report (10 January) by default and has no start date with `missing.start = "missing"`. It ends on 16 January.
 

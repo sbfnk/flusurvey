@@ -137,7 +137,7 @@ assign_bouts <- function(dt, precedence = "dates") {
 }
 
 ## Set the start and end date of each bout on its reports, in place.
-fill_bout_dates <- function(dt, start.date = "last",
+fill_bout_dates <- function(dt, start.date = "earliest",
                             missing.start = "first.report",
                             inverted.dates = "keep",
                             unresolved = "fill") {
@@ -366,7 +366,8 @@ reconstruct_bouts <- function(x, precedence = "dates") {
 ##' @param x the data to extract bouts from, as for
 ##'   \code{\link{bouts_of_illness}}
 ##' @param start.date,missing.start,inverted.dates Date policies as in
-##'   \code{\link{bouts_of_illness}}. Evidence defaults to leaving an
+##'   \code{\link{bouts_of_illness}}; \code{start.date} defaults to
+##'   "earliest" here as there. Evidence defaults to leaving an
 ##'   unreported onset missing; the summary interface defaults to the first
 ##'   report. These policies do not replace the original report evidence.
 ##' @param precedence,unresolved How bouts are formed and what happens to a
@@ -382,7 +383,7 @@ reconstruct_bouts <- function(x, precedence = "dates") {
 ##' @import data.table
 ##' @export
 bout_evidence <- function(
-  x, start.date = c("last", "earliest"),
+  x, start.date = c("earliest", "last"),
   missing.start = c("missing", "first.report"),
   inverted.dates = c("keep", "clear", "reset.end"),
   precedence = c("dates", "continuation", "report.date"),
@@ -472,7 +473,9 @@ expand_to_days <- function(dt, daily.flags, report.flags, flag.columns) {
 ##' @param unresolved what to do with a bout with no reported end date: "fill"
 ##' its end with the last report date, or leave it "missing"
 ##' @param start.date which reported start date to use for a bout: the
-##' "last" one reported, or the "earliest"
+##' "earliest" one reported (the default, as a bout started at the last
+##' reported date can start after a report that already gives symptoms of it),
+##' or the "last" one
 ##' @param missing.start what to use as start date if none was reported for a
 ##' bout: the date of its "first.report", or "missing"
 ##' @param inverted.dates what to do if the end date is before the start date:
@@ -508,7 +511,7 @@ expand_to_days <- function(dt, daily.flags, report.flags, flag.columns) {
 ##' @export
 bouts_of_illness <- function(
   x, symptomatic.only = TRUE, as.data.frame = TRUE,
-  start.date = c("last", "earliest"),
+  start.date = c("earliest", "last"),
   missing.start = c("first.report", "missing"),
   inverted.dates = c("keep", "clear", "reset.end"),
   daily.flags = c("none", "carry.forward", "bout", "report"),
