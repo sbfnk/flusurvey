@@ -241,15 +241,15 @@ test_that("bouts on the simulated data account for the symptomatic reports", {
   invisible(capture.output(all_rows <- data.table::as.data.table(
     bouts_of_illness(dt, symptomatic.only = FALSE)
   )))
-  ## a "t" report always starts a new bout, so the reports from the first to
-  ## the last of a bout are all symptomatic
+  ## a "t" report always starts a new bout, so every report from the first to
+  ## the last of a bout is symptomatic
   bouts[, n.reports := max.part.symptom.id - min.part.symptom.id + 1L]
 
   expect_true(any(bouts$n.reports > 1))
   expect_true(any(bouts$n.reports == 1))
 
   ## bouts_of_illness() drops some symptomatic reports (one before the first
-  ## bout start, for instance), so the bounds cannot be tighter
+  ## bout start, for instance), so only an upper bound holds
   expect_lte(sum(bouts$n.reports), nrow(symptomatic))
   expect_true(all(
     unique(bouts[, paste(participant_id, season)]) %in%
