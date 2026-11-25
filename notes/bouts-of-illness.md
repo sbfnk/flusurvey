@@ -157,7 +157,7 @@ The separate [`flag_ill_contacts()`](../R/flag_ill_contacts.r) accepts already-b
 
 ## Remaining choices and limitations
 
-The date-policy defaults remain those documented above; choosing the last reported onset or excluding onset before entry is explicit. The contact follow-up window ends at the last symptom-free report; using end-of-illness as an alternative remains unresolved. Chronic-only symptoms should not count as acute illness, but an operational classifier remains to be specified. A chronic condition such as asthma, or onset more than four weeks ago, is not by itself an exclusion.
+The date-policy defaults are those documented above. Choosing the last reported onset or excluding onset before entry is an explicit option. The contact follow-up window ends at the last symptom-free report; using end-of-illness as an alternative remains unresolved. Chronic-only symptoms should not count as acute illness, but an operational classifier remains to be specified. A chronic condition such as asthma, or onset more than four weeks ago, is not by itself an exclusion.
 
 Default extraction can still remove an illness's supporting reports: `only.symptoms` excludes participants with any missing symptom-status answer, and season restriction combined with an unsuccessful background join can remove symptom reports. The contact analysis avoids those cleaning options for symptoms. Missing symptom answers are treated differently by the initial report-level aggregation and the uncertainty-preserving bout aggregation; they should not be interpreted as evidence of absence.
 
