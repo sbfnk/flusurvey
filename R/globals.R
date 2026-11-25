@@ -75,7 +75,6 @@ utils::globalVariables(c(
   "last.report.date",
   "last.symptoms.start.date",
   "living.with.children",
-  "long.running.illness",
   "max.date",
   "max.part.symptom.id",
   "min.date",

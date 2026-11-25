@@ -606,12 +606,10 @@ bouts_of_illness <- function(
   dt[]
 }
 
-# A bout is flagged for a date problem if any of its reports is.
+# A bout is flagged as ongoing at entry if any of its reports is.
 merge_bout_flags <- function(dt) {
-  for (flag in intersect(
-    c("illness.ongoing.at.entry", "long.running.illness"), colnames(dt)
-  )) {
-    dt[!is.na(bout), paste(flag) := any(get(flag)),
+  if ("illness.ongoing.at.entry" %in% colnames(dt)) {
+    dt[!is.na(bout), illness.ongoing.at.entry := any(illness.ongoing.at.entry),
       by = list(participant_id, season, bout)
     ]
   }

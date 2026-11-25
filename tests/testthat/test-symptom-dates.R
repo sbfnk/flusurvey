@@ -37,7 +37,7 @@ fixture_data <- function(...) {
 }
 
 test_that("reported onset dates are kept and flagged", {
-  dt <- fixture_data(max.symptom.days = 10)
+  dt <- fixture_data()
   early <- dt[global_id == "early" & no.symptoms == "f"]
   expect_equal(early$symptoms.start.date, as.Date("2012-12-25"))
   expect_equal(early$symptoms.end.date, as.Date("2013-01-08"))
@@ -45,17 +45,11 @@ test_that("reported onset dates are kept and flagged", {
   long <- dt[global_id == "long" & no.symptoms == "f"]
   expect_equal(long$symptoms.start.date, as.Date("2013-01-10"))
   expect_false(long$illness.ongoing.at.entry)
-  expect_true(long$long.running.illness)
-  expect_false(any(dt[no.symptoms == "t"]$long.running.illness))
-})
-
-test_that("max.symptom.days = Inf switches off the long-running flag", {
-  dt <- fixture_data(max.symptom.days = Inf)
-  expect_false(any(dt$long.running.illness))
+  expect_false(any(dt[no.symptoms == "t"]$illness.ongoing.at.entry))
 })
 
 test_that("bouts keep chronology and flags", {
-  dt <- fixture_data(max.symptom.days = 10)
+  dt <- fixture_data()
   capture.output(bouts <- bouts_of_illness(dt))
   expect_identical(nrow(bouts), 2L)
   expect_true(all(bouts$symptoms.end.date >= bouts$symptoms.start.date))
@@ -66,12 +60,11 @@ test_that("bouts keep chronology and flags", {
   long <- bouts[global_id == "long"]
   expect_equal(long$symptoms.start.date, as.Date("2013-01-10"))
   expect_equal(long$symptoms.end.date, as.Date("2013-01-30"))
-  expect_true(long$long.running.illness)
   expect_false(long$illness.ongoing.at.entry)
 })
 
 test_that("incidence excludes illness ongoing at entry only on request", {
-  dt <- fixture_data(max.symptom.days = 10)
+  dt <- fixture_data()
   capture.output(all <- get_incidence(dt, aggregation = "day"))
   expect_equal(sum(all$ili), 2)
   capture.output(
@@ -89,7 +82,7 @@ test_that("incidence is zero when every bout is ongoing at entry", {
   season$symptom <- season$symptom[global_id == "early"]
   dt <- extract_data(list("2013" = season), clean = c(
     "remove.first", "remove.bad.symptom.dates", "unsuccessful.join"
-  ), max.symptom.days = 10)
+  ))
   for (aggregation in c("day", "week", "month", "year")) {
     capture.output(inc <- get_incidence(
       dt, aggregation = aggregation, exclude = "ongoing.at.entry"

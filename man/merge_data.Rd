@@ -13,8 +13,7 @@ merge_data(
   ranges = "sample",
   age.breaks = c(18, 44, 64),
   ili.sudden.unknown = NA,
-  max.band.count = Inf,
-  max.symptom.days = 28
+  max.band.count = Inf
 )
 }
 \arguments{
@@ -43,12 +42,10 @@ cleans to perform (by default all):
 - 'remove.bad.symptom.dates', whether to remove bad symptom dates: symptom
 end of symptoms before start of symptoms, symptoms reported to have started
 or ended after date of report. Such dates are set to missing. Other start
-dates are kept as reported, and two logical columns flag them:
-\code{illness.ongoing.at.entry} (start before the participant's first
-report in the data, after any season limiting) and
-\code{long.running.illness} (start more than \code{max.symptom.days} days
-before the report that gives it).
-\code{\link{bouts_of_illness}} copies both flags to the bouts.
+dates are kept as reported, and the logical column
+\code{illness.ongoing.at.entry} flags those before the participant's first
+report in the data, after any season limiting.
+\code{\link{bouts_of_illness}} copies the flag to the bouts.
 \code{\link{get_incidence}} leaves bouts with \code{illness.ongoing.at.entry}
 out of the incidence only with \code{exclude = "ongoing.at.entry"}.
 - 'remove.bad.health.scores', whether to remove health scores <0 or >100
@@ -87,11 +84,6 @@ missing. \code{nb.household} is then missing too. The counts include the
 participant. A band ticked as present without a number counts as one
 person. A household with no band ticked gets a missing
 \code{nb.household}.}
-
-\item{max.symptom.days}{maximum number of days between the start of
-symptoms and the report before the illness is flagged as long-running
-(ignored unless 'remove.bad.symptom.dates' is a cleaning option); use
-\code{Inf} for no limit}
 }
 \value{
 a rolling-joined data table. \code{day.of.week} (1 for Monday to 7

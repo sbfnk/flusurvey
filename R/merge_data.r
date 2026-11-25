@@ -24,14 +24,12 @@
 ##' - 'remove.bad.symptom.dates', whether to remove bad symptom dates: symptom
 ##' end of symptoms before start of symptoms, symptoms reported to have started
 ##' or ended after date of report. Such dates are set to missing. Other start
-##' dates are kept as reported, and two logical columns flag them:
-##' \code{illness.ongoing.at.entry} (start before the participant's first
-##' report in the data, after any season limiting) and
-##' \code{long.running.illness} (start more than \code{max.symptom.days} days
-##' before the report containing it).
-##' \code{\link{bouts_of_illness}} copies both flags to the bouts.
-##' \code{\link{get_incidence}} excludes bouts with
-##' \code{illness.ongoing.at.entry} only if \code{exclude = "ongoing.at.entry"}.
+##' dates are kept as reported, and the logical column
+##' \code{illness.ongoing.at.entry} flags those before the participant's first
+##' report in the data, after any season limiting.
+##' \code{\link{bouts_of_illness}} copies the flag to the bouts.
+##' \code{\link{get_incidence}} leaves bouts with \code{illness.ongoing.at.entry}
+##' out of the incidence only with \code{exclude = "ongoing.at.entry"}.
 ##' - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 ##' - 'limit.season', whether to limit a flu season to November -> April
 ##' - 'remove.postcodes', whether to remove postcodes
@@ -63,10 +61,6 @@
 ##' default) leaves \code{ili} and \code{ili.fever} missing where onset is
 ##' needed to decide, \code{1} counts unknown onset as sudden and \code{0} as
 ##' not sudden. The recorded onset is kept in \code{onset}.
-##' @param max.symptom.days maximum number of days between the start of
-##' symptoms and the report before the illness is flagged as long-running
-##' (ignored unless 'remove.bad.symptom.dates' is a cleaning option); use
-##' \code{Inf} for no limit
 ##' @return a rolling-joined data table. \code{day.of.week} (1 for Monday to 7
 ##' for Sunday) is that of the report date. If the contact survey is included,
 ##' \code{contact.date} is the day the contacts describe (the day before the
@@ -100,8 +94,7 @@ merge_data <- function(
   ranges = "sample",
   age.breaks = c(18, 44, 64),
   ili.sudden.unknown = NA,
-  max.band.count = Inf,
-  max.symptom.days = 28
+  max.band.count = Inf
 ) {
   survey_order <- c("background", "contact", "symptom")
   if (!all(names(data) %in% survey_order)) {
@@ -147,9 +140,7 @@ merge_data <- function(
     }
 
     dt <- switch(name,
-      symptom = clean_symptom(
-        dt, clean, min.reports, max.symptom.days, ili.sudden.unknown
-      ),
+      symptom = clean_symptom(dt, clean, min.reports, ili.sudden.unknown),
       background = clean_background(dt, age.breaks, max.band.count),
       contact = clean_contact(dt, ranges),
       dt
@@ -253,8 +244,7 @@ convert_logical_columns <- function(res, reference) {
 
 ## ---- symptom survey ---------------------------------------------------------
 
-clean_symptom <- function(dt, clean, min.reports, max.symptom.days,
-                          ili.sudden.unknown) {
+clean_symptom <- function(dt, clean, min.reports, ili.sudden.unknown) {
   dt <- aggregate_symptoms(dt, ili.sudden.unknown = ili.sudden.unknown)
   dt[, nReports := uniqueN(date), by = global_id]
   if ("n.reports" %in% clean) {
@@ -270,7 +260,7 @@ clean_symptom <- function(dt, clean, min.reports, max.symptom.days,
   }
 
   if ("remove.bad.symptom.dates" %in% clean) {
-    remove_bad_symptom_dates(dt, max.symptom.days)
+    remove_bad_symptom_dates(dt)
   }
 
   if ("remove.bad.health.scores" %in% clean) {
@@ -284,7 +274,7 @@ clean_symptom <- function(dt, clean, min.reports, max.symptom.days,
 }
 
 ## Sets symptom dates that cannot be right to missing, by reference.
-remove_bad_symptom_dates <- function(dt, max.symptom.days) {
+remove_bad_symptom_dates <- function(dt) {
   ## remove end date before start date
   if (length(
     intersect(c("symptoms.start.date", "symptoms.end.date"), colnames(dt))
@@ -306,17 +296,12 @@ remove_bad_symptom_dates <- function(dt, max.symptom.days) {
     ]
   }
   ## keep the reported start date and flag illness that began before the
-  ## first report (ongoing at entry) or too long before the report that
-  ## gives it, so that later steps can handle these cases explicitly
+  ## first report (ongoing at entry), so that later steps can handle it
+  ## explicitly
   if ("symptoms.start.date" %in% colnames(dt)) {
     dt[,
       illness.ongoing.at.entry :=
         !is.na(symptoms.start.date) & symptoms.start.date < min.date
-    ]
-    dt[,
-      long.running.illness :=
-        !is.na(symptoms.start.date) &
-        as.numeric(date - symptoms.start.date) > max.symptom.days
     ]
   }
   ## remove end date after reporting date
