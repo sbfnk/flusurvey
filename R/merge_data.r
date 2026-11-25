@@ -134,12 +134,12 @@ merge_data <- function(
   }
   for (name in names(data)) {
     dt <- copy(data.table(data[[name]]))
-    if (name != tail(names(data), 1)) {
+    if (name != utils::tail(names(data), 1)) {
       ## keep the last report per day for the rolling join
       dt <- dt[!duplicated(dt[, list(global_id, date)], fromLast = TRUE)]
     }
 
-    if ("limit.season" %in% clean && name == tail(names(data), 1)) {
+    if ("limit.season" %in% clean && name == utils::tail(names(data), 1)) {
       dt <- limit_to_season(dt)
     }
 
