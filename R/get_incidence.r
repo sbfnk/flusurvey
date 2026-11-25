@@ -26,6 +26,10 @@
 ##' and \code{inverted.dates}) is before its \code{min.date}. The flag uses
 ##' the dates as reported, but the \code{min.date} comparison uses the
 ##' start date chosen for the bout.
+##'
+##' Leaving \code{exclude = "ongoing.at.entry"} off is the default, but the
+##' choice can change incidence materially on the survey data, so analyses
+##' should state which they use.
 ##' @examples
 ##' dt <- extract_data(simulated_data, years = 2013:2014)
 ##' get_incidence(dt, incidence.columns = "ili", aggregation = "week")

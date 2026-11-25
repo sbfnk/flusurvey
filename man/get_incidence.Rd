@@ -57,6 +57,10 @@ when its selected start date (see \code{start.date}, \code{missing.start}
 and \code{inverted.dates}) is before its \code{min.date}. The flag follows
 the dates as reported, whereas the \code{min.date} comparison follows the
 start date chosen for the bout.
+
+Leaving \code{exclude = "ongoing.at.entry"} off is the default, but the
+choice can change incidence materially on the survey data, so analyses
+should state which they use.
 }
 \examples{
 dt <- extract_data(simulated_data, years = 2013:2014)
