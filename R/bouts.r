@@ -196,22 +196,7 @@ bouts_of_illness <- function(
       by = list(participant_id, season, bout)
     ]
   }
-  if (inverted.dates == "clear") {
-    dt[!is.na(bout) & !is.na(symptoms.start.date) &
-         !is.na(symptoms.end.date) & symptoms.end.date < symptoms.start.date,
-       c("symptoms.start.date", "symptoms.end.date") := list(
-         as.Date(NA_character_), as.Date(NA_character_)
-       )]
-  } else if (inverted.dates == "reset.end") {
-    dt[!is.na(bout), last.report.date := last(date),
-      by = list(participant_id, season, bout)
-    ]
-    dt[!is.na(bout) & !is.na(symptoms.start.date) &
-        !is.na(symptoms.end.date) & symptoms.end.date < symptoms.start.date,
-      symptoms.end.date := last.report.date
-    ]
-    dt[, last.report.date := NULL]
-  }
+  resolve_inverted_dates(dt, inverted.dates)
 
   dt[, last.symptoms.start.date := NULL]
   dt[, last.not.na.symptoms.start.date := NULL]
@@ -275,4 +260,25 @@ bouts_of_illness <- function(
   }
   dt[, id := NULL]
   dt[]
+}
+
+## Applies the inverted.dates rule to the bouts of dt, by reference.
+resolve_inverted_dates <- function(dt, inverted.dates) {
+  if (inverted.dates == "clear") {
+    dt[!is.na(bout) & !is.na(symptoms.start.date) &
+         !is.na(symptoms.end.date) & symptoms.end.date < symptoms.start.date,
+       c("symptoms.start.date", "symptoms.end.date") := list(
+         as.Date(NA_character_), as.Date(NA_character_)
+       )]
+  } else if (inverted.dates == "reset.end") {
+    dt[!is.na(bout), last.report.date := date[.N],
+      by = list(participant_id, season, bout)
+    ]
+    dt[!is.na(bout) & !is.na(symptoms.start.date) &
+        !is.na(symptoms.end.date) & symptoms.end.date < symptoms.start.date,
+      symptoms.end.date := last.report.date
+    ]
+    dt[, last.report.date := NULL]
+  }
+  invisible(dt)
 }
