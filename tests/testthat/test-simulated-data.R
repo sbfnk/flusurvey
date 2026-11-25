@@ -243,12 +243,9 @@ test_that("bouts on the simulated data account for the symptomatic reports", {
   )))
   bouts[, n.reports := max.part.symptom.id - min.part.symptom.id + 1L]
 
-  ## bouts over several reports and bouts over one are both present
   expect_true(any(bouts$n.reports > 1))
   expect_true(any(bouts$n.reports == 1))
 
-  ## a bout is made of symptomatic reports, so the reports in bouts and the
-  ## participants with a bout cannot exceed those with symptoms
   expect_lte(sum(bouts$n.reports), nrow(symptomatic))
   expect_true(all(
     unique(bouts[, paste(participant_id, season)]) %in%
@@ -256,7 +253,6 @@ test_that("bouts on the simulated data account for the symptomatic reports", {
   ))
   expect_true(all(bouts$no.symptoms == "f"))
 
-  ## the bouts of a participant follow each other without sharing a report
   data.table::setorder(bouts, participant_id, season, min.part.symptom.id)
   expect_false(anyNA(bouts[, c("min.part.symptom.id", "max.part.symptom.id")]))
   overlap <- bouts[, list(
@@ -264,7 +260,6 @@ test_that("bouts on the simulated data account for the symptomatic reports", {
   ), by = list(participant_id, season)]
   expect_false(any(overlap$overlap))
 
-  ## collapsing bouts leaves every other report in place
   expect_equal(nrow(all_rows), nrow(dt) - sum(bouts$n.reports - 1L))
   expect_equal(sum(!is.na(all_rows$bout)), nrow(bouts))
 })
