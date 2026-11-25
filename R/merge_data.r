@@ -26,6 +26,8 @@
 ##' dates are kept as reported, and the logical column
 ##' \code{illness.ongoing.at.entry} flags those before the participant's first
 ##' report in the data, after any season limiting.
+##' When the first reporting day is removed, its flag is carried to reports
+##' in the same bout under the default bout boundary rules.
 ##' \code{\link{bouts_of_illness}} copies the flag to the bouts.
 ##' \code{\link{get_incidence}} excludes bouts with
 ##' \code{illness.ongoing.at.entry} from the incidence if called with
@@ -256,13 +258,29 @@ clean_symptom <- function(dt, clean, min.reports, ili.sudden.unknown) {
   dt[, min.date := min(date), by = global_id]
   dt[, max.date := max(date), by = global_id]
 
-  ## remove reports from each participant's first reporting day
-  if ("remove.first" %in% clean) {
-    dt <- dt[date > min.date]
-  }
-
   if ("remove.bad.symptom.dates" %in% clean) {
     remove_bad_symptom_dates(dt)
+  }
+
+  ## remove reports from each participant's first reporting day
+  if ("remove.first" %in% clean) {
+    if ("illness.ongoing.at.entry" %in% colnames(dt) &&
+          "no.symptoms" %in% colnames(dt)) {
+      evidence <- copy(dt)
+      if (!"symptoms.end.date" %in% colnames(evidence)) {
+        evidence[, symptoms.end.date := as.Date(NA)]
+      }
+      evidence[, `:=`(participant_id = global_id, season = 1L,
+                      evidence.row = seq_len(.N))]
+      evidence <- reconstruct_bouts(evidence)
+      evidence[!is.na(bout), illness.ongoing.at.entry :=
+                 illness.ongoing.at.entry |
+                 any(illness.ongoing.at.entry & date == min.date),
+               by = list(global_id, bout)]
+      dt[evidence$evidence.row, illness.ongoing.at.entry :=
+           evidence$illness.ongoing.at.entry]
+    }
+    dt <- dt[date > min.date]
   }
 
   if ("remove.bad.health.scores" %in% clean) {

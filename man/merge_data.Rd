@@ -44,6 +44,8 @@ or ended after date of report. Such dates are set to missing. Other start
 dates are kept as reported, and the logical column
 \code{illness.ongoing.at.entry} flags those before the participant's first
 report in the data, after any season limiting.
+When the first reporting day is removed, its flag is carried to reports
+in the same bout under the default bout boundary rules.
 \code{\link{bouts_of_illness}} copies the flag to the bouts.
 \code{\link{get_incidence}} excludes bouts with
 \code{illness.ongoing.at.entry} from the incidence only with

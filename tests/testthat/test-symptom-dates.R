@@ -100,3 +100,33 @@ test_that("incidence assigns retained early onsets to the first retained report"
     expect_equal(sum(inc$ili), 0, info = aggregation)
   }
 })
+
+test_that("first report evidence follows a continuing illness", {
+  season <- fixture_season()
+  season$background <- season$background[global_id == "early"]
+  season$symptom <- season$symptom[global_id == "early"]
+  first <- data.table::copy(season$symptom[date == as.Date("2013-01-10")])
+  first[, `:=`(date = as.Date("2013-01-01"),
+               symptoms.end.date = as.Date(NA))]
+  season$symptom <- season$symptom[date != as.Date("2013-01-01")]
+  season$symptom[date == as.Date("2013-01-10"), `:=`(
+    same = "yes", symptoms.start.date = as.Date(NA)
+  )]
+  season$symptom <- data.table::rbindlist(list(first, season$symptom))
+  dt <- extract_data(list("2013" = season), clean = c(
+    "remove.first", "remove.bad.symptom.dates", "unsuccessful.join"
+  ))
+  capture.output(bouts <- bouts_of_illness(dt))
+  expect_true(bouts$illness.ongoing.at.entry[1])
+  capture.output(inc <- get_incidence(
+    dt, aggregation = "day", exclude = "ongoing.at.entry"
+  ))
+  expect_equal(sum(inc$ili), 0)
+
+  season$symptom[date == as.Date("2013-01-10"), same := "no"]
+  separate <- extract_data(list("2013" = season), clean = c(
+    "remove.first", "remove.bad.symptom.dates", "unsuccessful.join"
+  ))
+  capture.output(bouts <- bouts_of_illness(separate))
+  expect_false(bouts$illness.ongoing.at.entry[1])
+})
