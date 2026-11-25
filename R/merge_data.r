@@ -28,8 +28,8 @@
 ##' \code{illness.ongoing.at.entry} flags those before the participant's first
 ##' report in the data, after any season limiting.
 ##' \code{\link{bouts_of_illness}} copies the flag to the bouts.
-##' \code{\link{get_incidence}} leaves bouts with \code{illness.ongoing.at.entry}
-##' out of the incidence only with \code{exclude = "ongoing.at.entry"}.
+##' \code{\link{get_incidence}} excludes bouts with \code{illness.ongoing.at.entry}
+##' from the incidence only with \code{exclude = "ongoing.at.entry"}.
 ##' - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 ##' - 'limit.season', whether to limit a flu season to November -> April
 ##' - 'remove.postcodes', whether to remove postcodes
@@ -296,8 +296,7 @@ remove_bad_symptom_dates <- function(dt) {
     ]
   }
   ## keep the reported start date and flag illness that began before the
-  ## first report (ongoing at entry), so that later steps can handle it
-  ## explicitly
+  ## first report (ongoing at entry), for later steps to handle
   if ("symptoms.start.date" %in% colnames(dt)) {
     dt[,
       illness.ongoing.at.entry :=
