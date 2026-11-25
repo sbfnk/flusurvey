@@ -158,7 +158,7 @@ The separate [`flag_ill_contacts()`](../R/flag_ill_contacts.r) accepts already-b
 
 The date-policy defaults remain those documented above; choosing an earliest onset or excluding onset before entry is explicit. The contact follow-up window ends at the last symptom-free report; using end-of-illness as an alternative remains unresolved. Chronic-only symptoms should not count as acute illness, but an operational classifier remains to be specified. A chronic condition such as asthma, or onset more than four weeks ago, is not by itself an exclusion.
 
-Default extraction can still remove an illness's supporting reports: `only.symptoms` excludes participants with any missing symptom-status answer. The contact analysis avoids those cleaning options for symptoms. Missing symptom answers are treated differently by the initial report-level aggregation and the uncertainty-preserving bout aggregation; they should not be interpreted as evidence of absence.
+Default extraction can still remove the reports that support an illness, because `only.symptoms` excludes participants with any missing symptom-status answer. The contact analysis avoids those cleaning options for symptoms. The initial report-level aggregation and the uncertainty-preserving bout aggregation treat missing symptom answers differently. A missing answer is not evidence of absence.
 
 The leading-report retention cases from #45 are included in the shared reconstruction, while the optional date policies remain those of #82. Further splitting or entry policies in #47/#48 must not silently change these rules. Any follow-up that changes a rule must update this prose and its regression tests together.
 
