@@ -43,6 +43,13 @@
 ##' group except the last (first age group starts at 0 years of age). The last
 ##' group is open-ended. The default gives the groups 0-18, 19-44, 45-64 and
 ##' 65+, matching the age bands of the contact questions.
+##' @param max.band.count the largest number of people accepted in a single age
+##' band of the household. There is no limit by default, as households in
+##' institutions such as care homes can be large. Larger counts are set to
+##' missing. \code{nb.household} is then missing too. The counts include the
+##' participant. A band ticked as present without a number counts as one
+##' person. A household with no band ticked gets a missing
+##' \code{nb.household}.
 ##' @param ili.sudden.unknown how to interpret reports where sudden onset is
 ##' unknown, passed to \code{\link{aggregate_symptoms}}: \code{NA} (the
 ##' default) leaves \code{ili} and \code{ili.fever} missing where onset is
@@ -80,7 +87,8 @@ merge_data <- function(
   min.reports = 3,
   ranges = "sample",
   age.breaks = c(18, 44, 64),
-  ili.sudden.unknown = NA
+  ili.sudden.unknown = NA,
+  max.band.count = Inf
 ) {
   survey_order <- c("background", "contact", "symptom")
   if (!all(names(data) %in% survey_order)) {
@@ -127,7 +135,7 @@ merge_data <- function(
 
     dt <- switch(name,
       symptom = clean_symptom(dt, clean, min.reports, ili.sudden.unknown),
-      background = clean_background(dt, age.breaks),
+      background = clean_background(dt, age.breaks, max.band.count),
       contact = clean_contact(dt, ranges),
       dt
     )
@@ -315,13 +323,13 @@ keep_symptom_free_reporters <- function(dt) {
 
 ## ---- background survey ------------------------------------------------------
 
-clean_background <- function(dt, age.breaks) {
+clean_background <- function(dt, age.breaks, max.band.count) {
   dt <- add_age(dt, age.breaks)
   convert_household_counts(dt)
   add_living_with_children(dt)
   dt <- add_postcode_regions(dt)
   add_highest_education(dt)
-  add_household_members(dt)
+  add_household_members(dt, max.band.count)
   dt
 }
 
@@ -498,17 +506,23 @@ add_highest_education <- function(dt) {
 }
 
 ## household members
-add_household_members <- function(dt) {
+add_household_members <- function(dt, max.band.count) {
   hh_columns <- grep("^nb.household\\.", value = TRUE, colnames(dt))
   for (col in hh_columns) {
     indicator_col <- sub("nb.", "", col, fixed = TRUE)
     if (indicator_col %in% colnames(dt)) {
       dt[get(indicator_col) == "f", paste(col) := 0]
+      ## ticked as present without a number: at least one person
+      dt[get(indicator_col) == "t" & is.na(get(col)), paste(col) := 1]
     }
+    dt[get(col) > max.band.count, paste(col) := NA]
   }
   dt[, nb.household := rowSums(.SD),
     .SDcols = hh_columns
   ]
+  ## a zero total means no band was filled in. Every household has at least
+  ## one member, so zero is recorded as missing
+  dt[nb.household == 0, nb.household := NA_real_]
   dt[, nb.household.children := rowSums(.SD),
     .SDcols = c("nb.household.0.4", "nb.household.5.18")
   ]

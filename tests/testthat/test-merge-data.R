@@ -30,6 +30,15 @@ test_that("merge_data skips every cleaning step for clean = NULL", {
   )
 })
 
+test_that("limit_to_season uses the earliest of several dates tied for most reports", {
+  dt <- data.table::data.table(
+    date = as.Date(c("2013-01-01", "2013-01-02", "2014-01-01", "2014-01-02")),
+    x = 1:4
+  )
+  expect_identical(flusurvey:::limit_to_season(dt)$x, 1:2)
+  expect_identical(flusurvey:::limit_to_season(dt[4:1])$x, 2:1)
+})
+
 test_that("the driving survey retains same-day reports through joins", {
   data <- lapply(simulated_data[["2013"]], data.table::copy)
   for (name in c("background", "contact", "symptom")) {
