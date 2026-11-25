@@ -27,9 +27,10 @@
 ##' the dates as reported, but the \code{min.date} comparison uses the
 ##' start date chosen for the bout.
 ##'
-##' By default bouts ongoing at entry are kept. Keeping or excluding them can
-##' change incidence materially on the survey data, so an analysis should state
-##' which it uses.
+##' By default bouts ongoing at entry are kept. For incidence, a start before
+##' the first report is assigned to the first retained report. Keeping or
+##' excluding them can change incidence materially on the survey data, so an
+##' analysis should state which it uses.
 ##' @examples
 ##' dt <- extract_data(simulated_data, years = 2013:2014)
 ##' get_incidence(dt, incidence.columns = "ili", aggregation = "week")
@@ -64,6 +65,14 @@ get_incidence <- function(
     inverted.dates = inverted.dates
   )
   bouts <- exclude_bouts(bouts, exclude)
+  id_column <- grep("_id$", colnames(dt), value = TRUE)
+  first_reports <- dt[, list(first.report = min(date)),
+                      by = c(id_column, "season")]
+  bouts[first_reports, on = c(id_column, "season"),
+        symptoms.start.date := fifelse(
+          !is.na(symptoms.start.date) & symptoms.start.date < min.date,
+          i.first.report, symptoms.start.date
+        )]
 
   ## required date columns
   columns <- c("symptoms.start.date", "date", "min.date", "max.date")
@@ -74,8 +83,6 @@ get_incidence <- function(
     columns <- sub("date$", paste(aggregation, "date", sep = "."), columns)
     add_aggregated_dates(dt, bouts, columns, aggregation)
   }
-
-  id_column <- grep("_id$", colnames(dt), value = TRUE)
 
   incidence <- count_new_cases(
     bouts, incidence.columns, columns, aggregation, id_column, by

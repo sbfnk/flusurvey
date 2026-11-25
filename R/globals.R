@@ -4,6 +4,7 @@ utils::globalVariables(c(
   "N",
   "row_id",
   "i.value",
+  "i.first.report",
   "next_date",
   "report.start",
   "report.end",

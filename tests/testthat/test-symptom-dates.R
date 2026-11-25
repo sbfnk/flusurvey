@@ -76,7 +76,7 @@ test_that("incidence excludes illness ongoing at entry only on request", {
   expect_equal(sum(inc$ili), 1)
 })
 
-test_that("incidence is zero when every bout is ongoing at entry", {
+test_that("incidence assigns retained early onsets to the first retained report", {
   season <- fixture_season()
   season$background <- season$background[global_id == "early"]
   season$symptom <- season$symptom[global_id == "early"]
@@ -84,6 +84,15 @@ test_that("incidence is zero when every bout is ongoing at entry", {
     "remove.first", "remove.bad.symptom.dates", "unsuccessful.join"
   ))
   for (aggregation in c("day", "week", "month", "year")) {
+    for (denominator in c("active.members", "reports")) {
+      capture.output(retained <- get_incidence(
+        dt, aggregation = aggregation, denominator = denominator
+      ))
+      expect_equal(sum(retained$ili), 1, info = paste(aggregation, denominator))
+      if (aggregation == "day") {
+        expect_equal(retained[ili > 0]$day, as.Date("2013-01-10"))
+      }
+    }
     capture.output(inc <- get_incidence(
       dt, aggregation = aggregation, exclude = "ongoing.at.entry"
     ))
