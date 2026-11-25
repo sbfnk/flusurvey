@@ -29,6 +29,18 @@ wellness <- function() {
   list(flu("2013-01-01"), flu("2013-01-31"))
 }
 
+test_that("daily expansion retains its positional argument", {
+  symptoms <- do.call(prepare, c(wellness(), list(
+    flu("2013-01-05", "fever", start = "2013-01-03", end = "2013-01-05")
+  )))
+  positional <- bout_evidence(symptoms, "last", "missing", "keep", FALSE)
+  named <- bout_evidence(symptoms, start.date = "last", missing.start = "missing",
+                         inverted.dates = "keep", expand.days = FALSE)
+  expect_equal(positional, named)
+  expect_equal(nrow(positional$days), 0L)
+  expect_equal(nrow(positional$intervals), 1L)
+})
+
 test_that("a still-ill report without onset establishes only its own day", {
   symptoms <- do.call(prepare, c(wellness(), list(
     flu("2013-01-15", c("fever", "cough"), option = "still_ill")

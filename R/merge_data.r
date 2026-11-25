@@ -15,9 +15,8 @@
 ##' symptom report describes the week before it. With
 ##' 'unsuccessful.join' the symptom reports without an earlier contact report
 ##' are dropped, shortening episodes of illness. To link the two, extract
-##' the symptom and contact surveys separately, get the episodes with
-##' \code{\link{bouts_of_illness}} and flag the contact reports made during an
-##' episode with \code{\link{flag_ill_contacts}}.
+##' the symptom and contact surveys separately and classify the contact reports
+##' with \code{\link{contact_illness}}.
 ##' @param clean cleaning options, NULL for no cleaning, otherwise a vector of
 ##' cleans to perform (by default all):
 ##' - 'remove.first', whether to remove reports from the first reporting day,
@@ -27,6 +26,8 @@
 ##' date of report
 ##' - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 ##' - 'limit.season', whether to limit a flu season to November -> April
+##' (when surveys are merged, the limit applies to the last survey merged:
+##' the symptom survey, if present)
 ##' - 'remove.postcodes', whether to remove postcodes
 ##' - 'n.reports', whether to exclude those with fewer than \code{min.reports}
 ##' symptom reporting days
@@ -111,7 +112,7 @@ merge_data <- function(
       "pairs each symptom report with the latest earlier contact report ",
       "however long before it was filed, and (with 'unsuccessful.join') ",
       "drops symptom reports that have none. To link contacts to illness, ",
-      "extract them separately and use flag_ill_contacts().",
+      "extract them separately and use contact_illness().",
       call. = FALSE
     )
   }
@@ -130,7 +131,7 @@ merge_data <- function(
       dt <- dt[!duplicated(dt[, list(global_id, date)], fromLast = TRUE)]
     }
 
-    if ("limit.season" %in% clean) {
+    if ("limit.season" %in% clean && name == tail(names(data), 1)) {
       dt <- limit_to_season(dt)
     }
 
