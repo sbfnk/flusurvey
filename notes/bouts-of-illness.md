@@ -142,8 +142,6 @@ For example, within follow-up, a report on 15 January saying `still_ill` but giv
 
 [`analysis/contacts.R`](../analysis/contacts.R) extracts symptoms with `clean = c("unsuccessful.join", "remove.bad.symptom.dates")`, retaining first-day and same-day reports and not applying the default report-count or symptom-free filters before classification. The classifier then determines eligibility itself. Its output retains contact rows outside follow-up with unknown illness status. Neither this function nor the generic bout function identifies chronic-only symptoms.
 
-The separate [`flag_ill_contacts()`](../R/flag_ill_contacts.r) accepts already-built bouts and tests inclusive start/end intervals by `global_id`. It does not reconstruct bouts, enforce eligibility or distinguish unknown from healthy: unmatched rows receive `FALSE`, including missing contact dates and bouts with missing boundaries. It does not explicitly group by season. It is not the classifier used by the current contact analysis.
-
 ## Known problems
 
 - Leading reports before the first start are dropped. S1, S2 or S5 can start a bout among them. A participant whose first kept report continues an illness, with no start date or a later one than another report, loses that report and the illness it records (#19).

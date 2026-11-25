@@ -212,16 +212,6 @@ test_that("exclude leaves out bouts ongoing at entry", {
   expect_error(get_incidence(x, exclude = "other"))
 })
 
-test_that("unknown onsets are not matched to contacts by report date", {
-  x <- incidence_example()[participant_id %in% 1:2]
-  capture.output(bouts <- bouts_of_illness(x, missing.start = "missing"))
-  contacts <- data.table::data.table(
-    global_id = c("p1", "p2", "p2"),
-    contact.date = as.Date(c("2013-01-10", "2013-01-10", "2013-01-11"))
-  )
-  expect_identical(flag_ill_contacts(contacts, bouts)$ill, c(FALSE, TRUE, FALSE))
-})
-
 test_that("unknown onset preserves a recovery before the first illness report", {
   x <- reports(1, "2013-01-10", TRUE, "no", NA, "2013-01-08")
   capture.output(b <- bouts_of_illness(x, missing.start = "missing"))
