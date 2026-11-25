@@ -13,7 +13,8 @@
 ##' "unknown.onset" (no reported start date, which needs
 ##' \code{missing.start = "missing"}) and "ongoing.at.entry" (start date
 ##' before the participant's first report); by default none
-##' @param start.date,missing.start,inverted.dates how bout dates are set, see
+##' @param start.date,missing.start,inverted.dates,precedence,unresolved how
+##' bouts and their dates are set, see
 ##' \code{\link{bouts_of_illness}}
 ##' @examples
 ##' dt <- extract_data(simulated_data, years = 2013:2014)
@@ -33,10 +34,13 @@ get_incidence <- function(
   min.N = 1,
   by = NULL,
   exclude = NULL,
-  start.date = c("last", "earliest"),
+  start.date = c("earliest", "last"),
   missing.start = c("first.report", "missing"),
-  inverted.dates = c("keep", "clear", "reset.end")
+  inverted.dates = c("keep", "clear", "reset.end"),
+  precedence = c("continuation", "dates"),
+  unresolved = c("fill", "missing")
 ) {
+  unresolved <- match.arg(unresolved)
   exclude <- check_exclude(exclude)
   aggregation <- match.arg(aggregation)
   denominator <- match.arg(denominator)
@@ -46,8 +50,13 @@ get_incidence <- function(
     data,
     start.date = start.date,
     missing.start = missing.start,
-    inverted.dates = inverted.dates
+    inverted.dates = inverted.dates,
+    precedence = precedence,
+    unresolved = unresolved
   )
+  if (unresolved == "missing") {
+    bouts <- bouts[!is.na(symptoms.end.date)]
+  }
   bouts <- exclude_bouts(bouts, exclude)
 
   ## required date columns

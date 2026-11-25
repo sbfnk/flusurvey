@@ -50,34 +50,34 @@ bout_dates <- function(x, col, ...) {
   out[order(participant_id), get(col)]
 }
 
-test_that("the defaults keep the last reported start date", {
+test_that("the defaults use the earliest reported start date", {
   x <- dates_example()
   original <- data.table::copy(x)
   expect_equal(bout_dates(x, "symptoms.start.date"),
-               as.Date(c("2013-01-06", "2013-01-10", "2013-01-09")))
+               as.Date(c("2013-01-05", "2013-01-10", "2013-01-09")))
   expect_equal(bout_dates(x, "symptoms.end.date"),
                as.Date(c("2013-01-12", "2013-01-10", "2013-01-08")))
   expect_equal(x, original)
 })
 
-test_that("start.date chooses the earliest reported start date", {
+test_that("start.date chooses the last reported start date", {
   expect_equal(
-    bout_dates(dates_example(), "symptoms.start.date", start.date = "earliest"),
-    as.Date(c("2013-01-05", "2013-01-10", "2013-01-09"))
+    bout_dates(dates_example(), "symptoms.start.date", start.date = "last"),
+    as.Date(c("2013-01-06", "2013-01-10", "2013-01-09"))
   )
 })
 
 test_that("missing.start leaves unreported start dates missing", {
   res <- bout_dates(dates_example(), "symptoms.start.date",
                     missing.start = "missing")
-  expect_equal(res, as.Date(c("2013-01-06", NA, "2013-01-09")))
+  expect_equal(res, as.Date(c("2013-01-05", NA, "2013-01-09")))
 })
 
 test_that("inverted.dates keeps, clears or resets inverted bounds", {
   x <- dates_example()
   expect_equal(
     bout_dates(x, "symptoms.start.date", inverted.dates = "clear"),
-    as.Date(c("2013-01-06", "2013-01-10", NA))
+    as.Date(c("2013-01-05", "2013-01-10", NA))
   )
   expect_equal(
     bout_dates(x, "symptoms.end.date", inverted.dates = "clear"),
@@ -89,7 +89,7 @@ test_that("inverted.dates keeps, clears or resets inverted bounds", {
   )
   expect_equal(
     bout_dates(x, "symptoms.start.date", inverted.dates = "reset.end"),
-    as.Date(c("2013-01-06", "2013-01-10", "2013-01-09"))
+    as.Date(c("2013-01-05", "2013-01-10", "2013-01-09"))
   )
 })
 
@@ -117,7 +117,7 @@ test_that("a bout ends on its last reported end date, whatever the arguments", {
                         "2013-01-17"))
   expect_equal(bout_dates(x, "symptoms.end.date"), expected)
   expect_equal(
-    bout_dates(x, "symptoms.end.date", start.date = "earliest",
+    bout_dates(x, "symptoms.end.date", start.date = "last",
                missing.start = "missing", inverted.dates = "reset.end"),
     expected
   )
@@ -154,6 +154,8 @@ test_that("invalid rule arguments are rejected", {
   expect_error(bouts_of_illness(dates_example(), start.date = "middle"))
   expect_error(bouts_of_illness(dates_example(), missing.start = "drop"))
   expect_error(bouts_of_illness(dates_example(), inverted.dates = "swap"))
+  expect_error(bouts_of_illness(dates_example(), precedence = "both"))
+  expect_error(bouts_of_illness(dates_example(), unresolved = "drop"))
 })
 
 incidence_example <- function() {
@@ -243,4 +245,47 @@ test_that("surveys without the same-illness question use the other start rules",
   expect_equal(absent, expected)
   expect_equal(x, original)
   expect_equal(nrow(absent), 3L)
+})
+
+gap_example <- function() {
+  ## the second report is answered "yes" but starts after the previous end
+  rbind(
+    reports(1, c("2013-01-10", "2013-01-24", "2013-01-31"),
+            c(TRUE, TRUE, FALSE), c("no", "yes", NA),
+            c("2013-01-05", "2013-01-20", NA),
+            c("2013-01-08", "2013-01-23", NA))
+  )
+}
+
+test_that("precedence sets whether a continuation answer or the dates decide", {
+  x <- gap_example()
+  expect_equal(bout_dates(x, "symptoms.start.date"), as.Date("2013-01-05"))
+  expect_equal(bout_dates(x, "symptoms.end.date"), as.Date("2013-01-23"))
+  expect_equal(
+    bout_dates(x, "symptoms.start.date", precedence = "dates"),
+    as.Date(c("2013-01-05", "2013-01-20"))
+  )
+})
+
+test_that("an answer of no starts a new bout whatever the precedence", {
+  x <- gap_example()
+  x[2, same := factor("no", levels = levels(same))]
+  capture.output(res <- bouts_of_illness(x))
+  expect_identical(nrow(res), 2L)
+})
+
+test_that("unresolved leaves bouts without a reported end date missing", {
+  x <- end_example()
+  expect_equal(
+    bout_dates(x, "symptoms.end.date", unresolved = "missing"),
+    as.Date(c("2013-01-20", "2013-01-12", "2013-01-16", NA))
+  )
+})
+
+test_that("get_incidence leaves unresolved bouts out of the counts", {
+  x <- incidence_example()
+  for (period in periods) {
+    expect_equal(total_incidence(x, period, unresolved = "missing"), 2,
+                 info = period)
+  }
 })

@@ -1,17 +1,24 @@
 ##' Extract bouts of illness from a flusurvey data table
 ##'
-##' The end date of a bout is the last reported end date, or the last report
-##' date if none was reported. This applies to every row of the bout, whatever
-##' the other arguments are. The earlier rule only filled in the end date of a
-##' bout whose last report had none. The other arguments set how the start date
-##' is chosen where the reports leave a choice. Their defaults keep the earlier
-##' behaviour.
+##' The end date of a bout is the last reported end date. If none was reported
+##' it is the last report date, unless \code{unresolved = "missing"}. This
+##' applies to every row of the bout. The other arguments set how reports are
+##' grouped into bouts and how the dates are chosen where the reports leave a
+##' choice.
 ##'
 ##' @param x the data to extract bouts from
 ##' @param symptomatic.only whether to only include symptomatic periods
 ##' @param as.data.frame currently has no effect
+##' @param precedence what decides whether a report continues the previous
+##' bout when its answer to the continuation question and its dates disagree:
+##' "continuation" keeps a report answered "yes" in the bout even if its start
+##' date is after the previous end date, "dates" starts a new bout in that
+##' case. An answer of "no" always starts a new bout.
+##' @param unresolved what to do with a bout with no reported end date: "fill"
+##' its end with the last report date, or leave it "missing"
+##' (\code{\link{get_incidence}} then leaves it out of the counts)
 ##' @param start.date which reported start date to use for a bout: the
-##' "last" one reported, or the "earliest"
+##' "earliest" one reported, or the "last"
 ##' @param missing.start what to use as start date if none was reported for a
 ##' bout: the date of its "first.report", or "missing"
 ##' @param inverted.dates what to do if the end date is before the start date:
@@ -32,10 +39,14 @@ bouts_of_illness <- function(
   x,
   symptomatic.only = TRUE,
   as.data.frame = TRUE,
-  start.date = c("last", "earliest"),
+  start.date = c("earliest", "last"),
   missing.start = c("first.report", "missing"),
-  inverted.dates = c("keep", "clear", "reset.end")
+  inverted.dates = c("keep", "clear", "reset.end"),
+  precedence = c("continuation", "dates"),
+  unresolved = c("fill", "missing")
 ) {
+  precedence <- match.arg(precedence)
+  unresolved <- match.arg(unresolved)
   start.date <- match.arg(start.date)
   missing.start <- match.arg(missing.start)
   inverted.dates <- match.arg(inverted.dates)
@@ -114,7 +125,8 @@ bouts_of_illness <- function(
   dt[
     !new.bout & !is.na(previous.symptoms.end.date) &
       !is.na(symptoms.start.date) & no.symptoms == "f" &
-      previous.symptoms.end.date < symptoms.start.date,
+      previous.symptoms.end.date < symptoms.start.date &
+      !(precedence == "continuation" & !is.na(same) & same == "yes"),
     new.bout := TRUE
   ]
   dt[, previous.symptoms.end.date := NULL]
@@ -174,10 +186,12 @@ bouts_of_illness <- function(
     symptoms.end.date := last.not.na.symptoms.end.date,
     by = list(participant_id, season, bout)
   ]
-  dt[!is.na(bout) & is.na(last.not.na.symptoms.end.date),
-    symptoms.end.date := last(date),
-    by = list(participant_id, season, bout)
-  ]
+  if (unresolved == "fill") {
+    dt[!is.na(bout) & is.na(last.not.na.symptoms.end.date),
+      symptoms.end.date := last(date),
+      by = list(participant_id, season, bout)
+    ]
+  }
   if (inverted.dates == "clear") {
     dt[!is.na(bout) & !is.na(symptoms.start.date) &
          !is.na(symptoms.end.date) & symptoms.end.date < symptoms.start.date,

@@ -12,9 +12,11 @@ get_incidence(
   min.N = 1,
   by = NULL,
   exclude = NULL,
-  start.date = c("last", "earliest"),
+  start.date = c("earliest", "last"),
   missing.start = c("first.report", "missing"),
-  inverted.dates = c("keep", "clear", "reset.end")
+  inverted.dates = c("keep", "clear", "reset.end"),
+  precedence = c("continuation", "dates"),
+  unresolved = c("fill", "missing")
 )
 }
 \arguments{
@@ -37,7 +39,8 @@ in a week}
 \code{missing.start = "missing"}) and "ongoing.at.entry" (start date
 before the participant's first report); by default none}
 
-\item{start.date, missing.start, inverted.dates}{how bout dates are set, see
+\item{start.date, missing.start, inverted.dates, precedence, unresolved}{how
+bouts and their dates are set, see
 \code{\link{bouts_of_illness}}}
 }
 \value{

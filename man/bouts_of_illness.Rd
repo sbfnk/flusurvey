@@ -8,9 +8,11 @@ bouts_of_illness(
   x,
   symptomatic.only = TRUE,
   as.data.frame = TRUE,
-  start.date = c("last", "earliest"),
+  start.date = c("earliest", "last"),
   missing.start = c("first.report", "missing"),
-  inverted.dates = c("keep", "clear", "reset.end")
+  inverted.dates = c("keep", "clear", "reset.end"),
+  precedence = c("continuation", "dates"),
+  unresolved = c("fill", "missing")
 )
 }
 \arguments{
@@ -21,7 +23,7 @@ bouts_of_illness(
 \item{as.data.frame}{currently has no effect}
 
 \item{start.date}{which reported start date to use for a bout: the
-"last" one reported, or the "earliest"}
+"earliest" one reported, or the "last"}
 
 \item{missing.start}{what to use as start date if none was reported for a
 bout: the date of its "first.report", or "missing"}
@@ -29,17 +31,26 @@ bout: the date of its "first.report", or "missing"}
 \item{inverted.dates}{what to do if the end date is before the start date:
 "keep" both, set both to "clear" (missing), or "reset.end" to the last
 report date of the bout}
+
+\item{precedence}{what decides whether a report continues the previous
+bout when its answer to the continuation question and its dates disagree:
+"continuation" keeps a report answered "yes" in the bout even if its start
+date is after the previous end date, "dates" starts a new bout in that
+case. An answer of "no" always starts a new bout.}
+
+\item{unresolved}{what to do with a bout with no reported end date: "fill"
+its end with the last report date, or leave it "missing"
+(\code{\link{get_incidence}} then leaves it out of the counts)}
 }
 \value{
 a data table of bouts of illness
 }
 \description{
-The end date of a bout is the last reported end date, or the last report
-date if none was reported. This applies to every row of the bout and
-whatever the other arguments are; it differs from the earlier rule, which
-only filled in the end date of a bout whose last report had none. The other
-arguments set how the start date is chosen where the reports leave a
-choice, and their defaults keep the earlier behaviour.
+The end date of a bout is the last reported end date. If none was reported
+it is the last report date, unless \code{unresolved = "missing"}. This
+applies to every row of the bout. The other arguments set how reports are
+grouped into bouts and how the dates are chosen where the reports leave a
+choice.
 }
 \examples{
 dt <- extract_data(simulated_data, years = 2013:2014)
