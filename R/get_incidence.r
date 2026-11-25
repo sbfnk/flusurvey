@@ -98,7 +98,9 @@ get_incidence <- function(
 check_exclude <- function(exclude) {
   if (is.null(exclude)) return(exclude)
   match.arg(
-    exclude, c("unknown.onset", "unknown.end", "ongoing.at.entry"), several.ok = TRUE
+    exclude,
+    c("unknown.onset", "unknown.end", "ongoing.at.entry"),
+    several.ok = TRUE
   )
 }
 
