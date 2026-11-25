@@ -77,6 +77,12 @@ incidence_by_age <- get_incidence(dt, by = "agegroup")
 bouts <- bouts_of_illness(dt)
 ```
 
+`bout_evidence()` returns shared bout summaries, report membership, established illness intervals and optional daily evidence. Missing onset stays missing by default, while reported and fallback boundaries remain distinguishable. `contact_illness()` uses those intervals without expanding every day. See [the illness rules](notes/bouts-of-illness.md) for eligibility, uncertainty and case definitions.
+
+```r
+evidence <- bout_evidence(dt)
+```
+
 `aggregate_symptoms()` derives the case definitions from the individual symptoms; `merge_data()` calls it for you. `ili` requires sudden onset, a respiratory symptom (sore throat, cough or shortness of breath) and either fever or a systemic symptom (tiredness, weakness or headache). `ili.fever` requires the fever as well. `ili.self` is the participant's own assessment, and `gi` is vomiting or diarrhoea.
 
 ## Bundled data

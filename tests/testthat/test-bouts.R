@@ -1,4 +1,4 @@
-make_reports <- function(id, dates, symptomatic, same, start, end) {
+reports <- function(id, dates, symptomatic, same, start, end) {
   data.table::data.table(
     participant_id = id, global_id = paste0("p", id), season = "2012/13",
     symptom.id = seq_along(dates), date = as.Date(dates),
@@ -10,7 +10,7 @@ make_reports <- function(id, dates, symptomatic, same, start, end) {
 
 test_that("a first symptomatic report starts a bout whatever `same` says", {
   for (same in list("yes", "dont_know", NA_character_)) {
-    x <- make_reports(
+    x <- reports(
       1, c("2013-01-03", "2013-01-10"), c(TRUE, FALSE),
       c(same, NA), c(NA, NA), c(NA, NA)
     )
@@ -20,7 +20,7 @@ test_that("a first symptomatic report starts a bout whatever `same` says", {
 })
 
 test_that("a continuing report does not start a second bout", {
-  x <- make_reports(
+  x <- reports(
     1, c("2013-01-03", "2013-01-10"), c(TRUE, TRUE),
     c("yes", "yes"), c(NA, NA), c(NA, NA)
   )
@@ -29,7 +29,7 @@ test_that("a continuing report does not start a second bout", {
 })
 
 test_that("an earlier revised start date does not split a continuing bout", {
-  x <- make_reports(
+  x <- reports(
     1, c("2013-01-17", "2013-01-24", "2013-01-31"),
     c(TRUE, TRUE, FALSE), c("yes", "yes", NA),
     c("2013-01-15", "2013-01-10", NA), c(NA, NA, NA)
@@ -39,11 +39,11 @@ test_that("an earlier revised start date does not split a continuing bout", {
   expect_equal(res$symptoms.start.date, as.Date("2013-01-10"))
 })
 
-a <- make_reports(
+a <- reports(
   1, c("2013-01-03", "2013-01-10"), c(FALSE, TRUE), c(NA, "no"),
   c(NA, "2013-01-05"), c(NA, "2013-01-08")
 )
-b <- make_reports(
+b <- reports(
   2, c("2013-01-17", "2013-01-24", "2013-01-31"), c(TRUE, TRUE, FALSE),
   c("yes", "yes", NA), c("2013-01-10", "2013-01-10", NA), c(NA, NA, NA)
 )
@@ -57,6 +57,66 @@ test_that("the previous end date does not carry over between participants", {
   expect_identical(together[participant_id == 2, .N], 1L)
 })
 
+flag_reports <- function() {
+  r <- reports(
+    1, c("2013-01-03", "2013-01-06", "2013-01-12"), c(TRUE, TRUE, TRUE),
+    c(NA, "yes", "yes"), c("2013-01-02", NA, NA),
+    rep("2013-01-12", 3)
+  )
+  r[, ili := factor(c("f", "t", "f"), levels = c("f", "t"))]
+  r
+}
+ili_by_day <- function(mode) {
+  capture.output(res <- bouts_of_illness(flag_reports(), daily.flags = mode))
+  as.character(res$ili)
+}
+
+test_that("daily.flags gives one row per day of a bout", {
+  capture.output(res <- bouts_of_illness(flag_reports(), daily.flags = "bout"))
+  expect_identical(nrow(res), 11L)
+  expect_identical(range(res$day), as.Date(c("2013-01-02", "2013-01-12")))
+})
+
+test_that("daily.flags = 'none' keeps one row per bout", {
+  capture.output(res <- bouts_of_illness(flag_reports()))
+  expect_identical(nrow(res), 1L)
+  expect_false("day" %in% colnames(res))
+})
+
+test_that("daily.flags = 'carry.forward' uses the last earlier report", {
+  expect_identical(
+    ili_by_day("carry.forward"),
+    c(NA, "f", "f", "f", "t", "t", "t", "t", "t", "t", "f")
+  )
+})
+
+test_that("daily.flags = 'bout' uses the merged flag on every day", {
+  expect_identical(ili_by_day("bout"), rep("t", 11))
+})
+
+test_that("daily.flags = 'report' is missing on days without a report", {
+  expect_identical(
+    ili_by_day("report"),
+    c(NA, "f", NA, NA, "t", NA, NA, NA, NA, NA, "f")
+  )
+})
+
+test_that("daily.flags covers bouts whose reports have no start or end date", {
+  ## the dates of such a bout come from the dates of its reports
+  none <- reports(
+    3, c("2013-01-17", "2013-01-24"), c(TRUE, TRUE), c("yes", "yes"),
+    c(NA, NA), c(NA, NA)
+  )
+  for (mode in c("carry.forward", "bout", "report")) {
+    capture.output(res <- bouts_of_illness(none, daily.flags = mode))
+    expect_equal(
+      res$day, seq(as.Date("2013-01-17"), as.Date("2013-01-24"), by = "day")
+    )
+  }
+  capture.output(res <- bouts_of_illness(b, daily.flags = "bout"))
+  expect_false(anyNA(res$day))
+})
+
 test_that("input is sorted by participant, season and date", {
   capture.output(
     ordered <- bouts_of_illness(rbind(a, b)),
@@ -67,11 +127,11 @@ test_that("input is sorted by participant, season and date", {
 
 dates_example <- function() {
   rbind(
-    make_reports(1, c("2013-01-10", "2013-01-17"), TRUE, c("no", "yes"),
+    reports(1, c("2013-01-10", "2013-01-17"), TRUE, c("no", "yes"),
             c("2013-01-05", "2013-01-06"),
             c("2013-01-08", "2013-01-12")),
-    make_reports(2, "2013-01-10", TRUE, "no", NA, NA),
-    make_reports(3, c("2013-01-10", "2013-01-17"), TRUE, c("no", "yes"),
+    reports(2, "2013-01-10", TRUE, "no", NA, NA),
+    reports(3, c("2013-01-10", "2013-01-17"), TRUE, c("no", "yes"),
             c("2013-01-09", NA),
             c(NA, "2013-01-08"))
   )
@@ -127,17 +187,17 @@ test_that("inverted.dates keeps, clears or resets inverted bounds", {
 end_example <- function() {
   rbind(
     ## three distinct reported end dates: the last one is used for every row
-    make_reports(1, c("2013-01-10", "2013-01-17", "2013-01-24"), TRUE,
+    reports(1, c("2013-01-10", "2013-01-17", "2013-01-24"), TRUE,
             c("no", "yes", "yes"), "2013-01-08",
             c("2013-01-09", "2013-01-15", "2013-01-20")),
     ## only the first report gives an end date
-    make_reports(2, c("2013-01-10", "2013-01-17"), TRUE, c("no", "yes"),
+    reports(2, c("2013-01-10", "2013-01-17"), TRUE, c("no", "yes"),
             "2013-01-08", c("2013-01-12", NA)),
     ## only the last report gives an end date
-    make_reports(3, c("2013-01-10", "2013-01-17"), TRUE, c("no", "yes"),
+    reports(3, c("2013-01-10", "2013-01-17"), TRUE, c("no", "yes"),
             "2013-01-08", c(NA, "2013-01-16")),
     ## no end date: the date of the last symptomatic report is used
-    make_reports(4, c("2013-01-10", "2013-01-17", "2013-01-24"),
+    reports(4, c("2013-01-10", "2013-01-17", "2013-01-24"),
             c(TRUE, TRUE, FALSE), c("no", "yes", NA), "2013-01-08", NA)
   )
 }
@@ -166,8 +226,8 @@ test_that("every report of a bout keeps the same end date", {
 
 test_that("participants with no reported onset each get one bout", {
   x <- rbind(
-    make_reports(1, c("2013-01-10", "2013-01-17"), TRUE, c("no", "yes"), NA, NA),
-    make_reports(2, c("2013-01-10", "2013-01-17"), TRUE, c("no", "yes"), NA, NA)
+    reports(1, c("2013-01-10", "2013-01-17"), TRUE, c("no", "yes"), NA, NA),
+    reports(2, c("2013-01-10", "2013-01-17"), TRUE, c("no", "yes"), NA, NA)
   )
   expect_equal(
     bout_dates(x, "symptoms.start.date", missing.start = "missing"),
@@ -189,10 +249,10 @@ test_that("invalid rule arguments are rejected", {
 
 incidence_example <- function() {
   x <- rbind(
-    make_reports(1, "2013-01-10", TRUE, "no", NA, NA),
-    make_reports(2, "2013-01-10", TRUE, "no", "2013-01-10", "2013-01-10"),
-    make_reports(3, "2013-01-10", TRUE, "no", "2013-01-05", "2013-01-10"),
-    make_reports(4, "2013-01-05", FALSE, NA, NA, NA)
+    reports(1, "2013-01-10", TRUE, "no", NA, NA),
+    reports(2, "2013-01-10", TRUE, "no", "2013-01-10", "2013-01-10"),
+    reports(3, "2013-01-10", TRUE, "no", "2013-01-05", "2013-01-10"),
+    reports(4, "2013-01-05", FALSE, NA, NA, NA)
   )
   x[, ili := ifelse(participant_id == 4, "f", "t")]
   x[, `:=`(min.date = date, max.date = date)]
@@ -254,7 +314,7 @@ test_that("unknown onsets are not matched to contacts by report date", {
 })
 
 test_that("unknown onset preserves a recovery before the first illness report", {
-  x <- make_reports(1, "2013-01-10", TRUE, "no", NA, "2013-01-08")
+  x <- reports(1, "2013-01-10", TRUE, "no", NA, "2013-01-08")
   capture.output(b <- bouts_of_illness(x, missing.start = "missing"))
   expect_equal(nrow(b), 1L)
   expect_true(is.na(b$symptoms.start.date))
