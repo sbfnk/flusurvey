@@ -59,8 +59,8 @@
 ##' evidence covers them. A report without symptoms is taken as no acute
 ##' illness. By default (\code{chronic = "none"}) the function applies no rule
 ##' for chronic symptoms. With \code{chronic = "duration"}, the function treats
-##' reports flagged by that assumption as no acute illness: they support no bout and
-##' leave no day unknown.
+##' reports flagged by that assumption as no acute illness: they support no
+##' bout and leave no day unknown.
 ##'
 ##' The case-definition flags are known per report, not per day. A bout meeting
 ##' a definition at some point need not have had every symptom present on
@@ -335,17 +335,19 @@ chronic_reports <- function(symptoms, chronic, chronic.days) {
       stop("'chronic.days' must be a single number when chronic = \"duration\"",
            call. = FALSE)
     }
-    end <- fcase(
+    interval_end <- fcase(
       !is.na(symptoms$symptoms.end.date),
       pmin(symptoms$symptoms.end.date, symptoms$date),
       !is.na(symptoms$symptoms.end.option) &
         symptoms$symptoms.end.option == "still_ill", symptoms$date,
       default = as.Date(NA)
     )
-    start <- symptoms$symptoms.start.date
+    interval_start <- symptoms$symptoms.start.date
     valid <- as.character(symptoms$no.symptoms) == "f" &
-      !is.na(start) & !is.na(end) & start <= end
-    return(valid & as.numeric(end - start) + 1 > chronic.days)
+      !is.na(interval_start) & !is.na(interval_end) &
+      interval_start <= interval_end
+    interval_days <- as.numeric(interval_end - interval_start) + 1
+    return(valid & interval_days > chronic.days)
   }
   rep(FALSE, nrow(symptoms))
 }
