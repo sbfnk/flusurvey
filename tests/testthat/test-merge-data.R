@@ -20,6 +20,19 @@ test_that("merge_data turns t/f columns from every survey into factors", {
   }
 })
 
+test_that("only.symptoms keeps participants with a missing no.symptoms answer", {
+  symptom <- data.table::data.table(
+    global_id = c("a", "a", "b", "b", "c"),
+    date = as.Date(c(
+      "2013-01-03", "2013-01-10", "2013-01-03", "2013-01-10", "2013-01-03"
+    )),
+    no.symptoms = c("t", NA, "t", "f", NA)
+  )
+  dt <- merge_data(list(symptom = symptom), clean = "only.symptoms")
+  expect_setequal(dt$global_id, c("a", "b"))
+  expect_equal(nrow(dt), 4)
+})
+
 test_that("merge_data skips every cleaning step for clean = NULL", {
   raw <- merge_data(simulated_data[["2013"]], clean = NULL)
   first_only <- merge_data(simulated_data[["2013"]], clean = "remove.first")
