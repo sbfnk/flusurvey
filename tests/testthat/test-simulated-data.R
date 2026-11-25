@@ -257,3 +257,39 @@ test_that("merge_data dates contact reports by the day they describe", {
   expect_gt(nrow(monday), 0)
   expect_true(all(monday$contact.day.of.week == 7))
 })
+
+test_that("bouts on the simulated data account for the symptomatic reports", {
+  dt <- expect_contact_warning(extract_data(simulated_data, years = 2013:2014))
+  symptomatic <- dt[no.symptoms == "f"]
+  invisible(capture.output(bouts <- data.table::as.data.table(
+    bouts_of_illness(dt)
+  )))
+  invisible(capture.output(all_rows <- data.table::as.data.table(
+    bouts_of_illness(dt, symptomatic.only = FALSE)
+  )))
+  ## a "t" report always starts a new bout, so every report from the first to
+  ## the last of a bout is symptomatic
+  bouts[, n.reports := max.part.symptom.id - min.part.symptom.id + 1L]
+
+  expect_true(any(bouts$n.reports > 1))
+  expect_true(any(bouts$n.reports == 1))
+
+  ## bouts_of_illness() drops some symptomatic reports (one before the first
+  ## bout start, for instance), so only an upper bound holds
+  expect_lte(sum(bouts$n.reports), nrow(symptomatic))
+  expect_true(all(
+    unique(bouts[, paste(participant_id, season)]) %in%
+      symptomatic[, paste(participant_id, season)]
+  ))
+  expect_true(all(bouts$no.symptoms == "f"))
+
+  data.table::setorder(bouts, participant_id, season, min.part.symptom.id)
+  expect_false(anyNA(bouts[, c("min.part.symptom.id", "max.part.symptom.id")]))
+  overlap <- bouts[, list(
+    overlap = any(min.part.symptom.id[-1] <= max.part.symptom.id[-.N])
+  ), by = list(participant_id, season)]
+  expect_false(any(overlap$overlap))
+
+  expect_equal(nrow(all_rows), nrow(dt) - sum(bouts$n.reports - 1L))
+  expect_equal(sum(!is.na(all_rows$bout)), nrow(bouts))
+})
