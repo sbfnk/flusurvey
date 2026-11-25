@@ -17,7 +17,7 @@
 ##' Episodes with a missing start or end date are not matched. With the
 ##' default \code{missing.start = "first.report"} of
 ##' \code{\link{bouts_of_illness}}, an episode without a reported start date
-##' starts on the date of its first report and is matched from then on.
+##' is taken to start at its first report and is matched from that date.
 ##' @return \code{contacts} as a data table with the logical column
 ##' \code{ill} added: \code{TRUE} if the contact day falls on or between the
 ##' start and end dates of any episode of the same participant, \code{FALSE}
