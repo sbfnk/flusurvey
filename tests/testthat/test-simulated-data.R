@@ -241,24 +241,15 @@ test_that("bouts on the simulated data account for the symptomatic reports", {
   invisible(capture.output(all_rows <- data.table::as.data.table(
     bouts_of_illness(dt, symptomatic.only = FALSE)
   )))
-  ## Reports between the first and last of a bout can be asymptomatic and
-  ## outside it. Count only the symptomatic reports in each range.
-  ordered <- data.table::copy(dt)
-  data.table::setorder(ordered, participant_id, season, date)
-  ordered[, part.symptom.id := seq_len(.N), by = list(participant_id, season)]
-  ordered <- ordered[no.symptoms == "f"]
-  bouts[, n.reports := vapply(seq_len(.N), function(i) {
-    sum(
-      ordered$participant_id == participant_id[i] &
-        ordered$season == season[i] &
-        ordered$part.symptom.id >= min.part.symptom.id[i] &
-        ordered$part.symptom.id <= max.part.symptom.id[i]
-    )
-  }, integer(1))]
+  ## a "t" report always starts a new bout, so the reports from the first to
+  ## the last of a bout are all symptomatic
+  bouts[, n.reports := max.part.symptom.id - min.part.symptom.id + 1L]
 
   expect_true(any(bouts$n.reports > 1))
   expect_true(any(bouts$n.reports == 1))
 
+  ## bouts_of_illness() drops some symptomatic reports (one before the first
+  ## bout start, for instance), so the bounds cannot be tighter
   expect_lte(sum(bouts$n.reports), nrow(symptomatic))
   expect_true(all(
     unique(bouts[, paste(participant_id, season)]) %in%
