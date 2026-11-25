@@ -152,7 +152,7 @@ The separate [`flag_ill_contacts()`](../R/flag_ill_contacts.r) accepts already-b
 
 - Leading reports before the first start are dropped. S1, S2 or S5 can start a bout among them. A participant whose first kept report continues an illness, with no start date or a later one than another report, loses that report and the illness it records (#19).
 - S2 can start the bout at a later leading report. The leading reports before it are then dropped.
-- With `start.date = "last"`, the selected onset may differ from earlier reported onsets (#20). The default `"earliest"` chooses the earliest instead.
+- With `start.date = "last"`, the selected onset may differ from earlier reported onsets (#20). The default `"earliest"` selects the earliest reported onset.
 - The default `missing.start = "first.report"` can create an onset after a known end (#76, #77). `missing.start = "missing"` preserves the unknown onset; `inverted.dates` controls inconsistent selected boundaries.
 - With `symptomatic.only = FALSE` the reports outside any bout share their "t"/"f" values. A dropped symptomatic report makes the symptom-free reports of the participant show its symptoms, and the dropped report itself is marked as symptom-free (#87).
 - With `limit.season` and `unsuccessful.join`, a participant who filled in the background survey only before the season window loses all their symptom reports (#91).
