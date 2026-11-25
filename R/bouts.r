@@ -81,8 +81,11 @@ bout_flags <- function(reports, by = c("participant_id", "season", "bout")) {
 }
 
 ## Assign each symptomatic report to a bout, in place. The reports need to be
-## sorted by participant, season and date, and to have an id column.
-assign_bouts <- function(dt) {
+## sorted by participant, season and date, and to have an id column. A report
+## not answered "no" also starts a new bout where its start date is after the
+## previous end date ("dates"; not if it is answered "yes" with "continuation")
+## or after the date of the previous report ("report.date").
+assign_bouts <- function(dt, precedence = "dates") {
   dt[, new.bout := (same == "no")]
   dt[, part.symptom.id := seq_len(.N), by = list(participant_id, season)]
   ## any() alone would ignore missing values next to a "t"; a participant with
@@ -110,16 +113,19 @@ assign_bouts <- function(dt) {
     new.bout := TRUE
   ]
   dt[, previous.no.symptoms := NULL]
-  dt[, previous.symptoms.end.date := as.Date(
-    c(NA_character_, as.character(symptoms.end.date[-.N]))
+  dt[, previous.boundary := as.Date(
+    c(NA_character_, as.character(
+      if (precedence == "report.date") date[-.N] else symptoms.end.date[-.N]
+    ))
   ), by = list(participant_id, season)]
   dt[
-    !new.bout & !is.na(previous.symptoms.end.date) &
+    !new.bout & !is.na(previous.boundary) &
       !is.na(symptoms.start.date) & no.symptoms == "f" &
-      previous.symptoms.end.date < symptoms.start.date,
+      previous.boundary < symptoms.start.date &
+      !(precedence == "continuation" & !is.na(same) & same == "yes"),
     new.bout := TRUE
   ]
-  dt[, previous.symptoms.end.date := NULL]
+  dt[, previous.boundary := NULL]
   dt[
     no.symptoms == "f",
     bout := cumsum(new.bout),
@@ -131,9 +137,10 @@ assign_bouts <- function(dt) {
 }
 
 ## Set the start and end date of each bout on its reports, in place.
-fill_bout_dates <- function(dt, start.date = "last",
+fill_bout_dates <- function(dt, start.date = "earliest",
                             missing.start = "first.report",
-                            inverted.dates = "keep") {
+                            inverted.dates = "keep",
+                            unresolved = "fill") {
   last <- function(x) x[length(x)]
   last_not_na <- function(x) x[!is.na(x)][sum(!is.na(x))]
   dt[!is.na(bout), last.symptoms.start.date := last(symptoms.start.date),
@@ -184,10 +191,12 @@ fill_bout_dates <- function(dt, start.date = "last",
     symptoms.end.date := last.not.na.symptoms.end.date,
     by = list(participant_id, season, bout)
   ]
-  dt[!is.na(bout) & is.na(last.not.na.symptoms.end.date),
-    symptoms.end.date := last(date),
-    by = list(participant_id, season, bout)
-  ]
+  if (unresolved == "fill") {
+    dt[!is.na(bout) & is.na(last.not.na.symptoms.end.date),
+      symptoms.end.date := last(date),
+      by = list(participant_id, season, bout)
+    ]
+  }
   if (inverted.dates == "clear") {
     dt[!is.na(bout) & !is.na(symptoms.start.date) &
          !is.na(symptoms.end.date) & symptoms.end.date < symptoms.start.date,
@@ -298,13 +307,13 @@ evidence_days <- function(reports) {
 
 ## Prepare reports for bout assignment: sorted, numbered, with the bout of
 ## each symptomatic report. Returns the table before any dates are filled in.
-reconstruct_bouts <- function(x) {
+reconstruct_bouts <- function(x, precedence = "dates") {
   dt <- copy(data.table(x))
   dt[, no.symptoms := factor(as.character(no.symptoms), levels = c("f", "t"))]
   if (!"same" %in% colnames(dt)) dt[, same := NA_character_]
   setorderv(dt, c("participant_id", "season", "date"))
   dt[, id := seq_len(.N)]
-  assign_bouts(dt)
+  assign_bouts(dt, precedence)
 
   dt
 }
@@ -357,11 +366,14 @@ reconstruct_bouts <- function(x) {
 ##' @param x the data to extract bouts from, as for
 ##'   \code{\link{bouts_of_illness}}
 ##' @param start.date,missing.start,inverted.dates Date policies as in
-##'   \code{\link{bouts_of_illness}}. Evidence defaults to leaving an
+##'   \code{\link{bouts_of_illness}}; \code{start.date} defaults to
+##'   "earliest" in both. Evidence defaults to leaving an
 ##'   unreported onset missing; the summary interface defaults to the first
 ##'   report. These policies do not replace the original report evidence.
 ##' @param expand.days whether to expand established illness intervals to
 ##'   individual days. Set FALSE for interval matching without daily expansion.
+##' @param precedence,unresolved Bout formation and treatment of a bout with
+##'   no reported end date, as in \code{\link{bouts_of_illness}}.
 ##' @return a list of data tables: \code{bouts}, \code{reports},
 ##'   \code{intervals} and \code{days}
 ##' @examples
@@ -371,19 +383,22 @@ reconstruct_bouts <- function(x) {
 ##' @import data.table
 ##' @export
 bout_evidence <- function(
-  x, start.date = c("last", "earliest"),
+  x, start.date = c("earliest", "last"),
   missing.start = c("missing", "first.report"),
-  inverted.dates = c("keep", "clear", "reset.end"), expand.days = TRUE
+  inverted.dates = c("keep", "clear", "reset.end"), expand.days = TRUE,
+  precedence = c("dates", "continuation", "report.date"),
+  unresolved = c("fill", "missing")
 ) {
-  dt <- reconstruct_bouts(x)
+  dt <- reconstruct_bouts(x, match.arg(precedence))
   bout_evidence_from(dt, match.arg(start.date), match.arg(missing.start),
-                     match.arg(inverted.dates), expand.days)
+                     match.arg(inverted.dates), match.arg(unresolved),
+                     expand.days)
 }
 
 bout_evidence_from <- function(dt, start.date, missing.start, inverted.dates,
-                               expand.days) {
+                               unresolved, expand.days) {
   reports <- report_evidence(dt[!is.na(bout)])
-  fill_bout_dates(dt, start.date, missing.start, inverted.dates)
+  fill_bout_dates(dt, start.date, missing.start, inverted.dates, unresolved)
   keys <- c("participant_id", "season", "bout")
   in_bout <- dt[!is.na(bout)]
   bouts <- in_bout[, list(
@@ -449,8 +464,18 @@ expand_to_days <- function(dt, daily.flags, report.flags, flag.columns) {
 ##' @param x the data to extract bouts from
 ##' @param symptomatic.only whether to only include symptomatic periods
 ##' @param as.data.frame currently has no effect
+##' @param precedence how a report joins the previous bout. A report answered
+##' "no" always starts a new bout. Otherwise, with "dates", a report whose start
+##' date is after the previous end date starts a new bout, even if it is
+##' answered "yes". With "continuation", a report answered "yes" stays in the
+##' bout whatever its dates. With "report.date", a report whose start date is
+##' after the previous report date starts a new bout.
+##' @param unresolved what to do with a bout with no reported end date: "fill"
+##' its end with the last report date, or leave it "missing"
 ##' @param start.date which reported start date to use for a bout: the
-##' "last" one reported, or the "earliest"
+##' "earliest" one reported (the default, because the last reported date can
+##' fall after a report that already gives symptoms of the bout), or the "last"
+##' one
 ##' @param missing.start what to use as start date if none was reported for a
 ##' bout: the date of its "first.report", or "missing"
 ##' @param inverted.dates what to do if the end date is before the start date:
@@ -486,11 +511,15 @@ expand_to_days <- function(dt, daily.flags, report.flags, flag.columns) {
 ##' @export
 bouts_of_illness <- function(
   x, symptomatic.only = TRUE, as.data.frame = TRUE,
-  start.date = c("last", "earliest"),
+  start.date = c("earliest", "last"),
   missing.start = c("first.report", "missing"),
   inverted.dates = c("keep", "clear", "reset.end"),
-  daily.flags = c("none", "carry.forward", "bout", "report")
+  daily.flags = c("none", "carry.forward", "bout", "report"),
+  precedence = c("dates", "continuation", "report.date"),
+  unresolved = c("fill", "missing")
 ) {
+  precedence <- match.arg(precedence)
+  unresolved <- match.arg(unresolved)
   start.date <- match.arg(start.date)
   missing.start <- match.arg(missing.start)
   inverted.dates <- match.arg(inverted.dates)
@@ -510,14 +539,14 @@ bouts_of_illness <- function(
   }
 
   ## the lags below need reports ordered by date within participant and season
-  dt <- reconstruct_bouts(dt)
+  dt <- reconstruct_bouts(dt, precedence)
 
   tf <-
     colnames(dt)[vapply(colnames(dt), function(x) {
       length(setdiff(c("t", "f"), levels(dt[[x]]))) == 0
     }, TRUE)]
 
-  fill_bout_dates(dt, start.date, missing.start, inverted.dates)
+  fill_bout_dates(dt, start.date, missing.start, inverted.dates, unresolved)
 
   flag.columns <- intersect(bout_flag_columns, colnames(dt))
   report.flags <- dt[!is.na(bout),

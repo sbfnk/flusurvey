@@ -11,10 +11,12 @@
 ##' @param by one or more variables by which to group
 ##' @param exclude bouts to leave out of the incidence: any of
 ##' "unknown.onset" (no reported start date, which needs
-##' \code{missing.start = "missing"}) and "ongoing.at.entry" (see below); by
-##' default none
-##' @param start.date,missing.start,inverted.dates how bout dates are set, see
-##' \code{\link{bouts_of_illness}}
+##' \code{missing.start = "missing"}), "unknown.end" (no reported end date,
+##' which needs \code{unresolved = "missing"}) and "ongoing.at.entry" (see
+##' below); by default none
+##' @param start.date,missing.start,inverted.dates,precedence,unresolved how
+##' bouts and their dates are set, see \code{\link{bouts_of_illness}};
+##' \code{start.date} defaults to "earliest" in both
 ##' @details
 ##' A bout is ongoing at entry when its start is before the participant's
 ##' first report. \code{exclude = "ongoing.at.entry"} uses the
@@ -49,9 +51,11 @@ get_incidence <- function(
   min.N = 1,
   by = NULL,
   exclude = NULL,
-  start.date = c("last", "earliest"),
+  start.date = c("earliest", "last"),
   missing.start = c("first.report", "missing"),
-  inverted.dates = c("keep", "clear", "reset.end")
+  inverted.dates = c("keep", "clear", "reset.end"),
+  precedence = c("dates", "continuation", "report.date"),
+  unresolved = c("fill", "missing")
 ) {
   exclude <- check_exclude(exclude)
   aggregation <- match.arg(aggregation)
@@ -62,7 +66,9 @@ get_incidence <- function(
     data,
     start.date = start.date,
     missing.start = missing.start,
-    inverted.dates = inverted.dates
+    inverted.dates = inverted.dates,
+    precedence = precedence,
+    unresolved = unresolved
   )
   bouts <- exclude_bouts(bouts, exclude)
   id_column <- grep("_id$", colnames(dt), value = TRUE)
@@ -115,13 +121,18 @@ get_incidence <- function(
 check_exclude <- function(exclude) {
   if (is.null(exclude)) return(exclude)
   match.arg(
-    exclude, c("unknown.onset", "ongoing.at.entry"), several.ok = TRUE
+    exclude,
+    c("unknown.onset", "unknown.end", "ongoing.at.entry"),
+    several.ok = TRUE
   )
 }
 
 exclude_bouts <- function(bouts, exclude) {
   if ("unknown.onset" %in% exclude) {
     bouts <- bouts[!is.na(symptoms.start.date)]
+  }
+  if ("unknown.end" %in% exclude) {
+    bouts <- bouts[!is.na(symptoms.end.date)]
   }
   if ("ongoing.at.entry" %in% exclude) {
     ## the flag follows the reported dates; the fallback compares the start

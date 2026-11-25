@@ -134,3 +134,15 @@ test_that("remove.first removes all reports on each first reporting day", {
   expect_equal(as.character(result$global_id), "a")
   expect_equal(result$date, reports$date[1])
 })
+
+test_that("merge_data warns when joining contact and symptom surveys", {
+  expect_warning(
+    merge_data(simulated_data[["2013"]]), "contact_illness"
+  )
+  expect_no_warning(
+    merge_data(simulated_data[["2013"]][c("background", "symptom")])
+  )
+  expect_no_warning(
+    merge_data(simulated_data[["2013"]][c("background", "contact")])
+  )
+})

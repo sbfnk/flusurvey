@@ -6,10 +6,12 @@
 \usage{
 bout_evidence(
   x,
-  start.date = c("last", "earliest"),
+  start.date = c("earliest", "last"),
   missing.start = c("missing", "first.report"),
   inverted.dates = c("keep", "clear", "reset.end"),
-  expand.days = TRUE
+  expand.days = TRUE,
+  precedence = c("dates", "continuation", "report.date"),
+  unresolved = c("fill", "missing")
 )
 }
 \arguments{
@@ -17,12 +19,16 @@ bout_evidence(
 \code{\link{bouts_of_illness}}}
 
 \item{start.date, missing.start, inverted.dates}{Date policies as in
-\code{\link{bouts_of_illness}}. Evidence defaults to leaving an
+\code{\link{bouts_of_illness}}; \code{start.date} defaults to
+"earliest" in both. Evidence defaults to leaving an
 unreported onset missing; the summary interface defaults to the first
 report. These policies do not replace the original report evidence.}
 
 \item{expand.days}{whether to expand established illness intervals to
 individual days. Set FALSE for interval matching without daily expansion.}
+
+\item{precedence, unresolved}{How bouts are formed and what happens to a
+bout with no reported end date, as in \code{\link{bouts_of_illness}}.}
 }
 \value{
 a list of data tables: \code{bouts}, \code{reports},

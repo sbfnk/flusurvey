@@ -58,25 +58,27 @@ The reports are sorted by participant, season and report date. Same-day ties ret
 - S2. It is the first symptomatic report observed for the participant in that season. This retains an illness already under way, even when `same` is "yes", "dont_know", "not_applicable" or missing, or onset is unknown. Revising the onset in a later report does not alone split the leading illness.
 - S3. The old special case for participants with no symptom-free report is subsumed by S2.
 - S4. The immediately preceding report was symptom-free. Character and factor answers are normalised to the same representation.
-- S5. Its start date is after the end date of the previous report of the participant in the season.
+- S5. Its start date is after the end date of the previous report of the participant in the season. The `precedence` argument changes this. With `"continuation"`, a report answered "yes" is exempt and the continuation answer decides. With `"report.date"`, the start date is compared with the date of the previous report instead of its end date. The default, `"dates"`, is the rule as stated.
 
 An absent `same` column is treated as unanswered. Missing `same` is not a start under S1, and missing boundary dates do not trigger S5. A report with missing `no.symptoms` belongs to no bout and does not itself separate two symptomatic reports into different bouts. Every explicitly symptomatic report belongs to a bout. Reports with unknown symptom status remain available to the contact classifier as unresolved observations.
 
 ## Dates of a bout
 
-Three arguments of `bouts_of_illness()` set the dates of a bout. `get_incidence()` passes them on. The defaults keep the start-date behaviour of the code before the end-date fix. The end date differs from that code whatever the arguments.
+Three arguments of `bouts_of_illness()` set the dates of a bout; `unresolved` (below) sets the end date where none is reported. `get_incidence()` passes them on. The default `start.date` is `"earliest"`, which differs from the code before the end-date fix. The end date also differs from that code, whatever the arguments.
 
 `start.date` chooses among the start dates reported in the bout:
 
-- `"last"` (the default): the start date given in the last report of the bout. If the last report gives none, the last start date given in any report of the bout.
-- `"earliest"`: the earliest start date given in any report of the bout.
+- `"earliest"` (the default): the earliest start date given in any report of the bout. The last reported start date can fall after a report that already gives symptoms of the bout, which would start the bout too late.
+- `"last"`: the start date given in the last report of the bout. If the last report gives none, the last start date given in any report of the bout.
 
 `missing.start` sets the start date of a bout in which no report gives one:
 
 - `"first.report"` (the default): the date of the first report of the bout. This is the date the participant first reported symptoms, so it is not an observed onset.
 - `"missing"`: the start date stays missing.
 
-The end date of a bout is the last end date given in any of its reports, and every report of the bout gets it. If no report gives one, it is the date of the last symptomatic report of the bout. The first symptom-free report that follows is not used, although its date is the earliest by which the participant reported being well. A date taken from the last symptomatic report is a fallback that the participant never reported as a recovery date. The earlier rule kept the end date of the first report when the last report gave one, which could be missing or a different date. It used the last reported date only when the last report gave none. The rule applies without any argument and changes the output of `bouts_of_illness()` for bouts whose reports give different end dates.
+`unresolved` sets the end date of a bout in which no report gives one: `"fill"` (the default) uses the date of the last symptomatic report of the bout, while `"missing"` leaves it missing. `get_incidence()` counts such a bout either way because its onset is known. `exclude = "unknown.end"` leaves bouts with no end date out of the incidence, but only with `unresolved = "missing"`.
+
+The end date of a bout is the last end date given in any of its reports, and every report of the bout gets it. If no report gives one, it is the date of the last symptomatic report of the bout, unless `unresolved = "missing"`. The first symptom-free report that follows is not used, although its date is the earliest by which the participant reported being well. A date taken from the last symptomatic report is a fallback that the participant never reported as a recovery date. The earlier rule kept the end date of the first report even when the last report gave one, which could leave the end date missing or different. It used the last reported date only when the last report gave none. The new rule applies without any argument and changes the output of `bouts_of_illness()` for bouts whose reports give different end dates.
 
 `inverted.dates` sets what happens when the end date of a bout is before its start date:
 
@@ -95,7 +97,7 @@ The reports of a participant with `same` set to "no" then "yes", with these date
 | 10 January | 5 January | 8 January |
 | 17 January | 6 January | 12 January |
 
-The bout starts on 6 January with the default and on 5 January with `start.date = "earliest"`. It ends on 12 January, the last reported end date.
+The bout starts on 5 January with the default and on 6 January with `start.date = "last"`. It ends on 12 January, the last reported end date.
 
 A participant whose reports give no start date, and whose end date is reported only in the last report (16 January), has a bout that starts on the date of its first report (10 January) by default and has no start date with `missing.start = "missing"`. It ends on 16 January.
 
@@ -152,8 +154,6 @@ For example, a participant's `still_ill` report on 15 January with no known onse
 
 [`analysis/contacts.R`](../analysis/contacts.R) extracts symptoms with `clean = c("unsuccessful.join", "remove.bad.symptom.dates")`, retaining first-day and same-day reports and avoiding the default report-count and symptom-free filters before classification. The classifier applies eligibility itself. Contact rows outside follow-up remain in the output with unknown illness status. No chronic-only classifier is applied.
 
-The separate [`flag_ill_contacts()`](../R/flag_ill_contacts.r) accepts already-built bouts and tests inclusive start/end intervals by `global_id`. It does not reconstruct bouts, enforce eligibility or separate unknown from healthy. Unmatched rows receive `FALSE`, including missing contact dates and bouts with missing boundaries. It does not group by season explicitly, and the contact analysis does not use it as its classifier.
-
 ## Remaining choices and limitations
 
 The date-policy defaults remain those documented above; choosing an earliest onset or excluding onset before entry is explicit. The contact follow-up window ends at the last symptom-free report; using end-of-illness as an alternative remains unresolved. Chronic-only symptoms should not count as acute illness, but an operational classifier remains to be specified. A chronic condition such as asthma, or onset more than four weeks ago, is not by itself an exclusion.
@@ -164,4 +164,4 @@ The leading-report retention cases from #45 are included in the shared reconstru
 
 ## Verification references
 
-The source links above and [`bouts_of_illness()`](../R/bouts.r), [`merge_data()`](../R/merge_data.r) define the implementation checked for this baseline. Relevant regression tests are [`test-bouts.R`](../tests/testthat/test-bouts.R), [`test-shared-bouts.R`](../tests/testthat/test-shared-bouts.R), [`test-merge-data.R`](../tests/testthat/test-merge-data.R), [`test-aggregate-symptoms.R`](../tests/testthat/test-aggregate-symptoms.R), [`test-contact-illness.R`](../tests/testthat/test-contact-illness.R) and [`test-flag-ill-contacts.R`](../tests/testthat/test-flag-ill-contacts.R). They cover parts of these rules, not a complete proof of the prose. Examples in this document are synthetic; no participant data or data-derived results are included.
+I checked this baseline against the source links above, [`bouts_of_illness()`](../R/bouts.r) and [`merge_data()`](../R/merge_data.r). The relevant regression tests are [`test-bouts.R`](../tests/testthat/test-bouts.R), [`test-shared-bouts.R`](../tests/testthat/test-shared-bouts.R), [`test-merge-data.R`](../tests/testthat/test-merge-data.R), [`test-aggregate-symptoms.R`](../tests/testthat/test-aggregate-symptoms.R) and [`test-contact-illness.R`](../tests/testthat/test-contact-illness.R). They cover only some of these rules. The examples in this document are synthetic and include no participant data or results derived from it.
