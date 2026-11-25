@@ -476,9 +476,9 @@ expand_to_days <- function(dt, daily.flags, report.flags, flag.columns) {
 ##' @details A symptomatic report that starts after the participant's previous
 ##'   report begins a new bout. The flags of a bout (those of the case
 ##'   definitions in \code{\link{aggregate_symptoms}}) are computed from the
-##'   symptoms of all its reports together: a bout meets the symptom-based
-##'   ILI definition if its reports jointly have the symptoms and a sudden
-##'   onset, even if no single report does. The
+##'   symptoms of all its reports together. A bout meets the symptom-based
+##'   ILI definition if its reports jointly show the symptoms and a sudden
+##'   onset, even when no single report does. The
 ##'   flags describe the bout and do not say that the symptoms were present
 ##'   together on one day. The days of illness that the reports establish, and
 ##'   which dates are reported and which only the date of a report, are in
