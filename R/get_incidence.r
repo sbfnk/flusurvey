@@ -27,10 +27,10 @@
 ##' the dates as reported, but the \code{min.date} comparison uses the
 ##' start date chosen for the bout.
 ##'
-##' By default bouts ongoing at entry are kept. For incidence, a start before
-##' the first report is assigned to the first retained report. Keeping or
-##' excluding them can change incidence materially on the survey data, so an
-##' analysis should state which it uses.
+##' By default bouts ongoing at entry are included. For incidence, a start
+##' before the first report is assigned to the first retained report. Including
+##' or excluding these bouts can materially change incidence in the survey
+##' data. An analysis should state whether they were included.
 ##' @examples
 ##' dt <- extract_data(simulated_data, years = 2013:2014)
 ##' get_incidence(dt, incidence.columns = "ili", aggregation = "week")
