@@ -11,10 +11,21 @@
 ##' @param by one or more variables by which to group
 ##' @param exclude bouts to leave out of the incidence: any of
 ##' "unknown.onset" (no reported start date, which needs
-##' \code{missing.start = "missing"}) and "ongoing.at.entry" (start date
-##' before the participant's first report); by default none
+##' \code{missing.start = "missing"}) and "ongoing.at.entry" (see below); by
+##' default none
 ##' @param start.date,missing.start,inverted.dates how bout dates are set, see
 ##' \code{\link{bouts_of_illness}}
+##' @details
+##' A bout is ongoing at entry when its start is before the participant's
+##' first report. \code{exclude = "ongoing.at.entry"} uses the
+##' \code{illness.ongoing.at.entry} column from \code{\link{merge_data}}, which
+##' compares each reported start date with the first report, taken before
+##' \code{remove.first} drops it; a bout has the flag if any of its reports does.
+##' Without that column in the data, a bout counts as ongoing at entry when its
+##' selected start date (see \code{start.date}, \code{missing.start} and
+##' \code{inverted.dates}) is before its \code{min.date}. The flag therefore
+##' follows the dates as reported, while the \code{min.date} comparison follows
+##' the start date chosen for the bout.
 ##' @examples
 ##' dt <- extract_data(simulated_data, years = 2013:2014)
 ##' get_incidence(dt, incidence.columns = "ili", aggregation = "week")
@@ -48,7 +59,7 @@ get_incidence <- function(
     missing.start = missing.start,
     inverted.dates = inverted.dates
   )
-  bouts <- drop_ongoing_at_entry(exclude_bouts(bouts, exclude))
+  bouts <- exclude_bouts(bouts, exclude)
 
   ## required date columns
   columns <- c("symptoms.start.date", "date", "min.date", "max.date")
@@ -102,8 +113,15 @@ exclude_bouts <- function(bouts, exclude) {
     bouts <- bouts[!is.na(symptoms.start.date)]
   }
   if ("ongoing.at.entry" %in% exclude) {
-    bouts <- bouts[is.na(symptoms.start.date) |
-                     symptoms.start.date >= min.date]
+    ## the flag follows the reported dates; the fallback compares the start
+    ## chosen for the bout with min.date
+    if ("illness.ongoing.at.entry" %in% colnames(bouts)) {
+      bouts <- bouts[is.na(illness.ongoing.at.entry) |
+                       !illness.ongoing.at.entry]
+    } else {
+      bouts <- bouts[is.na(symptoms.start.date) |
+                       symptoms.start.date >= min.date]
+    }
   }
   bouts
 }
@@ -226,12 +244,4 @@ merge_reports <- function(incidence, dt, columns, aggregation, id_column, by) {
   merge(incidence, reports,
     by = c(aggregation, "season", by), all.y = TRUE
   )
-}
-
-## Illness that began before the first report is not a new case in the season.
-drop_ongoing_at_entry <- function(bouts) {
-  if (!"illness.ongoing.at.entry" %in% colnames(bouts)) {
-    return(bouts)
-  }
-  bouts[is.na(illness.ongoing.at.entry) | !illness.ongoing.at.entry]
 }

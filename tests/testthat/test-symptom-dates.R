@@ -70,14 +70,16 @@ test_that("bouts keep chronology and flags", {
   expect_false(long$illness.ongoing.at.entry)
 })
 
-test_that("incidence excludes illness ongoing at entry only", {
+test_that("incidence excludes illness ongoing at entry only on request", {
   dt <- fixture_data(max.symptom.days = 10)
-  capture.output(inc <- get_incidence(dt, aggregation = "day"))
+  capture.output(all <- get_incidence(dt, aggregation = "day"))
+  expect_equal(sum(all$ili), 2)
+  capture.output(
+    inc <- get_incidence(dt, aggregation = "day", exclude = "ongoing.at.entry")
+  )
   cases <- inc[ili > 0]
   expect_equal(cases$day, as.Date("2013-01-10"))
   expect_equal(cases$ili, 1)
-  ## the other participant is under follow-up on the early onset date
-  expect_equal(inc[day == as.Date("2012-12-25")]$ili, 0)
   expect_equal(sum(inc$ili), 1)
 })
 
@@ -89,7 +91,9 @@ test_that("incidence is zero when every bout is ongoing at entry", {
     "remove.first", "remove.bad.symptom.dates", "unsuccessful.join"
   ), max.symptom.days = 10)
   for (aggregation in c("day", "week", "month", "year")) {
-    capture.output(inc <- get_incidence(dt, aggregation = aggregation))
+    capture.output(inc <- get_incidence(
+      dt, aggregation = aggregation, exclude = "ongoing.at.entry"
+    ))
     expect_gt(nrow(inc), 0)
     expect_equal(sum(inc$ili), 0, info = aggregation)
   }

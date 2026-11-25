@@ -10,7 +10,8 @@ bouts_of_illness(
   as.data.frame = TRUE,
   start.date = c("last", "earliest"),
   missing.start = c("first.report", "missing"),
-  inverted.dates = c("keep", "clear", "reset.end")
+  inverted.dates = c("keep", "clear", "reset.end"),
+  daily.flags = c("none", "carry.forward", "bout", "report")
 )
 }
 \arguments{
@@ -29,17 +30,32 @@ bout: the date of its "first.report", or "missing"}
 \item{inverted.dates}{what to do if the end date is before the start date:
 "keep" both, set both to "clear" (missing), or "reset.end" to the last
 report date of the bout}
+
+\item{daily.flags}{how to assign the case-definition flags set by
+\code{\link{aggregate_symptoms}} to the days of a bout.
+\code{"none"} returns one row per bout. The other values return one row
+per day, in the column \code{day}, from \code{symptoms.start.date} to
+\code{symptoms.end.date}. \code{"carry.forward"} takes the flags from
+the last report on or before the day. \code{"bout"} gives every day the
+flags of the bout. \code{"report"} sets flags only on days with a
+report. Missing or inverted selected intervals are not expanded.}
 }
 \value{
-a data table of bouts of illness
+a data table of bouts of illness, or of their days
 }
 \description{
-The end date of a bout is the last reported end date, or the last report
-date if none was reported. This applies to every row of the bout and
-whatever the other arguments are; it differs from the earlier rule, which
-only filled in the end date of a bout whose last report had none. The other
-arguments set how the start date is chosen where the reports leave a
-choice, and their defaults keep the earlier behaviour.
+Extract bouts of illness from a flusurvey data table
+}
+\details{
+The flags of a bout (those of the case definitions in
+  \code{\link{aggregate_symptoms}}) are computed from the symptoms of all
+  its reports together: a
+  bout meets the symptom-based ILI definition if its reports jointly have
+  the symptoms and a sudden onset, even if no single report does. The
+  flags describe the bout and do not say that the symptoms were present
+  together on one day. The days of illness that the reports establish, and
+  which dates are reported and which only the date of a report, are in
+  \code{\link{bout_evidence}}.
 }
 \examples{
 dt <- extract_data(simulated_data, years = 2013:2014)

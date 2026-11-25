@@ -30,8 +30,8 @@
 ##' \code{long.running.illness} (start more than \code{max.symptom.days} days
 ##' before the report containing it).
 ##' \code{\link{bouts_of_illness}} copies both flags to the bouts.
-##' \code{\link{get_incidence}} does not count bouts ongoing at entry as new
-##' cases.
+##' \code{\link{get_incidence}} leaves bouts with \code{illness.ongoing.at.entry}
+##' out of the incidence only with \code{exclude = "ongoing.at.entry"}.
 ##' - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 ##' - 'limit.season', whether to limit a flu season to November -> April
 ##' - 'remove.postcodes', whether to remove postcodes
