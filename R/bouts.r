@@ -370,10 +370,10 @@ reconstruct_bouts <- function(x, precedence = "dates") {
 ##'   "earliest" in both. Evidence defaults to leaving an
 ##'   unreported onset missing; the summary interface defaults to the first
 ##'   report. These policies do not replace the original report evidence.
-##' @param precedence,unresolved How bouts are formed and what happens to a
-##'   bout with no reported end date, as in \code{\link{bouts_of_illness}}.
 ##' @param expand.days whether to expand established illness intervals to
 ##'   individual days. Set FALSE for interval matching without daily expansion.
+##' @param precedence,unresolved How bouts are formed and what happens to a
+##'   bout with no reported end date, as in \code{\link{bouts_of_illness}}.
 ##' @return a list of data tables: \code{bouts}, \code{reports},
 ##'   \code{intervals} and \code{days}
 ##' @examples
@@ -385,9 +385,9 @@ reconstruct_bouts <- function(x, precedence = "dates") {
 bout_evidence <- function(
   x, start.date = c("earliest", "last"),
   missing.start = c("missing", "first.report"),
-  inverted.dates = c("keep", "clear", "reset.end"),
+  inverted.dates = c("keep", "clear", "reset.end"), expand.days = TRUE,
   precedence = c("dates", "continuation", "report.date"),
-  unresolved = c("fill", "missing"), expand.days = TRUE
+  unresolved = c("fill", "missing")
 ) {
   dt <- reconstruct_bouts(x, match.arg(precedence))
   bout_evidence_from(dt, match.arg(start.date), match.arg(missing.start),
