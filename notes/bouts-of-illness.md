@@ -70,7 +70,7 @@ Arguments of `bouts_of_illness()` set the dates of a bout. `get_incidence()` pas
 
 `start.date` chooses among the start dates reported in the bout:
 
-- `"earliest"` (the default): the earliest start date given in any report of the bout. Reports answered "yes" are in the bout of the previous report, so this is the start of the whole group of symptoms.
+- `"earliest"` (the default): the earliest start date given in any report of the bout.
 - `"last"`: the start date given in the last report of the bout. If the last report gives none, the last start date given in any report of the bout.
 
 `missing.start` sets the start date of a bout in which no report gives one:

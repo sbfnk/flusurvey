@@ -46,11 +46,9 @@ its end with the last report date, or leave it "missing"
 a data table of bouts of illness
 }
 \description{
-The end date of a bout is the last reported end date. If none was reported
-it is the last report date, unless \code{unresolved = "missing"}. This
-applies to every row of the bout. The other arguments set how reports are
-grouped into bouts and how the dates are chosen where the reports leave a
-choice.
+The end date of a bout is the last reported end date, or the last report
+date if none was reported (unless \code{unresolved = "missing"}). It
+applies to every row of the bout.
 }
 \examples{
 dt <- extract_data(simulated_data, years = 2013:2014)
