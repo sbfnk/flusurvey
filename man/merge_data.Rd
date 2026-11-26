@@ -44,11 +44,11 @@ or ended after date of report. Such dates are set to missing. Other start
 dates are kept as reported, and the logical column
 \code{illness.ongoing.at.entry} flags those before the participant's first
 report in the data, after any season limiting.
-When the first reporting day is removed, its flag is carried to reports
+When the first reporting day is removed, its flag is copied to reports
 in the same bout under the default bout boundary rules.
 \code{\link{bouts_of_illness}} copies the flag to the bouts.
 \code{\link{get_incidence}} excludes bouts with
-\code{illness.ongoing.at.entry} from the incidence only with
+\code{illness.ongoing.at.entry} from the incidence if called with
 \code{exclude = "ongoing.at.entry"}.
 - 'remove.bad.health.scores', whether to remove health scores <0 or >100
 - 'limit.season', whether to limit a flu season to November -> April
@@ -62,9 +62,9 @@ if symptoms are reported without a background survey present; the web site
 should have prevented this, but doesn't appear to have done so)
 - 'only.symptoms', whether to exclude those that have no report without
 symptoms in a season. Someone who is ill at every report may have joined
-or reported only because they were ill, and keeping them would bias
-incidence and prevalence upwards. Leave it out of \code{clean} for analyses
-that need these participants.}
+or reported only because they were ill, so keeping them may introduce
+selection bias, most likely upwards in incidence and prevalence. Leave it
+out of \code{clean} for analyses that need these participants.}
 
 \item{min.reports}{minimum number of symptom reporting days per participant
 (ignored if 'min.reports' is not given as a cleaning option)}
