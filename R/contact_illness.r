@@ -170,9 +170,7 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
     symptoms, chronic, chronic.days
   )]
 
-  ## bouts and the days they establish come from the shared reconstruction;
-  ## chronic reports take no part in it
-  work <- copy(symptoms[!(is_chronic)])
+  work <- copy(symptoms)
   work[, participant_id := .GRP, by = group_by]
   ids <- unique(work[, c("participant_id", group_by), with = FALSE])
   work[, season := if ("season" %in% group_by) season else "all"]
@@ -182,7 +180,8 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
   } else {
     factor(NA_character_, levels = c("yes", "no", "dont_know"))
   }]
-  evidence <- bout_evidence(work, expand.days = FALSE)
+  evidence <- bout_evidence(work, expand.days = FALSE, chronic = chronic,
+                            chronic.days = chronic.days)
   usable <- evidence$reports[basis != "unresolved"]
   symptoms[, basis := usable$basis[match(row_id, usable$row_id)]]
   symptoms[, valid := !is.na(basis)]
@@ -343,7 +342,8 @@ chronic_reports <- function(symptoms, chronic, chronic.days) {
       default = as.Date(NA)
     )
     interval_start <- symptoms$symptoms.start.date
-    valid <- as.character(symptoms$no.symptoms) == "f" &
+    valid <- !is.na(symptoms$no.symptoms) &
+      as.character(symptoms$no.symptoms) == "f" &
       !is.na(interval_start) & !is.na(interval_end) &
       interval_start <= interval_end
     interval_days <- as.numeric(interval_end - interval_start) + 1
