@@ -88,14 +88,8 @@ bout_flags <- function(reports, by = c("participant_id", "season", "bout")) {
 assign_bouts <- function(dt, precedence = "dates") {
   dt[, new.bout := (same == "no")]
   dt[, part.symptom.id := seq_len(.N), by = list(participant_id, season)]
-  ## any() alone would ignore missing values next to a "t"; a participant with
-  ## a missing value gets a missing first.no.symptoms
-  dt[, first.no.symptoms := ifelse(
-    if (anyNA(no.symptoms)) NA else any(no.symptoms == "t"),
-    min(which(no.symptoms == "t")),
-    0
-  ),
-  by = list(participant_id, season)
+  dt[, first.no.symptoms := first_symptom_free(no.symptoms),
+    by = list(participant_id, season)
   ]
   ## A continuing illness at the first observed symptomatic report is still
   ## a bout; its onset may predate observation or remain unknown.
@@ -646,6 +640,18 @@ bouts_of_illness <- function(
     dt <- expand_to_days(dt, daily.flags, report.flags, flag.columns)
   }
   dt[]
+}
+
+## The position of the first report without symptoms, 0 if there is none, and
+## missing if any answer is missing: any() alone would ignore missing values
+## next to a "t". It always returns an integer, because data.table fixes the
+## column type from the first group it evaluates.
+first_symptom_free <- function(no.symptoms) {
+  if (anyNA(no.symptoms)) {
+    return(NA_integer_)
+  }
+  free <- which(no.symptoms == "t")
+  if (length(free) == 0L) 0L else free[1]
 }
 
 # A bout is flagged as ongoing at entry if any of its reports is.
