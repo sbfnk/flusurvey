@@ -128,8 +128,8 @@
 ##' chronic, for \code{chronic = "duration"}
 ##' @param max.gap maximum number of days before a symptom-free report that it
 ##' covers under \code{healthy = "report"}, as a non-negative whole number or
-##' \code{Inf} (the default). Values of 14 or 21 days cover most reporting
-##' intervals. Reports treated as chronic follow the same rule.
+##' \code{Inf} (the default). Alternatives include 14 or 21 days. Reports
+##' treated as chronic follow the same rule.
 ##' @return the contact reports with added columns \code{follow_up} (see
 ##' above), \code{current_symptoms}
 ##' ("symptoms" or "no symptoms"), and a daily column \code{current_*} and a
