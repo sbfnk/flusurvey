@@ -47,7 +47,8 @@
 ##' other day is "no symptoms", with or without a report that day. With
 ##' \code{healthy = "report"} a day is "no symptoms" only if a report
 ##' without symptoms filed after it covers it, from the date of the previous
-##' report up to the day before its own. Days before a participant's first
+##' report up to the day before its own, limited to the preceding
+##' \code{max.gap} days. Days before a participant's first
 ##' report, and days with no such report, are unknown. The exception is a
 ##' report with symptoms (or
 ##' without a known symptom status) whose dates give no usable interval:
@@ -125,6 +126,10 @@
 ##' with one can also have an acute illness.
 ##' @param chronic.days the number of days beyond which a report counts as
 ##' chronic, for \code{chronic = "duration"}
+##' @param max.gap maximum number of days before a symptom-free report that it
+##' covers under \code{healthy = "report"}, as a non-negative whole number or
+##' \code{Inf} (the default). Values of 14 or 21 days cover most reporting
+##' intervals. Reports treated as chronic follow the same rule.
 ##' @return the contact reports with added columns \code{follow_up} (see
 ##' above), \code{current_symptoms}
 ##' ("symptoms" or "no symptoms"), and a daily column \code{current_*} and a
@@ -148,7 +153,12 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
                             chronic = c("none", "duration"),
                             chronic.days = NULL,
                             follow_up_end = c("last_healthy",
-                                              "end_of_illness")) {
+                                              "end_of_illness"),
+                            max.gap = Inf) {
+  if (!is.numeric(max.gap) || length(max.gap) != 1 || is.na(max.gap) ||
+        max.gap < 0 || (is.finite(max.gap) && max.gap != floor(max.gap))) {
+    stop("'max.gap' must be a non-negative whole number or Inf", call. = FALSE)
+  }
   chronic <- match.arg(chronic)
   healthy_rule <- match.arg(healthy)
   follow_up_end <- match.arg(follow_up_end)
@@ -259,7 +269,8 @@ contact_illness <- function(contacts, symptoms, min.reports = 3,
 
   covered <- symptoms[
     (healthy | is_chronic) & !is.na(previous_date),
-    list(cover_start = previous_date, cover_end = date - 1),
+    list(cover_start = if (is.infinite(max.gap)) previous_date else
+           pmax(previous_date, date - max.gap), cover_end = date - 1),
     by = group_by
   ]
 

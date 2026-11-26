@@ -529,6 +529,25 @@ test_that("healthy = 'report' leaves days outside report coverage unknown", {
                c(NA, "no symptoms", "no symptoms", NA))
 })
 
+test_that("max.gap limits report coverage to the most recent days", {
+  symptoms <- well("a", c("2013-01-01", "2013-01-08", "2013-01-31"))
+  days <- c("2013-01-01", "2013-01-08", "2013-01-16", "2013-01-17",
+            "2013-01-30", "2013-01-31")
+  contacts <- contact("a", days)
+  status <- function(...) {
+    contact_illness(contacts, symptoms, healthy = "report", ...)$current_symptoms
+  }
+  expect_equal(status(max.gap = 14),
+               c("no symptoms", NA, NA, "no symptoms", "no symptoms", NA))
+  expect_equal(status(), status(max.gap = Inf))
+  expect_equal(status(max.gap = 0), rep(NA_character_, length(days)))
+  expect_equal(contact_illness(contacts, symptoms, max.gap = 0)$current_symptoms,
+               rep("no symptoms", length(days)))
+  for (value in list(-1, NA_real_, NaN, -Inf, 1.5, c(1, 2), "14")) {
+    expect_error(status(max.gap = value), "max.gap")
+  }
+})
+
 test_that("neither healthy rule calls a still-ill day without onset healthy", {
   ## the report day is a day of illness; the days before it are unknown
   symptoms <- rbind(
