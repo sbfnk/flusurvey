@@ -241,6 +241,17 @@ test_that("unknown onset preserves a recovery before the first illness report", 
   expect_equal(nrow(b), 1L)
   expect_true(is.na(b$symptoms.start.date))
   expect_equal(b$symptoms.end.date, as.Date("2013-01-08"))
+  expect_equal(bout_dates(x, "symptoms.start.date"), as.Date("2013-01-10"))
+  expect_equal(bout_dates(x, "symptoms.end.date"), as.Date("2013-01-08"))
+})
+
+test_that("contradictory reported dates can produce an inverted bout", {
+  x <- reports(1, "2013-01-10", TRUE, "no", "2013-01-09", "2013-01-08")
+  expect_equal(bout_dates(x, "symptoms.start.date"), as.Date("2013-01-09"))
+  expect_equal(bout_dates(x, "symptoms.end.date"), as.Date("2013-01-08"))
+  expect_true(is.na(bout_dates(x, "symptoms.start.date", inverted.dates = "clear")))
+  expect_equal(bout_dates(x, "symptoms.end.date", inverted.dates = "reset.end"),
+               as.Date("2013-01-10"))
 })
 
 test_that("surveys without the same-illness question use the other start rules", {
