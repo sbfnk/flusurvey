@@ -8,9 +8,14 @@ bouts_of_illness(
   x,
   symptomatic.only = TRUE,
   as.data.frame = TRUE,
-  start.date = c("last", "earliest"),
+  start.date = c("earliest", "last"),
   missing.start = c("first.report", "missing"),
-  inverted.dates = c("keep", "clear", "reset.end")
+  inverted.dates = c("keep", "clear", "reset.end"),
+  daily.flags = c("none", "carry.forward", "bout", "report"),
+  precedence = c("dates", "continuation", "report.date"),
+  unresolved = c("fill", "missing"),
+  chronic = c("none", "duration"),
+  chronic.days = NULL
 )
 }
 \arguments{
@@ -21,7 +26,9 @@ bouts_of_illness(
 \item{as.data.frame}{currently has no effect}
 
 \item{start.date}{which reported start date to use for a bout: the
-"last" one reported, or the "earliest"}
+"earliest" one reported (the default, because the last reported date can
+fall after a report that already gives symptoms of the bout), or the "last"
+one}
 
 \item{missing.start}{what to use as start date if none was reported for a
 bout: the date of its "first.report", or "missing"}
@@ -29,17 +36,50 @@ bout: the date of its "first.report", or "missing"}
 \item{inverted.dates}{what to do if the end date is before the start date:
 "keep" both, set both to "clear" (missing), or "reset.end" to the last
 report date of the bout}
+
+\item{daily.flags}{how to assign the case-definition flags set by
+\code{\link{aggregate_symptoms}} to the days of a bout.
+\code{"none"} returns one row per bout. The other values return one row
+per day, in the column \code{day}, from \code{symptoms.start.date} to
+\code{symptoms.end.date}. \code{"carry.forward"} takes the flags from
+the last report on or before the day. \code{"bout"} gives every day the
+flags of the bout. \code{"report"} sets flags only on days with a
+report. Missing or inverted selected intervals are not expanded.}
+
+\item{precedence}{how a report joins the previous bout. A report answered
+"no" always starts a new bout. Otherwise, with "dates", a report whose start
+date is after the previous end date starts a new bout, even if it is
+answered "yes". With "continuation", a report answered "yes" stays in the
+bout whatever its dates. With "report.date", a report whose start date is
+after the previous report date starts a new bout.}
+
+\item{unresolved}{what to do with a bout with no reported end date: "fill"
+its end with the last report date, or leave it "missing"}
+
+\item{chronic}{Rule for chronic-only reports: "none" applies no rule;
+"duration" excludes symptomatic reports with a valid interval longer
+than \code{chronic.days} days from bout reconstruction. Duration alone
+does not establish that symptoms are chronic.}
+
+\item{chronic.days}{Number of days beyond which a report is excluded when
+\code{chronic = "duration"}.}
 }
 \value{
-a data table of bouts of illness
+a data table of bouts of illness, or of their days
 }
 \description{
-The end date of a bout is the last reported end date, or the last report
-date if none was reported. This applies to every row of the bout and
-whatever the other arguments are; it differs from the earlier rule, which
-only filled in the end date of a bout whose last report had none. The other
-arguments set how the start date is chosen where the reports leave a
-choice, and their defaults keep the earlier behaviour.
+Extract bouts of illness from a flusurvey data table
+}
+\details{
+The flags of a bout (those of the case definitions in
+  \code{\link{aggregate_symptoms}}) are computed from the symptoms of all
+  its reports together: a
+  bout meets the symptom-based ILI definition if its reports jointly have
+  the symptoms and a sudden onset, even if no single report does. The
+  flags describe the bout and do not say that the symptoms were present
+  together on one day. The days of illness that the reports establish, and
+  which dates are reported and which only the date of a report, are in
+  \code{\link{bout_evidence}}.
 }
 \examples{
 dt <- extract_data(simulated_data, years = 2013:2014)

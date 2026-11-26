@@ -232,11 +232,10 @@ test_that("a symptom report without a usable interval leaves days unknown", {
                c("no ILI", "no ILI", NA, NA, "no ILI"))
   expect_equal(res$current_symptoms[6:20],
                rep(c("no symptoms", "no symptoms", NA, NA, "no symptoms"), 3))
-  ## a still-ill report is placed: its bout ends on the report date
+  ## a still-ill report establishes its own day, but not recovery
   still <- contact_illness(contact("e", days), symptoms)
   expect_equal(still$current_symptoms,
-               c("no symptoms", "no symptoms", "no symptoms", "symptoms",
-                 "no symptoms"))
+               c("no symptoms", "no symptoms", "no symptoms", "symptoms", NA))
 })
 
 test_that("an unplaced report makes the flags of an overlapping bout unknown", {
@@ -248,7 +247,8 @@ test_that("an unplaced report makes the flags of an overlapping bout unknown", {
   res <- contact_illness(contact("a", c("2013-01-09", "2013-01-11")),
                          symptoms)
   expect_equal(res$current_symptoms, c(NA, "symptoms"))
-  expect_equal(res$bout_ili, c(NA_character_, NA_character_))
+  ## a positive report of the bout stays positive; only a negative is open
+  expect_equal(res$bout_ili, c(NA_character_, "ILI"))
 })
 
 test_that("contacts are located by contact date, not report date", {
@@ -393,6 +393,109 @@ test_that("contact analysis cleans invalid dates without dropping reports", {
   expect_equal(res$current_symptoms, c("no symptoms", NA))
 })
 
+test_that("follow-up can end at the end of the last illness", {
+  symptoms <- data.table::rbindlist(list(
+    well("a", c("2013-01-10", "2013-01-20", "2013-01-30")),
+    report("a", "2013-02-03", start = "2013-02-02", end = "2013-02-03",
+           ili = "t")
+  ))
+  days <- c("2013-01-31", "2013-02-02", "2013-02-04")
+  res <- contact_illness(contact("a", days), symptoms)
+  expect_equal(res$follow_up, rep("after follow-up", 3))
+  res <- contact_illness(contact("a", days), symptoms,
+                         follow_up_end = "end_of_illness")
+  expect_equal(res$follow_up,
+               c("in follow-up", "in follow-up", "after follow-up"))
+  expect_equal(res$current_symptoms, c("no symptoms", "symptoms", NA))
+  expect_error(contact_illness(contact("a", days), symptoms,
+                               follow_up_end = "never"))
+})
+
+test_that("a still-ill report ends follow-up at its date, not at a recovery", {
+  symptoms <- data.table::rbindlist(list(
+    well("a", c("2013-01-10", "2013-01-20", "2013-01-30")),
+    report("a", "2013-02-03", start = "2013-02-02", option = "still_ill",
+           ili = "t")
+  ))
+  days <- c("2013-02-03", "2013-02-04")
+  res <- contact_illness(contact("a", days), symptoms,
+                         follow_up_end = "end_of_illness")
+  expect_equal(res$follow_up, c("in follow-up", "after follow-up"))
+  expect_equal(res$current_symptoms, c("symptoms", NA))
+})
+
+test_that("follow-up uses established illness days from shared bouts", {
+  symptoms <- data.table::rbindlist(list(
+    well("a", c("2013-01-10", "2013-01-20", "2013-01-30")),
+    report("a", "2013-02-03", option = "still_ill")
+  ))
+  days <- c("2013-02-03", "2013-02-04")
+  res <- contact_illness(contact("a", days), symptoms,
+                         follow_up_end = "end_of_illness")
+  expect_equal(res$follow_up, c("in follow-up", "after follow-up"))
+  expect_equal(res$current_symptoms, c("symptoms", NA))
+})
+
+test_that("chronic reports do not extend follow-up", {
+  symptoms <- data.table::rbindlist(list(
+    well("a", c("2013-01-01", "2013-01-10", "2013-01-20")),
+    report("a", "2013-02-10", start = "2013-01-21", end = "2013-02-10")
+  ))
+  day <- contact("a", "2013-02-10")
+  expect_equal(contact_illness(day, symptoms, follow_up_end = "end_of_illness")$follow_up,
+               "in follow-up")
+  expect_equal(contact_illness(day, symptoms, follow_up_end = "end_of_illness",
+                              chronic = "duration", chronic.days = 14)$follow_up,
+               "after follow-up")
+})
+
+test_that("long reports are treated as no acute illness only on request", {
+  symptoms <- data.table::rbindlist(list(
+    followed("a"),
+    report("a", "2013-01-20", start = "2013-01-02", end = "2013-01-20"),
+    report("a", "2013-01-25", start = "2013-01-24", end = "2013-01-25")
+  ))
+  days <- as.Date(c("2013-01-10", "2013-01-24"))
+  status <- function(...) {
+    contact_illness(contact("a", days), symptoms, ...)$current_symptoms
+  }
+  expect_equal(status(), c("symptoms", "symptoms"))
+  expect_equal(status(chronic = "duration", chronic.days = 14),
+               c("no symptoms", "symptoms"))
+  expect_equal(status(chronic = "duration", chronic.days = 30),
+               c("symptoms", "symptoms"))
+  expect_error(status(chronic = "duration"), "chronic.days")
+  ## a chronic report covers the days before it like a healthy one
+  expect_equal(
+    status(chronic = "duration", chronic.days = 14, healthy = "report"),
+    c("no symptoms", "symptoms")
+  )
+})
+
+test_that("a chronic condition does not remove acute illness", {
+  symptoms <- data.table::rbindlist(list(
+    followed("a"),
+    report("a", "2013-01-12", start = "2013-01-10", end = "2013-01-12")
+  ))
+  symptoms[, risk.asthma := "t"]
+  day <- contact("a", as.Date("2013-01-11"))
+  expect_equal(contact_illness(day, symptoms)$current_symptoms, "symptoms")
+  expect_equal(
+    contact_illness(day, symptoms, chronic = "duration",
+                    chronic.days = 14)$current_symptoms,
+    "symptoms"
+  )
+})
+
+test_that("an unknown chronic option is rejected", {
+  symptoms <- followed("a")
+  expect_error(
+    contact_illness(contact("a", as.Date("2013-01-11")), symptoms,
+                    chronic = "condition"),
+    "should be one of"
+  )
+})
+
 test_that("healthy = 'report' needs a later report without symptoms", {
   symptoms <- rbind(
     well("a", c("2013-01-01", "2013-01-08", "2013-01-31")),
@@ -427,6 +530,7 @@ test_that("healthy = 'report' leaves days outside report coverage unknown", {
 })
 
 test_that("neither healthy rule calls a still-ill day without onset healthy", {
+  ## the report day is a day of illness; the days before it are unknown
   symptoms <- rbind(
     well("a", c("2013-01-01", "2013-01-08", "2013-01-31")),
     report("a", "2013-01-15", option = "still_ill", ili = "t")
@@ -434,6 +538,6 @@ test_that("neither healthy rule calls a still-ill day without onset healthy", {
   days <- c("2013-01-09", "2013-01-14", "2013-01-15", "2013-01-20")
   for (rule in c("follow-up", "report")) {
     res <- contact_illness(contact("a", days), symptoms, healthy = rule)
-    expect_equal(res$current_symptoms[2:3], c(NA_character_, NA_character_))
+    expect_equal(res$current_symptoms[2:3], c(NA_character_, "symptoms"))
   }
 })

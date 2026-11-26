@@ -11,10 +11,30 @@
 ##' @param by one or more variables by which to group
 ##' @param exclude bouts to leave out of the incidence: any of
 ##' "unknown.onset" (no reported start date, which needs
-##' \code{missing.start = "missing"}) and "ongoing.at.entry" (start date
-##' before the participant's first report); by default none
-##' @param start.date,missing.start,inverted.dates how bout dates are set, see
-##' \code{\link{bouts_of_illness}}
+##' \code{missing.start = "missing"}), "unknown.end" (no reported end date,
+##' which needs \code{unresolved = "missing"}) and "ongoing.at.entry" (see
+##' below); by default none
+##' @param start.date,missing.start,inverted.dates,precedence,unresolved how
+##' bouts and their dates are set, see \code{\link{bouts_of_illness}};
+##' \code{start.date} defaults to "earliest" in both
+##' @param chronic,chronic.days chronic report rule passed to
+##' \code{\link{bouts_of_illness}}; all reports remain in the denominator
+##' @details
+##' A bout is ongoing at entry when its start is before the participant's
+##' first report. \code{exclude = "ongoing.at.entry"} uses the
+##' \code{illness.ongoing.at.entry} column from \code{\link{merge_data}}, which
+##' compares each reported start date with the first report, taken before
+##' \code{remove.first} drops it; a bout has the flag if any of its reports
+##' does. Without that column in the data, a bout counts as ongoing at entry
+##' when its selected start date (see \code{start.date}, \code{missing.start}
+##' and \code{inverted.dates}) is before its \code{min.date}. The flag uses
+##' the dates as reported, but the \code{min.date} comparison uses the
+##' start date chosen for the bout.
+##'
+##' By default bouts ongoing at entry are included. For incidence, a start
+##' before the first report is assigned to the first retained report. Including
+##' or excluding these bouts can materially change incidence in the survey
+##' data. An analysis should state whether they were included.
 ##' @examples
 ##' dt <- extract_data(simulated_data, years = 2013:2014)
 ##' get_incidence(dt, incidence.columns = "ili", aggregation = "week")
@@ -33,9 +53,13 @@ get_incidence <- function(
   min.N = 1,
   by = NULL,
   exclude = NULL,
-  start.date = c("last", "earliest"),
+  start.date = c("earliest", "last"),
   missing.start = c("first.report", "missing"),
-  inverted.dates = c("keep", "clear", "reset.end")
+  inverted.dates = c("keep", "clear", "reset.end"),
+  precedence = c("dates", "continuation", "report.date"),
+  unresolved = c("fill", "missing"),
+  chronic = c("none", "duration"),
+  chronic.days = NULL
 ) {
   exclude <- check_exclude(exclude)
   aggregation <- match.arg(aggregation)
@@ -46,9 +70,21 @@ get_incidence <- function(
     data,
     start.date = start.date,
     missing.start = missing.start,
-    inverted.dates = inverted.dates
+    inverted.dates = inverted.dates,
+    precedence = precedence,
+    unresolved = unresolved,
+    chronic = chronic,
+    chronic.days = chronic.days
   )
   bouts <- exclude_bouts(bouts, exclude)
+  id_column <- grep("_id$", colnames(dt), value = TRUE)
+  first_reports <- dt[, list(first.report = min(date)),
+                      by = c(id_column, "season")]
+  bouts[first_reports, on = c(id_column, "season"),
+        symptoms.start.date := fifelse(
+          !is.na(symptoms.start.date) & symptoms.start.date < min.date,
+          i.first.report, symptoms.start.date
+        )]
 
   ## required date columns
   columns <- c("symptoms.start.date", "date", "min.date", "max.date")
@@ -59,8 +95,6 @@ get_incidence <- function(
     columns <- sub("date$", paste(aggregation, "date", sep = "."), columns)
     add_aggregated_dates(dt, bouts, columns, aggregation)
   }
-
-  id_column <- grep("_id$", colnames(dt), value = TRUE)
 
   incidence <- count_new_cases(
     bouts, incidence.columns, columns, aggregation, id_column, by
@@ -93,7 +127,9 @@ get_incidence <- function(
 check_exclude <- function(exclude) {
   if (is.null(exclude)) return(exclude)
   match.arg(
-    exclude, c("unknown.onset", "ongoing.at.entry"), several.ok = TRUE
+    exclude,
+    c("unknown.onset", "unknown.end", "ongoing.at.entry"),
+    several.ok = TRUE
   )
 }
 
@@ -101,9 +137,19 @@ exclude_bouts <- function(bouts, exclude) {
   if ("unknown.onset" %in% exclude) {
     bouts <- bouts[!is.na(symptoms.start.date)]
   }
+  if ("unknown.end" %in% exclude) {
+    bouts <- bouts[!is.na(symptoms.end.date)]
+  }
   if ("ongoing.at.entry" %in% exclude) {
-    bouts <- bouts[is.na(symptoms.start.date) |
-                     symptoms.start.date >= min.date]
+    ## the flag follows the reported dates; the fallback compares the start
+    ## chosen for the bout with min.date
+    if ("illness.ongoing.at.entry" %in% colnames(bouts)) {
+      bouts <- bouts[is.na(illness.ongoing.at.entry) |
+                       !illness.ongoing.at.entry]
+    } else {
+      bouts <- bouts[is.na(symptoms.start.date) |
+                       symptoms.start.date >= min.date]
+    }
   }
   bouts
 }
