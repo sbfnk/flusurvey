@@ -38,13 +38,6 @@ participant to be eligible in a season}
 "follow-up" counts it as healthy, "report" only if a later report
 without symptoms covers it}
 
-\item{follow_up_end}{where follow-up ends: \code{"last_healthy"} (the
-default) at the last report without symptoms, or \code{"end_of_illness"}
-at the later of that report and the last established illness day. A
-reported recovery is capped at the report date; a continuing illness
-without a recovery establishes illness only through the days supported by
-reports. Contact days after follow-up have unknown status. Reports excluded
-as chronic do not extend follow-up.}
 \item{chronic}{an optional heuristic for chronic symptom reports:
 \code{"none"} (the default) applies no rule; \code{"duration"} treats
 reports with a valid interval of more than \code{chronic.days} days as
@@ -55,6 +48,14 @@ with one can also have an acute illness.}
 
 \item{chronic.days}{the number of days beyond which a report counts as
 chronic, for \code{chronic = "duration"}}
+
+\item{follow_up_end}{where follow-up ends: \code{"last_healthy"} (the
+default) at the last report without symptoms, or \code{"end_of_illness"}
+at the later of that report and the last established illness day. A
+reported recovery is capped at the report date; a continuing illness
+without a recovery establishes illness only through the days supported by
+reports. Contact days after follow-up have unknown status. Reports excluded
+as chronic do not extend follow-up.}
 }
 \value{
 the contact reports with added columns \code{follow_up} (see
@@ -127,8 +128,8 @@ leaves the days after its date until the next report unknown unless bout
 evidence covers them. A report without symptoms is taken as no acute
 illness. By default (\code{chronic = "none"}) the function applies no rule
 for chronic symptoms. With \code{chronic = "duration"}, the function treats
-reports flagged by that assumption as no acute illness: they support no
-bout and leave no day unknown.
+reports flagged by that assumption as no acute illness. Such reports
+support no bout and leave no day unknown.
 
 The case-definition flags are known per report, not per day. A bout meeting
 a definition at some point need not have had every symptom present on
