@@ -9,7 +9,6 @@ library("ggplot2")
 library("data.table")
 library("here")
 
-## The season window is for influenza incidence; contact behaviour has no such season.
 dt_back_contacts <- extract_data(
   "data/flusurvey_raw_2012_2020.rds",
   years = 2012:2013,
