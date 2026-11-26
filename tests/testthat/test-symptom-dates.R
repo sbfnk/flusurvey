@@ -5,6 +5,7 @@ fixture_season <- function() {
   well <- symptom[no.symptoms == "t"][1]
   ill <- data.table::copy(symptom[no.symptoms == "f"][1])
   ill[, c("fever", "tired", "cough") := "t"]
+  ill[, symptoms.suddenly := "yes"]
   report <- function(who, template, when, from = NA, to = NA) {
     row <- data.table::copy(template)
     row[, `:=`(global_id = who, date = as.Date(when),
