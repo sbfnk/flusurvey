@@ -61,7 +61,10 @@ symptom reporting days
 if symptoms are reported without a background survey present; the web site
 should have prevented this, but doesn't appear to have done so)
 - 'only.symptoms', whether to exclude those that have no report without
-symptoms}
+symptoms in a season. Someone who is ill at every report may have joined
+or reported only because they were ill, and keeping them would bias
+incidence and prevalence upwards. Leave it out of \code{clean} for analyses
+that need these participants.}
 
 \item{min.reports}{minimum number of symptom reporting days per participant
 (ignored if 'min.reports' is not given as a cleaning option)}
