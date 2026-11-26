@@ -11,7 +11,8 @@ contact_illness(
   healthy = c("follow-up", "report"),
   chronic = c("none", "duration"),
   chronic.days = NULL,
-  follow_up_end = c("last_healthy", "end_of_illness")
+  follow_up_end = c("last_healthy", "end_of_illness"),
+  max.gap = Inf
 )
 }
 \arguments{
@@ -56,6 +57,11 @@ reported recovery is capped at the report date; a continuing illness
 without a recovery establishes illness only through the days supported by
 reports. Contact days after follow-up have unknown status. Reports excluded
 as chronic do not extend follow-up.}
+
+\item{max.gap}{maximum number of days before a symptom-free report that it
+covers under \code{healthy = "report"}, as a non-negative whole number or
+\code{Inf} (the default). Alternatives include 14 or 21 days. Reports
+treated as chronic follow the same rule.}
 }
 \value{
 the contact reports with added columns \code{follow_up} (see
@@ -115,7 +121,8 @@ own definitions.
 other day is "no symptoms", with or without a report that day. With
 \code{healthy = "report"} a day is "no symptoms" only if a report
 without symptoms filed after it covers it, from the date of the previous
-report up to the day before its own. Days before a participant's first
+report up to the day before its own, limited to the preceding
+\code{max.gap} days. Days before a participant's first
 report, and days with no such report, are unknown. The exception is a
 report with symptoms (or
 without a known symptom status) whose dates give no usable interval:
