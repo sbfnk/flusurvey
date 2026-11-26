@@ -11,7 +11,9 @@ bout_evidence(
   inverted.dates = c("keep", "clear", "reset.end"),
   expand.days = TRUE,
   precedence = c("dates", "continuation", "report.date"),
-  unresolved = c("fill", "missing")
+  unresolved = c("fill", "missing"),
+  chronic = c("none", "duration"),
+  chronic.days = NULL
 )
 }
 \arguments{
@@ -27,8 +29,11 @@ report. These policies do not replace the original report evidence.}
 \item{expand.days}{whether to expand established illness intervals to
 individual days. Set FALSE for interval matching without daily expansion.}
 
-\item{precedence, unresolved}{How bouts are formed and what happens to a
-bout with no reported end date, as in \code{\link{bouts_of_illness}}.}
+\item{precedence, unresolved}{Bout formation and treatment of a bout with
+no reported end date, as in \code{\link{bouts_of_illness}}.}
+
+\item{chronic, chronic.days}{Chronic report rule as in
+\code{\link{bouts_of_illness}}.}
 }
 \value{
 a list of data tables: \code{bouts}, \code{reports},

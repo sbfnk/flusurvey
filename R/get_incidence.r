@@ -17,6 +17,8 @@
 ##' @param start.date,missing.start,inverted.dates,precedence,unresolved how
 ##' bouts and their dates are set, see \code{\link{bouts_of_illness}};
 ##' \code{start.date} defaults to "earliest" in both
+##' @param chronic,chronic.days chronic report rule passed to
+##' \code{\link{bouts_of_illness}}; all reports remain in the denominator
 ##' @details
 ##' A bout is ongoing at entry when its start is before the participant's
 ##' first report. \code{exclude = "ongoing.at.entry"} uses the
@@ -55,7 +57,9 @@ get_incidence <- function(
   missing.start = c("first.report", "missing"),
   inverted.dates = c("keep", "clear", "reset.end"),
   precedence = c("dates", "continuation", "report.date"),
-  unresolved = c("fill", "missing")
+  unresolved = c("fill", "missing"),
+  chronic = c("none", "duration"),
+  chronic.days = NULL
 ) {
   exclude <- check_exclude(exclude)
   aggregation <- match.arg(aggregation)
@@ -68,7 +72,9 @@ get_incidence <- function(
     missing.start = missing.start,
     inverted.dates = inverted.dates,
     precedence = precedence,
-    unresolved = unresolved
+    unresolved = unresolved,
+    chronic = chronic,
+    chronic.days = chronic.days
   )
   bouts <- exclude_bouts(bouts, exclude)
   id_column <- grep("_id$", colnames(dt), value = TRUE)

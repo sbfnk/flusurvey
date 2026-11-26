@@ -13,7 +13,9 @@ bouts_of_illness(
   inverted.dates = c("keep", "clear", "reset.end"),
   daily.flags = c("none", "carry.forward", "bout", "report"),
   precedence = c("dates", "continuation", "report.date"),
-  unresolved = c("fill", "missing")
+  unresolved = c("fill", "missing"),
+  chronic = c("none", "duration"),
+  chronic.days = NULL
 )
 }
 \arguments{
@@ -24,9 +26,9 @@ bouts_of_illness(
 \item{as.data.frame}{currently has no effect}
 
 \item{start.date}{which reported start date to use for a bout: the
-"earliest" one reported (the default, as a bout started at the last
-reported date can start after a report that already gives symptoms of it),
-or the "last" one}
+"earliest" one reported (the default, because the last reported date can
+fall after a report that already gives symptoms of the bout), or the "last"
+one}
 
 \item{missing.start}{what to use as start date if none was reported for a
 bout: the date of its "first.report", or "missing"}
@@ -53,6 +55,14 @@ after the previous report date starts a new bout.}
 
 \item{unresolved}{what to do with a bout with no reported end date: "fill"
 its end with the last report date, or leave it "missing"}
+
+\item{chronic}{Rule for chronic-only reports: "none" applies no rule;
+"duration" excludes symptomatic reports with a valid interval longer
+than \code{chronic.days} days from bout reconstruction. Duration alone
+does not establish that symptoms are chronic.}
+
+\item{chronic.days}{Number of days beyond which a report is excluded when
+\code{chronic = "duration"}.}
 }
 \value{
 a data table of bouts of illness, or of their days

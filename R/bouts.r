@@ -307,8 +307,10 @@ evidence_days <- function(reports) {
 
 ## Prepare reports for bout assignment: sorted, numbered, with the bout of
 ## each symptomatic report. Returns the table before any dates are filled in.
-reconstruct_bouts <- function(x, precedence = "dates") {
+reconstruct_bouts <- function(x, precedence = "dates", chronic = "none",
+                              chronic.days = NULL) {
   dt <- copy(data.table(x))
+  dt <- dt[!chronic_reports(dt, chronic, chronic.days)]
   dt[, no.symptoms := factor(as.character(no.symptoms), levels = c("f", "t"))]
   if (!"same" %in% colnames(dt)) dt[, same := NA_character_]
   setorderv(dt, c("participant_id", "season", "date"))
@@ -374,6 +376,8 @@ reconstruct_bouts <- function(x, precedence = "dates") {
 ##'   individual days. Set FALSE for interval matching without daily expansion.
 ##' @param precedence,unresolved Bout formation and treatment of a bout with
 ##'   no reported end date, as in \code{\link{bouts_of_illness}}.
+##' @param chronic,chronic.days Chronic report rule as in
+##'   \code{\link{bouts_of_illness}}.
 ##' @return a list of data tables: \code{bouts}, \code{reports},
 ##'   \code{intervals} and \code{days}
 ##' @examples
@@ -387,9 +391,11 @@ bout_evidence <- function(
   missing.start = c("missing", "first.report"),
   inverted.dates = c("keep", "clear", "reset.end"), expand.days = TRUE,
   precedence = c("dates", "continuation", "report.date"),
-  unresolved = c("fill", "missing")
+  unresolved = c("fill", "missing"), chronic = c("none", "duration"),
+  chronic.days = NULL
 ) {
-  dt <- reconstruct_bouts(x, match.arg(precedence))
+  dt <- reconstruct_bouts(x, match.arg(precedence), match.arg(chronic),
+                          chronic.days)
   bout_evidence_from(dt, match.arg(start.date), match.arg(missing.start),
                      match.arg(inverted.dates), match.arg(unresolved),
                      expand.days)
@@ -464,6 +470,12 @@ expand_to_days <- function(dt, daily.flags, report.flags, flag.columns) {
 ##' @param x the data to extract bouts from
 ##' @param symptomatic.only whether to only include symptomatic periods
 ##' @param as.data.frame currently has no effect
+##' @param chronic Rule for chronic-only reports: "none" applies no rule;
+##' "duration" excludes symptomatic reports with a valid interval longer
+##' than \code{chronic.days} days from bout reconstruction. Duration alone
+##' does not establish that symptoms are chronic.
+##' @param chronic.days Number of days beyond which a report is excluded when
+##' \code{chronic = "duration"}.
 ##' @param precedence how a report joins the previous bout. A report answered
 ##' "no" always starts a new bout. Otherwise, with "dates", a report whose start
 ##' date is after the previous end date starts a new bout, even if it is
@@ -516,7 +528,8 @@ bouts_of_illness <- function(
   inverted.dates = c("keep", "clear", "reset.end"),
   daily.flags = c("none", "carry.forward", "bout", "report"),
   precedence = c("dates", "continuation", "report.date"),
-  unresolved = c("fill", "missing")
+  unresolved = c("fill", "missing"), chronic = c("none", "duration"),
+  chronic.days = NULL
 ) {
   precedence <- match.arg(precedence)
   unresolved <- match.arg(unresolved)
@@ -539,7 +552,7 @@ bouts_of_illness <- function(
   }
 
   ## the lags below need reports ordered by date within participant and season
-  dt <- reconstruct_bouts(dt, precedence)
+  dt <- reconstruct_bouts(dt, precedence, match.arg(chronic), chronic.days)
 
   tf <-
     colnames(dt)[vapply(colnames(dt), function(x) {

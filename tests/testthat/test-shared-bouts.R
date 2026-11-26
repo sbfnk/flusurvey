@@ -29,6 +29,32 @@ wellness <- function() {
   list(flu("2013-01-01"), flu("2013-01-31"))
 }
 
+test_that("the chronic rule is shared by bouts, incidence and contacts", {
+  symptoms <- prepare(
+    flu("2013-01-01"),
+    flu("2013-01-20", c("fever", "cough"), start = "2013-01-02",
+        end = "2013-01-20"),
+    flu("2013-01-25", "cough", same = "no", start = "2013-01-24",
+        end = "2013-01-25"),
+    flu("2013-01-31")
+  )
+  symptoms[, `:=`(min.date = min(date), max.date = max(date))]
+  e <- bout_evidence(symptoms, chronic = "duration", chronic.days = 14)
+  expect_equal(nrow(e$bouts), 1L)
+  expect_equal(e$bouts$symptoms.start.date, as.Date("2013-01-24"))
+  capture.output(b <- bouts_of_illness(symptoms, chronic = "duration",
+                                      chronic.days = 14))
+  expect_equal(b$symptoms.start.date, e$bouts$symptoms.start.date)
+  capture.output(inc <- get_incidence(symptoms, aggregation = "day",
+                                     chronic = "duration", chronic.days = 14))
+  expect_equal(sum(inc$ili), 0)
+  contact <- data.table::data.table(global_id = "a",
+    contact.date = as.Date(c("2013-01-10", "2013-01-24")))
+  expect_equal(contact_illness(contact, symptoms, chronic = "duration",
+                              chronic.days = 14)$current_symptoms,
+               c("no symptoms", "symptoms"))
+})
+
 test_that("daily expansion retains its positional argument", {
   symptoms <- do.call(prepare, c(wellness(), list(
     flu("2013-01-05", "fever", start = "2013-01-03", end = "2013-01-05")
