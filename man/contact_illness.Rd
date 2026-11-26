@@ -10,7 +10,8 @@ contact_illness(
   min.reports = 3,
   healthy = c("follow-up", "report"),
   chronic = c("none", "duration"),
-  chronic.days = NULL
+  chronic.days = NULL,
+  follow_up_end = c("last_healthy", "end_of_illness")
 )
 }
 \arguments{
@@ -37,6 +38,13 @@ participant to be eligible in a season}
 "follow-up" counts it as healthy, "report" only if a later report
 without symptoms covers it}
 
+\item{follow_up_end}{where follow-up ends: \code{"last_healthy"} (the
+default) at the last report without symptoms, or \code{"end_of_illness"}
+at the later of that report and the last established illness day. A
+reported recovery is capped at the report date; a continuing illness
+without a recovery establishes illness only through the days supported by
+reports. Contact days after follow-up have unknown status. Reports excluded
+as chronic do not extend follow-up.}
 \item{chronic}{an optional heuristic for chronic symptom reports:
 \code{"none"} (the default) applies no rule; \code{"duration"} treats
 reports with a valid interval of more than \code{chronic.days} days as
@@ -67,8 +75,9 @@ not needed on the contact day itself.
 \emph{Eligibility and follow-up.} A participant is eligible in a season if
 they filed symptom reports on at least \code{min.reports} different days
 and at least one of them reported no symptoms. Follow-up runs from the
-first to the last report without symptoms. Bouts are reconstructed from all
-symptom reports, including those of ineligible participants and those
+first report without symptoms to the end given by \code{follow_up_end}.
+Bouts are reconstructed from all symptom reports, including those of
+ineligible participants and those
 outside follow-up; eligibility and follow-up only decide which contact days
 are classified. The column \code{follow_up} records the result:
 "in follow-up", "before follow-up", "after follow-up" or "not eligible".
