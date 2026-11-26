@@ -47,7 +47,7 @@
 ##' other day is "no symptoms", with or without a report that day. With
 ##' \code{healthy = "report"} a day is "no symptoms" only if a report
 ##' without symptoms filed after it covers it, from the date of the previous
-##' report up to the day before its own, limited to the preceding
+##' report to the day before the later report, up to a maximum of
 ##' \code{max.gap} days. Days before a participant's first
 ##' report, and days with no such report, are unknown. The exception is a
 ##' report with symptoms (or
@@ -126,9 +126,9 @@
 ##' with one can also have an acute illness.
 ##' @param chronic.days the number of days beyond which a report counts as
 ##' chronic, for \code{chronic = "duration"}
-##' @param max.gap maximum number of days before a symptom-free report that it
-##' covers under \code{healthy = "report"}, as a non-negative whole number or
-##' \code{Inf} (the default). Alternatives include 14 or 21 days. Reports
+##' @param max.gap maximum number of days covered before a symptom-free report
+##' under \code{healthy = "report"}, as a non-negative whole number or
+##' \code{Inf} (the default). Other choices include 14 or 21 days. Reports
 ##' treated as chronic follow the same rule.
 ##' @return the contact reports with added columns \code{follow_up} (see
 ##' above), \code{current_symptoms}
