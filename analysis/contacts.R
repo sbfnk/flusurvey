@@ -13,6 +13,8 @@ dt_back_contacts <- extract_data(
   "data/flusurvey_raw_2012_2020.rds",
   years = 2012:2013,
   surveys = c("background", "contact"),
+  ## The season window is for influenza incidence; contact behaviour has no
+  ## such season.
   clean = c(
     "remove.first", "remove.bad.symptom.dates", "remove.bad.health.scores",
     "remove.postcodes", "n.reports", "unsuccessful.join", "only.symptoms"
